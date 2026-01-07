@@ -1,0 +1,18 @@
+# Auto Claude data directory
+.auto-claude/
+
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# Playwright
+.playwright-mcp/
+
+# OS
+.DS_Store
