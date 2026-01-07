@@ -1,40 +1,40 @@
 # Session Handoff: SPHERE Prototype
-**Date:** 2026-01-07 19:30 MSK
+**Date:** 2026-01-07 20:00 MSK
 
 ## Current State
-The Sphere prototype is in **Stage 4 - Life & Depth**, with all four features implemented. User changed the color palette from Purple→Ember to **Cosmic Blue→Nova Gold** (240°→45°). The **Goosebumps effect feels too jerky** and needs creative rethinking.
+SPHERE прототип в **Stage 4 - Life & Depth** ✅ COMPLETE. Все эффекты реализованы, включая исправленные Goosebumps (Dual-Layer подход).
 
-## Last Completed (This Session)
-- ✅ **Aura**: Breath-synchronized glow (70-100% alpha)
-- ✅ **Bokeh**: Depth-based fade (65-100% alpha, near→far)
-- ✅ **Heartbeat**: Subtle 80 bpm pulsation layered on breathing
-- ⚠️ **Goosebumps**: Implemented but feels "дёрганая" (jerky) — **NEEDS RETHINK**
+## Implemented Features
 
-## Color Palette Update
-User changed baseline from Purple to **Deep Blue (HSL 0.66, 0.60, 0.50)** with a new 6-stop gradient journey:
-```
-Deep Blue (240°) → Purple (275°) → Magenta (310°) → Pink (345°) → Coral (15°) → Nova Gold (45°)
-```
+### Core
+- ✅ **5,000 Particles** с Fibonacci-распределением
+- ✅ **Combined Organic Breathing** (синхронное + микро-кипение + heartbeat 80bpm)
+- ✅ **Rolling Physics** — сфера катается за курсором с инерцией
+- ✅ **Evaporation Bleeding** — fade-out → teleport → fade-in
 
-## Problem: Goosebumps
-Current implementation modulates Perlin Noise uniforms:
-- `uNoiseAmount`: 0.08 → 0.15
-- `uNoiseSpeed`: 0.3 → 0.9
+### Visual Effects
+- ✅ **Aura** — яркость синхронизирована с дыханием (70-100% alpha)
+- ✅ **Bokeh** — depth-based fade (65-100% alpha)
+- ✅ **Dual-Layer Goosebumps** — base waves (×2 freq, 0.3 speed) + high-freq ripples (×8 freq, 0.5 speed)
 
-This creates a **choppy, jittery** surface instead of organic tension. See `prompt_goosebumps_brainstorm.md` for ideas.
+### Color System
+- ✅ **165° Rainbow Journey**: Deep Blue (240°) → Nova Gold (45°)
+- ✅ **HSL interpolation** с temporal smoothing
+
+### Emotional State Machine
+- ✅ 6 фаз: PEACE → LISTENING → TENSION → BLEEDING → TRAUMA → HEALING
 
 ## Key Files
-- `prototype-sphere/src/ParticleSystem.js` — Shaders with Aura, Bokeh, Heartbeat, Noise
-- `prototype-sphere/src/Sphere.js` — Emotional state machine + Goosebumps modulation
-- `prototype-sphere/src/InputManager.js` — Mouse/touch, velocity, idle detection
+- `prototype-sphere/src/ParticleSystem.js` — Шейдеры, uniforms, Dual-Layer Goosebumps
+- `prototype-sphere/src/Sphere.js` — State machine, goosebumps modulation
+- `prototype-sphere/src/InputManager.js` — Mouse/touch, velocity detection
 
 ## Dev Server
 ```bash
 cd /Users/admin/projects/personal-site/prototype-sphere
 npm run dev
-# Currently running on http://localhost:5178
 ```
 
-## Knowledge Items
-- `personal_site_as_journey` — Project philosophy, BMAD methodology
-- `high_performance_web_graphics_patterns` — Three.js patterns, shader tricks
+## Next Steps
+- Stage 5: "Effect Conductor" — атмосферный post-processing
+- Bloom, chromatic aberration, vignette
