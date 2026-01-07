@@ -1,40 +1,91 @@
 # Session Handoff: SPHERE Prototype
-**Date:** 2026-01-07 20:00 MSK
+**Date:** 2026-01-07 20:53 MSK
 
 ## Current State
-SPHERE прототип в **Stage 4 - Life & Depth** ✅ COMPLETE. Все эффекты реализованы, включая исправленные Goosebumps (Dual-Layer подход).
+SPHERE прототип в **Stage 5 - Sublime Complexity** ✅ ВИЗУАЛ ГОТОВ.
 
-## Implemented Features
+Переходим к **Stage 6 - Deep Interaction** — углубление взаимодействия.
 
-### Core
-- ✅ **5,000 Particles** с Fibonacci-распределением
-- ✅ **Combined Organic Breathing** (синхронное + микро-кипение + heartbeat 80bpm)
-- ✅ **Rolling Physics** — сфера катается за курсором с инерцией
-- ✅ **Evaporation Bleeding** — fade-out → teleport → fade-in
+## Что реализовано
 
-### Visual Effects
-- ✅ **Aura** — яркость синхронизирована с дыханием (70-100% alpha)
-- ✅ **Bokeh** — depth-based fade (65-100% alpha)
-- ✅ **Dual-Layer Goosebumps** — base waves (×2 freq, 0.3 speed) + high-freq ripples (×8 freq, 0.5 speed)
+### Визуальные эффекты (COMPLETE)
+| Эффект | Статус | Описание |
+|--------|--------|----------|
+| **5,000 Particles** | ✅ | Fibonacci-распределение |
+| **Organic Breathing** | ✅ | Асимметричная кривая вдох/выдох |
+| **Heartbeat 80bpm** | ✅ | Пульсация размера частиц |
+| **Rolling Physics** | ✅ | Инерция, сфера катится за курсором |
+| **Evaporation Bleeding** | ✅ | Частицы испаряются при стрессе |
+| **Dual Goosebumps** | ✅ | Волны + микро-шум на поверхности |
+| **165° Rainbow Journey** | ✅ | Deep Blue → Nova Gold через HSL |
+| **Dynamic Bloom** | ✅ | Glow усиливается с tension |
+| **Chromatic Aberration** | ✅ | Цветовое расщепление (NEW) |
+| **Ambient Sparkles** | ✅ | Случайные искорки |
+| **Dynamic Particle Size** | ✅ | Пульсация через EffectConductor |
 
-### Color System
-- ✅ **165° Rainbow Journey**: Deep Blue (240°) → Nova Gold (45°)
-- ✅ **HSL interpolation** с temporal smoothing
+### Эмоциональные фазы
+```
+Peace → Listening → Tension → Bleeding → Trauma → Healing
+```
 
-### Emotional State Machine
-- ✅ 6 фаз: PEACE → LISTENING → TENSION → BLEEDING → TRAUMA → HEALING
+## Что можно улучшить (Interaction Focus)
+
+### 🎯 Приоритет: Глубина взаимодействия
+
+| Идея | Описание | Сложность |
+|------|----------|-----------|
+| **Cursor Proximity Glow** | Частицы рядом с курсором светятся ярче | Низкая |
+| **Touch Ripples** | Волна от точки касания, как камень в воду | Средняя |
+| **Magnetic Repulsion** | Отталкивание частиц от курсора (режим "страха") | Средняя |
+| **Gesture Recognition** | Различать круговые движения, резкие тычки, поглаживания | Высокая |
+| **Sound Reactivity** | Микрофон → частоты → визуал | Высокая |
+| **Particle Trails** | Шлейфы за движущимися частицами | Высокая |
+
+### 🎨 Визуальные бонусы (optional)
+- **Ripple Waves** — концентрические волны по поверхности
+- **Depth of Field** — размытие дальних частиц
+- **Vignette** — затемнение краёв экрана
+
+## Архитектура
+
+```
+main.js
+├── InputManager.js      # 👈 Точка расширения для жестов
+│     └── velocity, justStopped, sustainedIdle
+│     └── TODO: gestureType, circularMotion, tapPattern
+├── Sphere.js            # State machine (6 фаз)
+├── EffectConductor.js   # Stochastic effect scheduler
+└── ParticleSystem.js    # Шейдеры, uniforms
+```
 
 ## Key Files
-- `prototype-sphere/src/ParticleSystem.js` — Шейдеры, uniforms, Dual-Layer Goosebumps
-- `prototype-sphere/src/Sphere.js` — State machine, goosebumps modulation
-- `prototype-sphere/src/InputManager.js` — Mouse/touch, velocity detection
+```
+prototype-sphere/src/
+├── InputManager.js       # 👈 Главный кандидат на расширение
+├── Sphere.js             # Emotional state machine
+├── EffectConductor.js    # Probability-based effects
+├── ParticleSystem.js     # GLSL shaders
+└── main.js               # Orchestration
+```
 
 ## Dev Server
 ```bash
 cd /Users/admin/projects/personal-site/prototype-sphere
 npm run dev
+# http://localhost:5173 или 5174
 ```
 
-## Next Steps
-- Stage 5: "Effect Conductor" — атмосферный post-processing
-- Bloom, chromatic aberration, vignette
+## Debug API
+```javascript
+// Эффекты
+window.app.effectConductor.forceActivate('chromaticAberration', 1.0)
+window.app.effectConductor.getDebugInfo()
+
+// Состояние сферы
+window.app.sphere.currentState
+window.app.sphere.currentColorProgress
+```
+
+## Knowledge Items
+- `personal_site_as_journey` — философия проекта, BMAD
+- `high_performance_web_graphics_patterns` — Three.js паттерны, шейдеры
