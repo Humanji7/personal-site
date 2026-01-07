@@ -1,34 +1,38 @@
-# Handoff: Sphere Prototype — 7 января 2026 (Session 4)
+# Handoff: Sphere Prototype — 7 января 2026 (Session 5)
 
 ## Статус
 
 **Этап 1 ✅** — Базовая сфера  
-**Этап 2-3 ✅** — Эмоциональная система с Rolling + Evaporation Bleeding
+**Этап 2-3 ✅** — Эмоциональная система (Rolling + Evaporation Bleeding)  
+**Этап 3.5 ✅** — Perlin Noise Surface Dynamics
 
 ## Что сделано в этой сессии
 
-### ✅ Evaporation Bleeding 2.0
-Заменена гравитационная механика на плавное угасание частиц:
-- **Fade-out (500ms):** размер 1→1.6x, радиальный дрифт +15%, ember color
-- **Teleport:** невидимый перенос на scar-offset позицию
-- **Fade-in (600ms):** мягкое возрождение с тёплым оттенком
+### ✅ Particle Doubling
+- Частицы: 2000 → 5000 (desktop), 2000 (mobile)
+- Размер: 8.0 → 6.0 (пропорционально)
+
+### ✅ Perlin Noise Surface
+- Добавлен Simplex 3D Noise в vertex shader
+- `uNoiseAmount: 0.08`, `uNoiseSpeed: 0.3`
+- Поверхность сферы теперь «волнуется» органично
 
 ### Изменённые файлы
 
 | Файл | Изменения |
 |------|-----------|
-| `ParticleSystem.js` | +`aBleedPhase` атрибут, +`processEvaporation()`, новые shader effects |
-| `Sphere.js` | Активирован `processEvaporation()` (line 199) |
+| `ParticleSystem.js` | +snoise(), +uNoiseAmount/uNoiseSpeed, noise displacement |
+| `main.js` | +isMobile detection, adaptive particleCount |
 
 ---
 
-## Следующий шаг: Удвоение частиц
+## Следующий шаг: Градиентные цветовые переходы
 
 > [!NOTE]
-> Сейчас 2000 частиц. Увеличение до 4000-6000 сделает сферу более плотной и красивой.
+> Цветовые переходы (tension → bleeding → healing) должны быть плавнее, проходя через все промежуточные оттенки HSL вместо резкого lerp RGB.
 
-См. `prompt_particle_doubling.md`
+См. `prompt_gradient_colors.md`
 
 ---
 
-*Обновлено: 7 января 2026, 17:28 (Antigravity)*
+*Обновлено: 7 января 2026, 17:51 (Antigravity)*
