@@ -1,38 +1,40 @@
-# Handoff: Sphere Prototype — 7 января 2026 (Session 5)
+# Session Handoff: SPHERE Prototype
+**Date:** 2026-01-07 19:30 MSK
 
-## Статус
+## Current State
+The Sphere prototype is in **Stage 4 - Life & Depth**, with all four features implemented. User changed the color palette from Purple→Ember to **Cosmic Blue→Nova Gold** (240°→45°). The **Goosebumps effect feels too jerky** and needs creative rethinking.
 
-**Этап 1 ✅** — Базовая сфера  
-**Этап 2-3 ✅** — Эмоциональная система (Rolling + Evaporation Bleeding)  
-**Этап 3.5 ✅** — Perlin Noise Surface Dynamics
+## Last Completed (This Session)
+- ✅ **Aura**: Breath-synchronized glow (70-100% alpha)
+- ✅ **Bokeh**: Depth-based fade (65-100% alpha, near→far)
+- ✅ **Heartbeat**: Subtle 80 bpm pulsation layered on breathing
+- ⚠️ **Goosebumps**: Implemented but feels "дёрганая" (jerky) — **NEEDS RETHINK**
 
-## Что сделано в этой сессии
+## Color Palette Update
+User changed baseline from Purple to **Deep Blue (HSL 0.66, 0.60, 0.50)** with a new 6-stop gradient journey:
+```
+Deep Blue (240°) → Purple (275°) → Magenta (310°) → Pink (345°) → Coral (15°) → Nova Gold (45°)
+```
 
-### ✅ Particle Doubling
-- Частицы: 2000 → 5000 (desktop), 2000 (mobile)
-- Размер: 8.0 → 6.0 (пропорционально)
+## Problem: Goosebumps
+Current implementation modulates Perlin Noise uniforms:
+- `uNoiseAmount`: 0.08 → 0.15
+- `uNoiseSpeed`: 0.3 → 0.9
 
-### ✅ Perlin Noise Surface
-- Добавлен Simplex 3D Noise в vertex shader
-- `uNoiseAmount: 0.08`, `uNoiseSpeed: 0.3`
-- Поверхность сферы теперь «волнуется» органично
+This creates a **choppy, jittery** surface instead of organic tension. See `prompt_goosebumps_brainstorm.md` for ideas.
 
-### Изменённые файлы
+## Key Files
+- `prototype-sphere/src/ParticleSystem.js` — Shaders with Aura, Bokeh, Heartbeat, Noise
+- `prototype-sphere/src/Sphere.js` — Emotional state machine + Goosebumps modulation
+- `prototype-sphere/src/InputManager.js` — Mouse/touch, velocity, idle detection
 
-| Файл | Изменения |
-|------|-----------|
-| `ParticleSystem.js` | +snoise(), +uNoiseAmount/uNoiseSpeed, noise displacement |
-| `main.js` | +isMobile detection, adaptive particleCount |
+## Dev Server
+```bash
+cd /Users/admin/projects/personal-site/prototype-sphere
+npm run dev
+# Currently running on http://localhost:5178
+```
 
----
-
-## Следующий шаг: Градиентные цветовые переходы
-
-> [!NOTE]
-> Цветовые переходы (tension → bleeding → healing) должны быть плавнее, проходя через все промежуточные оттенки HSL вместо резкого lerp RGB.
-
-См. `prompt_gradient_colors.md`
-
----
-
-*Обновлено: 7 января 2026, 17:51 (Antigravity)*
+## Knowledge Items
+- `personal_site_as_journey` — Project philosophy, BMAD methodology
+- `high_performance_web_graphics_patterns` — Three.js patterns, shader tricks
