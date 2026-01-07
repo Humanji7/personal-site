@@ -1,5 +1,5 @@
 # Session Handoff: SPHERE Prototype
-**Date:** 2026-01-07 22:45 MSK
+**Date:** 2026-01-08 01:35 MSK
 
 ## Current State
 SPHERE прототип в **Stage 6 - Deep Interaction** ✅ COMPLETE
@@ -81,8 +81,18 @@ window.app.inputManager.POKE_MIN_VELOCITY = 0.25
 window.app.inputManager.ORBIT_MIN_ANGULAR = 1.5
 ```
 
-## Next Steps (Candidates)
-1. **Particle Count Optimization** — См. prompt_particle_count_brainstorm.md
+## Particle Test Conclusions (2026-01-08)
+
+| Параметр | Результат |
+|----------|------------|
+| **5000 частиц** | ✅ Оптимально для философии "космическая пустота + дыхание" |
+| **7500 частиц** | ❌ Слишком плотно, теряется ощущение уязвимости |
+| **uSize=7-8** | ⚠️ Снижает FPS, но может использоваться динамически |
+
+> **Вывод:** Оставляем 5000. Плотность можно увеличивать ДИНАМИЧЕСКИ через `uSize` при tension.
+
+## Next Steps (Priority)
+1. **🔥 Dynamic uSize** — `uSize` растёт с tension (см. `prompt_dynamic_usize.md`)
 2. **Mobile Touch Gestures** — адаптация для тач-устройств
 3. **Sound Integration** — аудио-feedback на жесты
 
