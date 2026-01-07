@@ -25,10 +25,11 @@
 
 | Файл | Назначение |
 |------|------------|
-| [personal_site_base_v4.md](file:///Users/admin/projects/personal-site/personal_site_base_v4.md) | Полная база проекта — философия, механики, синестезия |
-| [LABYRINTH.md](file:///Users/admin/projects/personal-site/LABYRINTH.md) | Живая карта комнат — заполняется в процессе |
-| [PROTOCOL.md](file:///Users/admin/projects/personal-site/PROTOCOL.md) | Паттерны материализации идей в структуру |
-| [handoff.md](file:///Users/admin/projects/personal-site/handoff.md) | История сессий и хендоффы |
+| [docs/PROJECT_BASE.md](docs/PROJECT_BASE.md) | Полная база проекта — философия, механики, синестезия |
+| [docs/LABYRINTH.md](docs/LABYRINTH.md) | Живая карта комнат — заполняется в процессе |
+| [docs/PROTOCOL.md](docs/PROTOCOL.md) | Паттерны материализации идей в структуру |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Техническая архитектура сферы |
+| [handoff.md](handoff.md) | Текущий хендофф сессии |
 
 ---
 
@@ -38,7 +39,7 @@
 - **Человек:** сырой материал — фразы, образы, ощущения, вето
 - **Агент:** материализация — структурирование, связи, прототипы
 
-### Паттерны (из PROTOCOL.md)
+### Паттерны (из docs/PROTOCOL.md)
 1. **СГУСТОК** — слова → конкретный элемент комнаты
 2. **НИТКА** — связи между фрагментами
 3. **ИНВЕРСИЯ** — проверка переворотом
@@ -56,7 +57,7 @@
 
 1. **Чистое творчество** — не ограничивай фантазию инженерными рамками на этапе дизайна
 2. **Материализация через мясо** — детализируй только когда появляются сгустки, зацепки
-3. **Лабиринт растёт** — каждая сессия добавляет в LABYRINTH.md
+3. **Лабиринт растёт** — каждая сессия добавляет в docs/LABYRINTH.md
 4. **Нет обыкновенных путей** — сайт должен удивлять
 
 ---
@@ -67,15 +68,15 @@
 - ✅ Точка входа (СФЕРА + манифест)
 - ✅ 7 состояний пути
 - ✅ Сценарное ветвление
+- ✅ SPHERE прототип (Stage 6 Complete — Deep Interaction + Mobile + Sound)
 - ⬜ Детализация комнат (визуал/текст/механика)
-- ⬜ Прототипы
-- ⬜ Код
+- ⬜ Stage 7 — Deeper personality, memory, narrative hooks
 
 ---
 
 ## Как начать сессию
 
 1. Прочитать этот файл
-2. При необходимости — [personal_site_base_v4.md](file:///Users/admin/projects/personal-site/personal_site_base_v4.md) для контекста
-3. Открыть [LABYRINTH.md](file:///Users/admin/projects/personal-site/LABYRINTH.md) — карта состояния
-4. Следовать [PROTOCOL.md](file:///Users/admin/projects/personal-site/PROTOCOL.md) для материализации
+2. При необходимости — [docs/PROJECT_BASE.md](docs/PROJECT_BASE.md) для контекста
+3. Открыть [docs/LABYRINTH.md](docs/LABYRINTH.md) — карта состояния
+4. Следовать [docs/PROTOCOL.md](docs/PROTOCOL.md) для материализации
