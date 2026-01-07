@@ -1,8 +1,17 @@
 # Session Handoff: SPHERE Prototype
-**Date:** 2026-01-08 01:35 MSK
+**Date:** 2026-01-08 02:15 MSK
+
+## Session Summary
+✅ **Stage 6 Phase 4 COMPLETE** — Mobile Touch & Sound Integration
+- Добавлен `touchRadius`, `touchPressure`, `touchIntensity` в `InputManager.js`
+- Создан `SoundManager.js` — процедурный синтез Web Audio API (ambient hum, gesture sounds)
+- Интегрировано в эмоциональную систему `Sphere.js`
+
+## Next Session
+👉 **[prompt_docs_cleanup.md](file:///Users/admin/projects/personal-site/prompt_docs_cleanup.md)** — Наведение порядка в документации проекта
 
 ## Current State
-SPHERE прототип в **Stage 6 - Deep Interaction** ✅ COMPLETE
+SPHERE прототип в **Stage 6 - Deep Interaction** ✅ **PHASE 4 COMPLETE**
 
 ## Что реализовано
 
@@ -31,6 +40,23 @@ SPHERE прототип в **Stage 6 - Deep Interaction** ✅ COMPLETE
 | **Gesture Reactions** | ✅ | stroke→calm, poke→ripple, orbit→hypnosis, tremble→nervous |
 | **Touch Ripples** | ✅ | Волна от точки poke |
 
+### Mobile Touch (NEW ✅)
+| Фича | Статус | Описание |
+|------|--------|----------|
+| **Touch Pressure/Radius** | ✅ | `touchIntensity` = сила касания (0-1) |
+| **Intensity Modifier** | ✅ | Сильный тап = x2 эмоциональный отклик |
+| **Multi-touch Protection** | ✅ | Игнорируем pinch, только primary touch |
+| **CSS touch-action** | ✅ | Отключены браузерные жесты на canvas |
+
+### Sound Integration (NEW ✅)
+| Звук | Триггер | Описание |
+|------|---------|----------|
+| **Ambient Hum** | Всегда | 60Hz + LFO, громче/выше при tension |
+| **Stroke Chime** | strokeCalm > 0.2 | Мягкий высокочастотный звон |
+| **Poke Click** | pokeStartle > 0.8 | Резкий клик + резонанс |
+| **Tremble Grain** | trembleNervous > 0.3 | Гранулярный нервный звук |
+| **Bleeding Static** | phase = bleeding | Белый шум с fade-out |
+
 ### Эмоциональные фазы
 ```
 Peace → Listening → Tension → Bleeding → Trauma → Healing
@@ -40,62 +66,49 @@ Peace → Listening → Tension → Bleeding → Trauma → Healing
 
 ```
 main.js
-├── InputManager.js      # Gesture recognition
-│     └── gestureType, directionalConsistency, angularVelocity
-├── Sphere.js            # 👈 NEW: _processGesture()
-│     └── gestureReaction { strokeCalm, pokeStartle, orbitSync, trembleNervous }
-│     └── ripple { active, origin, startTime }
+├── InputManager.js      # Gesture + Touch metrics
+│     └── touchRadius, touchPressure, touchIntensity
+├── Sphere.js            # Emotional orchestrator
+│     └── gestureReaction + soundManager integration
+├── SoundManager.js      # 👈 NEW: Web Audio API synthesis
+│     └── ambient, stroke, poke, tremble, bleeding
 ├── EffectConductor.js   # Probability-based effects
-└── ParticleSystem.js    # 👈 NEW: Ripple shader, setNoiseAmount()
-      └── uRippleOrigin, uRippleTime, uRippleSpeed, uRippleDecay
+└── ParticleSystem.js    # Shaders + Ripple
 ```
 
-## Gesture Reactions Summary
+## Debug API
 
-| Gesture | Detection | Sphere Response |
-|---------|-----------|-----------------|
-| **Stroke** | slow + linear | breathing↓, tension↓, particles press inward |
-| **Poke** | fast → stop | goosebumps spike, ripple wave, tension +0.3 |
-| **Orbit** | circular | breathing syncs inversely (slow=calm) |
-| **Tremble** | fast + chaotic | goosebumps max, faster breathing |
+```javascript
+// Sound
+window.app.soundManager.playGestureSound('poke', 1)
+window.app.soundManager.setAmbientIntensity(0.8)
+window.app.soundManager.setVolume(0.5)
+window.app.soundManager.mute() / .unmute()
+
+// Touch
+window.app.inputManager.touchRadius
+window.app.inputManager.touchPressure
+window.app.inputManager.touchIntensity
+
+// Gesture
+window.app.inputManager.currentGesture
+window.app.sphere.gestureReaction
+```
 
 ## Dev Server
 ```bash
 cd /Users/admin/projects/personal-site/prototype-sphere
 npm run dev
-# http://localhost:5176
+# http://localhost:5179
 ```
-
-## Debug API
-```javascript
-// Gesture state
-window.app.inputManager.currentGesture
-window.app.sphere.gestureReaction
-
-// Manual ripple trigger
-window.app.particleSystem.triggerRipple(new THREE.Vector3(1.5, 0, 0))
-
-// Tune thresholds
-window.app.inputManager.STROKE_MAX_VELOCITY = 0.15
-window.app.inputManager.POKE_MIN_VELOCITY = 0.25
-window.app.inputManager.ORBIT_MIN_ANGULAR = 1.5
-```
-
-## Particle Test Conclusions (2026-01-08)
-
-| Параметр | Результат |
-|----------|------------|
-| **5000 частиц** | ✅ Оптимально для философии "космическая пустота + дыхание" |
-| **7500 частиц** | ❌ Слишком плотно, теряется ощущение уязвимости |
-| **uSize=7-8** | ⚠️ Снижает FPS, но может использоваться динамически |
-
-> **Вывод:** Оставляем 5000. Плотность можно увеличивать ДИНАМИЧЕСКИ через `uSize` при tension.
 
 ## Next Steps (Priority)
-1. **🔥 Dynamic uSize** — `uSize` растёт с tension (см. `prompt_dynamic_usize.md`)
-2. **Mobile Touch Gestures** — адаптация для тач-устройств
-3. **Sound Integration** — аудио-feedback на жесты
+1. ~~**Dynamic uSize**~~ ✅ DONE
+2. ~~**Mobile Touch Gestures**~~ ✅ DONE
+3. ~~**Sound Integration**~~ ✅ DONE
+4. **Stage 7** — Deeper personality, memory persistence, narrative hooks
 
 ## Knowledge Items
 - `personal_site_as_journey` — философия проекта, BMAD
 - `high_performance_web_graphics_patterns` — Three.js паттерны, шейдеры
+

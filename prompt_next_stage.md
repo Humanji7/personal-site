@@ -1,28 +1,38 @@
-# Prompt: SPHERE Life & Depth
+# Prompt: Finish Stage 6 (Mobile & Sound)
 
 ## Context
-Мы работаем над интерактивным прототипом СФЕРЫ — entry-point для персонального сайта. Это «живое существо» из 5000 частиц, которое реагирует на курсор пользователя через эмоциональную state-machine (Peace → Listening → Tension → Bleeding → Trauma → Healing).
+SPHERE prototype is in **Stage 6 (Deep Interaction)**.
+- **Done**: Gesture recognition (stroke/poke/orbit/tremble), dynamic uSize (density based on tension), cursor proximity effects, HSL temporal transitions.
+- **Remaining**: Mobile touch adaptation and Sound feedback.
 
-Сейчас сфера уже умеет дышать (синхронное расширение + микро-кипение), менять цвета по HSL (Purple → Ember), кровоточить (evaporation) и кататься (rolling physics).
+## Objective
+Complete Phase 4 of the current stage by implementing mobile support and audio feedback.
 
-## Задача
-Реализовать следующий эволюционный шаг — «Жизнь и Глубина»:
+## Tasks
 
-### Художник (Эстетика)
-1. **Аура**: При вдохе (когда сфера расширяется) — alpha-boost всех частиц. Свечение синхронизировано с дыханием.
-2. **Боке**: Дальние частицы (z < 0) — меньше и прозрачнее. Создаёт эффект глубины и фокуса.
+### 1. Mobile Touch Adaptation
+- **InputManager.js**: Add `touchstart`, `touchmove`, `touchend` listeners.
+- Ensure `isIdle` and `velocity` work correctly with touch (prevent default context menu/scrolling on the canvas).
+- Map touch pressure (if available) or touch area change to potential emotional signals.
 
-### Биолог (Ритмы)
-3. **Сердцебиение**: Накладываем быстрый (~130 bpm) едва заметный пульс поверх медленного дыхания.
-4. **Гусиная кожа**: В состоянии TENSION шум поверхности (Perlin Waves) должен стать резче и быстрее.
+### 2. Sound Integration
+- Implement a `SoundManager.js` (using Web Audio API).
+- **Peace Phase**: Procedurally generated low-frequency ambient "breathing" or "hum".
+- **Gesture Feedback**:
+    - `stroke`: Soft, high-frequency "glass chime" or "rustle".
+    - `poke`: Sharp "click" or "thump" followed by a decaying resonant tail.
+    - `tension`: Rising pitch or increasing volume of the ambient hum.
+    - `bleeding`: Grainy, "evaporating" static sound.
 
-## Ссылки
-- Approved plan: `~/.gemini/antigravity/brain/6a310157-786e-4cdb-ab55-15bd17aae67e/implementation_plan.md`
-- Handoff: `handoff.md` в корне проекта.
-- KI: `personal_site_as_journey`, `high_performance_web_graphics_patterns`.
+### 3. Polish & Meta-Brain Update
+- Update `SPHERE_STATUS.md` to reflect full Stage 6 completion.
+- Final performance check on mobile (target ≥30 FPS, desktop ≥60 FPS).
 
-## Инструкция
-1. Прочитай `implementation_plan.md` — там есть конкретные GLSL-сниппеты.
-2. Реализуй все 4 фичи в `ParticleSystem.js` и `Sphere.js`.
-3. Проверь результат в браузере, сделай скриншоты.
-4. Обнови `walkthrough.md` с результатами верификации.
+## Verification
+- Test in browser using "Mobile mode" in DevTools.
+- Verify sound triggers correctly with gestures.
+- Check `traumaLevel` influence on sound pitch/texture.
+
+---
+
+**Style**: Maintain the interdisciplinary approach (biologist/artist/informatician). Sound should feel like it's coming from inside the sphere's "body", not like a UI button click.
