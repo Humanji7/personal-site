@@ -1,103 +1,81 @@
 # Handoff: Sonic Organism
 
-## Status: READY FOR IMPLEMENTATION
+## Status: PHASE 1 COMPLETE ✅ → PHASE 2 READY
 
-## Context
-This session (2026-01-08) established the vision for transforming SPHERE's sound system from event-triggered samples to a living sonic organism.
+## What Was Done (Phase 1)
 
-### Problem Statement
-> "Звук бедный, реально бедный. Это не что-то такое же живое, как переливающиеся частицы."
+### New File: `SonicOrganism.js`
+- **32 harmonics** — additive synthesis (Layer 1: Spectral Body)
+- **5 polyrhythmic LFOs** — φ, primes, irrational ratios (Layer 2: Pulse Network)
+- `update(sphereState, elapsed)` called every frame from `main.js`
 
-Current sound: triggers play → silence.
-Target sound: continuous, breathing, evolving presence.
+### State Mappings Implemented
+| State | Sound Effect |
+|-------|--------------|
+| `trustIndex` | Warm/cold spectral tilt (even/odd harmonics) |
+| `proximity` | Upper harmonics boost |
+| `colorProgress` | Overall brightness |
+| `pulses.master/breath/heartbeat/neural/swell` | Polyrhythmic amplitude modulation |
 
-### Key Insight
-Particles work like this:
-```
-cursor position → continuous parameters → render every frame
-```
-
-Sound should work identically:
-```
-sphere state → continuous parameters → synthesize every frame
-```
+### Integration
+- `main.js` imports and initializes `SonicOrganism`
+- Shares `AudioContext` with existing `SoundManager`
+- Both systems coexist (continuous + event-triggered)
 
 ---
 
-## Architecture Summary
+## What's Next (Phase 2-4)
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     SONIC ORGANISM                          │
-├─────────────────────────────────────────────────────────────┤
-│  L7: Genre Morphing      │ Ambient ↔ Industrial ↔ Organic  │
-│  L6: Memory Resonance    │ Sound evolves with history       │
-│  L5: Spatial Field       │ 3D positioning, reverb           │
-│  L4: Formant Voice       │ Vowel-like presence             │
-│  L3: Granular Membrane   │ Touch texture (50-200 grains)   │
-│  L2: Pulse Network       │ Polyrhythmic LFOs               │
-│  L1: Spectral Body       │ 32 harmonics, additive          │
-└─────────────────────────────────────────────────────────────┘
-                               ↑
-                    update(sphereState) every frame
-```
+### Phase 2: Granular Membrane
+- **50-200 micro-grains** responding to touch
+- AudioWorklet for real-time grain synthesis
+- Touch X/Y → pitch, size, density
+
+### Phase 3: Formant Voice + Spatial Field
+- **Vowel-like sounds** via parallel bandpass filters (F1-F5)
+- Peace → [a], Curiosity → [i], Fear → [ɪ], Trust → [o]
+- 3D panning following finger position
+
+### Phase 4: Memory Resonance + Genre Morphing
+- Sound evolves with relationship history
+- Crossfade between 4 style poles (Ambient/Industrial/Organic/Synthetic)
 
 ---
 
 ## Technical Context
 
-### Current Files
+### Files
 | File | Role |
 |------|------|
-| `src/SoundManager.js` | 546 lines, event-triggered sounds |
-| `src/Sphere.js` | Calls `soundManager.playGestureSound()` |
-| `src/main.js` | Animation loop, could call `sonicOrganism.update()` |
+| `src/SonicOrganism.js` | **NEW** — Living sound engine (340 lines) |
+| `src/SoundManager.js` | Event-triggered sounds (unchanged) |
+| `src/main.js` | Animation loop, calls `sonicOrganism.update()` |
 
-### Current SoundManager Methods
-- `_initAmbientHum()` — 60Hz drone, LFO modulated
-- `playGestureSound(gesture, intensity)` — one-shots
-- `playRecognitionHum()` / `stopRecognitionHum()` — phase sounds
-- `startOsmosisBass()` / `setOsmosisDepth()` — hold sound
-
-### What Needs to Change
-1. **New file: `SonicOrganism.js`** — main class
-2. **New file: `GranularWorklet.js`** — AudioWorklet for grains
-3. **Modify `main.js`** — call `sonicOrganism.update(state)` in loop
-4. **Modify `Sphere.js`** — pass continuous state, not events
-
----
-
-## Implementation Phases
-
-### Phase 1: Foundation
-- Create `SonicOrganism.js`
-- Implement Spectral Body (32 harmonics)
-- Implement Pulse Network (5 LFOs)
-- Wire to animation loop
-
-### Phase 2: Touch
-- Implement Granular Membrane (AudioWorklet)
-- Connect touch parameters
-
-### Phase 3: Voice & Space
-- Formant Voice (5 filters)
-- Spatial Field (panning, reverb)
-
-### Phase 4: Memory & Style
-- Memory Resonance (persistent evolution)
-- Genre Morphing (style crossfade)
+### Current Architecture
+```
+main.js animate loop
+       ↓
+sonicOrganism.update({
+    trustIndex,
+    proximity,
+    colorProgress,
+    emotionalState,
+    isActive
+}, elapsed)
+       ↓
+Layer 1: Spectral Body (32 harmonics)
+Layer 2: Pulse Network (5 LFOs)
+Layer 3-7: TODO
+```
 
 ---
 
-## Verification Approach
-- **Browser testing**: Open prototype, interact, listen
-- **Console logging**: Log parameter values to verify continuous updates
-- **Performance**: Monitor frame rate (target 60fps)
-- **A/B comparison**: Toggle old/new sound systems
+## Verification Done
+- ✅ Browser test — no errors
+- ✅ 60fps maintained
+- ✅ Sound continuous from start
 
----
-
-## References
-- Full vision: `prompt_sonic_organism.md`
-- Current sound: `src/SoundManager.js`
-- Gesture system: `prompt_gesture_expansion.md`
+## Open Questions for Phase 2
+1. Should granular grains be sampled (buffer) or synthesized (pure tones)?
+2. Touch velocity — how to detect? (differentiate position over time)
+3. AudioWorklet — browser support on mobile?
