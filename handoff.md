@@ -1,90 +1,38 @@
-# SPHERE Prototype — Handoff (2026-01-08)
+# Handoff: SPHERE Stage 7 — 2026-01-08 12:38
 
-## Сессия: Warm Traces реализованы
+## ✅ Завершено сегодня
 
-**Итог:** Реализовали Warm Traces — янтарные следы от нежного поглаживания. Карта отношений теперь симметрична.
-
----
-
-## Что сделано
-
-### Warm Traces ✅
-| Аспект | Реализация |
-|--------|------------|
-| **Триггер** | Stroke в одной зоне > 2 сек |
-| **Цвет** | Янтарный `vec3(1.0, 0.75, 0.35)` |
-| **Длительность** | 4 сек (симметрия с Cold) |
-| **Лимит** | Max 3 активных |
-| **Взаимодействие** | Сосуществуют с Cold — история честна |
-
-### Изменённые файлы
-- `InputManager.js` — трекинг `strokeZoneDuration`
-- `MemoryManager.js` — массив `warmTraces`, lifecycle, API
-- `ParticleSystem.js` — shader uniforms, `vWarmInfluence`, amber rendering
-- `Sphere.js` — создание trace при долгом stroke
-- `main.js` — передача traces в ParticleSystem
-
-### Коммит
-```
-6b1ad63 feat(sphere): implement Warm Traces - amber memory of gentle strokes
-```
+### Face-to-Face Recognition
+- Сфера **поворачивается телом** к точке касания во время Hold
+- Quaternion slerp rotation (`faceRotationSpeed = 2.5`)
+- Rolling отключён во время Recognition
+- Eye синхронизирован с rotation сферы
+- **VERIFIED** визуально через Playwright
 
 ---
 
-## Текущая архитектура
+## 🔮 Next Layer (обсуждалось)
 
-```
-prototype-sphere/src/
-├── main.js           — Entry point, scene setup, traces passing
-├── Sphere.js         — Emotional state machine (6 phases) + trace creation
-├── ParticleSystem.js — GPU particles, shaders (ghost + warm traces)
-├── Eye.js            — Organic particle-based eye with gaze tracking
-├── InputManager.js   — Mouse/touch input, gesture + stroke zone tracking
-├── MemoryManager.js  — Trust index, ghost traces, warm traces, emotional memory
-├── EffectConductor.js— Probabilistic effects (sparkle, dynamic size, CA)
-└── SoundManager.js   — Web Audio procedural sounds
-```
+### Curious Tilt + Lean In
+Создаёт комбо: *«Она заинтересовалась → приблизилась → повернулась → смотрит»*
+
+1. **Curious Tilt** — наклон сферы вбок (Z-axis rotation)
+2. **Lean In** — сдвиг центра сферы к касанию
 
 ---
 
-## Философия следов
+## 📂 Актуальные файлы
 
-> "Следы — язык сферы. Cold Trace = 'здесь было резко'. Warm Trace = 'здесь было мягко'. История честна, не редактируется."
-
-Следы показывают **карту отношений**, не оценку пользователя.
-
----
-
-## Статус проекта
-
-| Компонент | Статус |
-|-----------|--------|
-| SPHERE прототип | ✅ Stage 6 Complete |
-| Деплой | ✅ humanji.dev |
-| Философия | ✅ "Следы как язык" |
-| Cold Traces | ✅ Реализовано |
-| Warm Traces | ✅ Реализовано |
-| Tap → Transition | 🔄 Следующий шаг |
+| Файл | Статус |
+|------|--------|
+| `handoff_sphere_face_recognition.md` | ✅ VERIFIED |
+| `prompt_sphere_face_recognition_verify.md` | ✅ COMPLETED |
+| `prompt_hold_experience_design.md` | 🔵 NEW — для новой сессии |
 
 ---
 
-## Следующая сессия
+## 🎯 Промпт для новой сессии
 
-**Вариант A:** Tap — переход к Rooms
-```
-Продолжаю Stage 7. Хочу реализовать tap-to-transition — когда пользователь тапает по сфере, начинается переход к первой комнате.
-```
+→ `prompt_hold_experience_design.md`
 
-**Вариант B:** Scroll-based Transition
-```
-Продолжаю Stage 7. Хочу реализовать scroll-transition — пользователь скроллит вниз и сфера трансформируется в первую комнату.
-```
-
----
-
-## Ссылки
-
-- [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) — Философия сферы
-- [docs/PROJECT_BASE.md](docs/PROJECT_BASE.md) — Полная философия проекта
-- [docs/LABYRINTH.md](docs/LABYRINTH.md) — Карта комнат
-- [prompt_warm_traces.md](prompt_warm_traces.md) — Промпт Warm Traces (выполнен)
+Тема: **Что происходит во время зажимания мышкой (Hold)?**
