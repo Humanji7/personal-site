@@ -1,28 +1,59 @@
-# Архитектура: Прототип СФЕРА
+# Архитектура: SPHERE Prototype
 
-> BMAD Phase 3 — Technical Architecture Document
+> Stage 6 Complete — Deep Interaction + Mobile + Sound + Emotional Memory
 
 ---
 
 ## Обзор системы
 
-Интерактивная 3D-сфера из частиц, реагирующая на поведение пользователя. Учит без слов: созидание требует паузы.
+Интерактивная 3D-сфера из 5,000 частиц — живое существо, которое дышит, чувствует и запоминает.
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                      Browser                            │
-├─────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐  │
-│  │   main.js   │→ │  Sphere.js  │→ │ ParticleSystem  │  │
-│  │   (Init)    │  │  (Orchestr) │  │    (Render)     │  │
-│  └─────────────┘  └─────────────┘  └─────────────────┘  │
-│         │                │                  │           │
-│         ▼                ▼                  ▼           │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐  │
-│  │InputManager │  │AudioManager │  │    Shaders      │  │
-│  │  (Events)   │  │   (Sound)   │  │  (GPU Render)   │  │
-│  └─────────────┘  └─────────────┘  └─────────────────┘  │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph Browser
+        main["main.js<br/>(Entry Point)"]
+        
+        subgraph Core["Core Modules"]
+            sphere["Sphere.js<br/>(Orchestrator)"]
+            particles["ParticleSystem.js<br/>(GPU Render)"]
+            eye["Eye.js<br/>(Gaze & Blink)"]
+        end
+        
+        subgraph Input["Input Layer"]
+            input["InputManager.js<br/>(Mouse/Touch)"]
+            memory["MemoryManager.js<br/>(Trust & Memory)"]
+        end
+        
+        subgraph Effects["Effect Layer"]
+            conductor["EffectConductor.js<br/>(Probabilistic FX)"]
+            sound["SoundManager.js<br/>(Web Audio)"]
+        end
+        
+        subgraph Render["Render Pipeline"]
+            bloom["UnrealBloomPass"]
+            chromatic["RGBShiftShader"]
+        end
+    end
+    
+    main --> sphere
+    main --> particles
+    main --> eye
+    main --> input
+    main --> memory
+    main --> conductor
+    main --> sound
+    
+    sphere --> particles
+    sphere --> eye
+    sphere --> memory
+    sphere --> sound
+    
+    input --> sphere
+    conductor --> particles
+    conductor --> chromatic
+    
+    particles --> bloom
+    bloom --> chromatic
 ```
 
 ---
@@ -31,192 +62,184 @@
 
 ### 1. main.js — Entry Point
 
-**Обязанности:**
-- Инициализация Three.js (scene, camera, renderer)
-- Создание экземпляров Sphere, AudioManager
+**Ответственность:**
+- Three.js инициализация (scene, camera, renderer)
+- Post-processing pipeline (Bloom, Chromatic Aberration)
 - RAF loop (requestAnimationFrame)
-- Resize handling
+- Responsive size multiplier для мобильных
 
-**API:**
-```javascript
-// Lifecycle
-init() → void
-animate() → void
-dispose() → void
-```
+**Ключевые параметры:**
+| Параметр | Desktop | Mobile |
+|----------|---------|--------|
+| Частицы | 5000 | 2000 |
+| Size Multiplier | 1.0x | 1.4-1.8x |
 
 ---
 
 ### 2. Sphere.js — Orchestrator
 
-**Обязанности:**
-- Управление состоянием сферы (REST / MOVING / BLEEDING)
-- Координация между ParticleSystem, InputManager, AudioManager
-- Логика переходов между состояниями
-- Таймеры для адаптивного дыхания и Лего-сборки
+**Ответственность:**
+- Эмоциональная машина состояний
+- Координация всех модулей
+- Физика качения (rolling physics)
+- Обработка жестов
 
 **Состояния:**
 ```
-REST ←→ MOVING ←→ BLEEDING
-  │                    │
-  └────── LEGO ────────┘ (при длительном REST)
+PEACE → LISTENING → TENSION → BLEEDING → TRAUMA → HEALING
+  ↑                                                    ↓
+  └────────────────────────────────────────────────────┘
 ```
 
-**API:**
-```javascript
-constructor(scene: Scene, audioManager: AudioManager)
-update(delta: number, inputState: InputState) → void
-getState() → SphereState
-dispose() → void
-```
-
----
-
-### 3. ParticleSystem.js — Renderer
-
-**Обязанности:**
-- Создание BufferGeometry с позициями частиц
-- Управление типами частиц (normal, ghost, falling)
-- Пульсация (breathing)
-- Lerp к курсору
-- Отрыв и падение при кровотечении
-- Шрамы (сохранение offset)
-- Лего-формации
-
-**Структура данных:**
-```javascript
-// Per-particle attributes (BufferGeometry)
-position: Float32Array     // x, y, z
-originalPos: Float32Array  // для возврата
-velocity: Float32Array     // скорость падения
-type: Uint8Array           // 0=normal, 1=ghost, 2=falling
-scarOffset: Float32Array   // смещение от шрама
-```
-
-**API:**
-```javascript
-constructor(count: number, ghostRatio: number)
-setBreathingPhase(phase: number) → void      // 0-1
-applyMouseAttraction(mousePos: Vec3, strength: number) → void
-startBleeding(intensity: number) → void
-stopBleeding() → void
-applyScars() → void
-enterLegoMode() → void
-exitLegoMode() → void
-update(delta: number) → void
-getMesh() → Points
-```
-
----
-
-### 4. InputManager.js — Events
-
-**Обязанности:**
-- Отслеживание позиции мыши (normalized -1 to 1)
-- Расчёт velocity (скорость движения)
-- Определение состояния: idle / moving / frantic
-- Таймер неподвижности
-
-**Пороги:**
+**Ключевые параметры:**
 | Параметр | Значение |
 |----------|----------|
-| IDLE_THRESHOLD | velocity < 0.01 в течение 0.5 сек |
-| FRANTIC_THRESHOLD | velocity > 0.3 в течение 0.3 сек |
-| LEGO_TRIGGER | idle > 10 сек |
-| MANIFEST_TRIGGER | idle > 8 сек |
-
-**API:**
-```javascript
-constructor(domElement: HTMLElement)
-getState() → InputState { position, velocity, idleTime, isFramtic }
-update(delta: number) → void
-dispose() → void
-```
+| breathSpeed | 0.3-0.8 (адаптивный) |
+| tensionDecay | 0.08 × trustMod |
+| traumaThreshold | 0.7 - (1-trust)×0.2 |
 
 ---
 
-### 5. AudioManager.js — Sound
+### 3. ParticleSystem.js — GPU Renderer
 
-**Обязанности:**
-- Создание и управление осцилляторами
-- Три слоя: drone, rustle, whine
-- Crossfade между состояниями
-- Spatial audio не требуется (2D)
+**Ответственность:**
+- BufferGeometry с Fibonacci-распределением
+- GLSL шейдеры (vertex + fragment)
+- Дыхание (breathing pulsation)
+- Cursor proximity effects
+- Ghost traces rendering
 
-**Архитектура звука:**
-```
-AudioContext
-├── droneOsc (sine 35Hz) → droneGain → masterGain → destination
-├── rustleNoise (brownian) → rustleGain → masterGain
-└── whineOsc (sine 2000Hz) → whineGain → masterGain
-```
-
-**API:**
-```javascript
-constructor()
-setState(state: 'rest' | 'moving' | 'frantic') → void
-setIntensity(value: number) → void  // 0-1
-mute() / unmute() → void
-dispose() → void
-```
-
----
-
-### 6. Shaders
-
-**vertex.glsl:**
+**Uniforms:**
 ```glsl
-attribute float type;
-attribute vec3 scarOffset;
 uniform float uTime;
 uniform float uBreathPhase;
-uniform vec3 uMousePos;
-uniform float uMouseStrength;
-
-// Breathing pulsation
-// Mouse attraction with lerp
-// Type-based behavior (ghost shimmer)
+uniform vec3 uCursorPos;
+uniform float uCursorInfluence;
+uniform float uSize;              // Dynamic sizing
+uniform float uGoosebumpAmount;   // Dual-layer waves
+uniform float uSparkleIntensity;  // Effect Conductor
+uniform float uDynamicSizeAmount; // Effect Conductor
 ```
 
-**fragment.glsl:**
-```glsl
-uniform vec3 uColorNormal;   // #2D1B4E
-uniform vec3 uColorGhost;    // lighter
-uniform vec3 uColorFalling;  // #39FF14
+---
 
-// Color based on type
-// Ghost: alpha oscillation
-// Falling: bright lime
-```
+### 4. Eye.js — Organic Eye
+
+**Ответственность:**
+- Частицы радужки (hypotrochoid pattern)
+- Soul Spark (центральная точка)
+- Gaze tracking (следит за курсором)
+- Blinking (случайное + эмоциональное)
+
+**Ключевые параметры:**
+| Параметр | Значение |
+|----------|----------|
+| Положение | North pole (0, 0, 1.5) |
+| Частицы | ~200 |
+| Blink interval | 3-7 сек |
+
+---
+
+### 5. InputManager.js — Input Layer
+
+**Ответственность:**
+- Mouse/Touch position tracking
+- Velocity & acceleration
+- Gesture recognition (stroke, poke, orbit, tremble)
+- Approach speed detection
+
+**Жесты:**
+| Жест | Триггер | Эффект |
+|------|---------|--------|
+| stroke | smooth, slow motion | Успокаивает |
+| poke | quick tap/click | Вздрагивает |
+| orbit | circular motion | Гипноз |
+| tremble | erratic, fast motion | Нервничает |
+
+---
+
+### 6. MemoryManager.js — Emotional Memory
+
+**Ответственность:**
+- Trust Index (0-1, persistent в localStorage)
+- Ghost Traces (визуальные шрамы)
+- Baseline anxiety модификация
+- Debounced persistence
+
+**Trust Index влияние:**
+| Trust | Tension Decay | Trauma Threshold | Peace Color |
+|-------|---------------|------------------|-------------|
+| 1.0 | 1.0x | 0.7 | Насыщенный фиолетовый |
+| 0.5 | 0.8x | 0.6 | Нейтральный |
+| 0.1 | 0.6x | 0.5 | Серо-холодный |
+
+---
+
+### 7. EffectConductor.js — Living Chaos
+
+**Ответственность:**
+- Стохастические визуальные эффекты
+- Probability-based activation
+- Smooth interpolation
+
+**Эффекты:**
+| Эффект | Trigger | Визуал |
+|--------|---------|--------|
+| Dynamic Size | PEACE + random | Particles grow/shrink |
+| Sparkle | TENSION + random | Bright flashes |
+| Chromatic Aberration | tension > 0.5 | RGB split |
+
+---
+
+### 8. SoundManager.js — Web Audio
+
+**Ответственность:**
+- Procedural sound generation
+- Emotional state sync
+- Touch/gesture sounds
+
+**Звуковые слои:**
+| Состояние | Звук |
+|-----------|------|
+| PEACE | Sub-bass hum (35Hz) |
+| LISTENING | Soft whisper |
+| TENSION | High whine (2000Hz) |
+| BLEEDING | Distortion + pain |
 
 ---
 
 ## Потоки данных
 
 ```
-User Input (mouse)
+User Input (mouse/touch)
        │
        ▼
 InputManager.update()
        │
-       ├──→ velocity, position, idleTime
+       ├──→ position, velocity, gestures
        │
        ▼
 Sphere.update()
        │
-       ├──→ State transition logic
+       ├──→ State transitions
        │         │
-       │         ├──→ AudioManager.setState()
+       │         ├──→ MemoryManager.recordInteraction()
+       │         │         └──→ trustIndex ↑↓
        │         │
-       │         └──→ ParticleSystem methods
+       │         ├──→ SoundManager.setPhase()
+       │         │
+       │         └──→ ParticleSystem.setBreathPhase()
        │
        ▼
-ParticleSystem.update()
+EffectConductor.update()
        │
-       ├──→ Update BufferGeometry attributes
+       ├──→ dynamicSizeAmount, sparkleIntensity, chromaticAberration
        │
        ▼
-Three.js Render (GPU via Shaders)
+ParticleSystem.update() + Shaders
+       │
+       ▼
+Post-Processing (Bloom → Chromatic)
        │
        ▼
 Canvas Output
@@ -224,15 +247,25 @@ Canvas Output
 
 ---
 
-## Решения и обоснования
+## Файловая структура
 
-| Решение | Почему |
-|---------|--------|
-| **Three.js Points** | Оптимально для 2000-5000 частиц, GPU-accelerated |
-| **CPU-based physics (MVP)** | Проще отладка, GPGPU — оптимизация позже |
-| **Web Audio API oscillators** | Легковесно, без загрузки файлов, proceдурная генерация |
-| **State machine в Sphere** | Централизованная логика, проще тестировать |
-| **Shaders для визуала** | Производительность, параллельная обработка всех частиц |
+```
+prototype-sphere/
+├── index.html
+├── style.css
+├── package.json
+├── vite.config.js
+├── PHILOSOPHY.md        # → docs/PHILOSOPHY.md (moved)
+└── src/
+    ├── main.js          # Entry point, orchestration
+    ├── Sphere.js        # Emotional state machine
+    ├── ParticleSystem.js # GPU particles, shaders
+    ├── Eye.js           # Organic particle eye
+    ├── InputManager.js  # Mouse/touch, gestures
+    ├── MemoryManager.js # Trust, ghost traces
+    ├── EffectConductor.js # Probabilistic effects
+    └── SoundManager.js  # Web Audio procedural
+```
 
 ---
 
@@ -249,40 +282,19 @@ Canvas Output
 }
 ```
 
-Никаких дополнительных библиотек. Минимализм.
+Минимализм. Никаких дополнительных библиотек.
 
 ---
 
-## Риски и митигации
+## Точки расширения
 
-| Риск | Митигация |
-|------|-----------|
-| Производительность при 5000 частиц | Начать с 2000, профилировать |
-| Web Audio autoplay policy | Показать "Click to enter" |
-| Mobile touch events | Добавить touch support в InputManager |
-| Шрамы накапливаются бесконечно | Лимит % травмированных частиц |
-
----
-
-## Файловая структура (финальная)
-
-```
-/prototype-sphere/
-├── index.html
-├── style.css
-├── src/
-│   ├── main.js
-│   ├── Sphere.js
-│   ├── ParticleSystem.js
-│   ├── InputManager.js
-│   ├── AudioManager.js
-│   └── shaders/
-│       ├── vertex.glsl
-│       └── fragment.glsl
-├── package.json
-└── vite.config.js
-```
+| Точка | Как расширить |
+|-------|---------------|
+| Новые жесты | `InputManager.js` → `_detectGesture()` |
+| Новые эмоции | `Sphere.js` → `_processGesture()`, добавить phase |
+| Новые эффекты | `EffectConductor.js` → добавить effect layer |
+| Новые звуки | `SoundManager.js` → добавить oscillator |
 
 ---
 
-*BMAD Phase 3 Complete — Ready for Story Sequencing*
+*Updated: 2026-01-08 — Stage 6 Complete*

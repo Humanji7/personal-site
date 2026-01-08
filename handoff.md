@@ -1,34 +1,58 @@
-# Handoff: Emotional Memory & Reflection
+# SPHERE Prototype — Handoff (2026-01-08)
 
-## Текущий статус
-Система **Emotional Memory** (Эмоциональная Память) полностью интегрирована и проверена сборкой. Сфера научилась помнить отношение пользователя в рамках текущей сессии.
+## Сессия завершена
+**Цель:** Оптимизация структуры проекта для агентов
 
-### Что сделано:
-1. **MemoryManager.js:** Реализован `trustIndex` (0-1) с балансом 1:1.
-2. **Behavioral Influence:** Память теперь влияет на скорость затухания напряжения и порог травмы в `Sphere.js`.
-3. **Visual Feedback:** 
-   - Цвет PEACE динамически тускнеет при низком доверии.
-   - Эффект **Ghost Traces** (призрачные следы) появляется при резких движениях.
-4. **Integration:** Все компоненты (`main.js`, `Sphere.js`, `ParticleSystem.js`) связаны.
+## Что сделано
 
-### Нужно обратить внимание:
-- Настройка `config` в `MemoryManager.js`: сейчас значения сбалансированы 1:1, но на практике может захотеться сделать Сферу чуть более "обидчивой".
-- Визуальный эффект Ghost Traces ограничен 3-мя одновременными точками для сохранения FPS.
+### 1. Архивация промптов
+- 6 промптов перенесены в `_archive/prompts/` (теперь 19 total)
+- Корень проекта: 5 файлов (было 11)
+
+### 2. Документация
+- `docs/ARCHITECTURE.md` — полностью переписан с Mermaid-диаграммой всех 8 модулей
+- `docs/PHILOSOPHY.md` — перенесён из `prototype-sphere/`
+- `docs/CHANGELOG.md` — новый файл с историей версий
+
+### 3. README.md
+- Добавлен "Быстрый старт для агента"
+- Обновлена структура проекта
+- Ссылки на ключевые документы
 
 ---
 
-## Промпт для следующей сессии (Скопируй целиком)
+## Текущая архитектура
 
-```markdown
-# ЗАДАЧА: Тюнинг Эмоциональной Памяти и Финализация Поведения
-
-Мы внедрили Эмоциональную Память (MemoryManager). Сфера теперь меняет цвет в зависимости от доверия и оставляет Ghost Traces при испуге.
-
-**Твои цели на эту сессию:**
-1. **Calibration:** Проведи тест-драйв в браузере. Оцени, насколько быстро Сфера теряет доверие и восстанавливает его. Если "обида" проходит слишком быстро, подкрути коэффициенты в `MemoryManager.js`.
-2. **Visual Polishing:** Посмотри на Ghost Traces. Если они кажутся слишком блёклыми, увеличь `vGhostInfluence` или яркость в фрагментном шейдере `ParticleSystem.js`.
-3. **Deep Memory Idea:** Обсуди с пользователем возможность сохранения `trustIndex` в `localStorage`, чтобы Сфера помнила пользователя при возвращении на сайт на следующий день.
-4. **Stress Test:** Проверь поведение при экстремально низком доверии. Сфера должна стать очень нервной и "холодной".
-
-Начни с аудита `MemoryManager.js` и проверки визуального состояния в браузере.
 ```
+prototype-sphere/src/
+├── main.js           — Entry point, scene setup, animation loop
+├── Sphere.js         — Emotional state machine (6 phases)
+├── ParticleSystem.js — GPU particles, shaders, visual effects
+├── Eye.js            — Organic particle-based eye with gaze tracking
+├── InputManager.js   — Mouse/touch input, gesture recognition
+├── MemoryManager.js  — Trust index, ghost traces, emotional memory
+├── EffectConductor.js— Probabilistic effects (sparkle, dynamic size, CA)
+└── SoundManager.js   — Web Audio procedural sounds
+```
+
+---
+
+## Статус проекта
+
+| Компонент | Статус |
+|-----------|--------|
+| SPHERE прототип | ✅ Stage 6 Complete |
+| Деплой | ✅ humanji.dev |
+| Документация | ✅ Организована |
+| Следующий этап | ⬜ Stage 7 — Deeper personality |
+
+---
+
+## Следующий шаг
+**Рекомендация:** Стратегическая рефлексия  
+- Что дальше со Сферой?
+- Переход к комнатам?
+- Манифест?
+- Более глубокая персональность?
+
+См. `prompt_stage7_vision.md`
