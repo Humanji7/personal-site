@@ -1,71 +1,63 @@
-# Handoff: Hold Osmosis → Gesture Universe
+# Handoff: Gesture Universe → Implementation
 
 **Дата:** 2026-01-08  
-**Статус:** ✅ COMPLETE  
-**Следующая сессия:** `prompt_gesture_universe.md`
+**Статус:** ⏳ READY FOR IMPLEMENTATION  
+**Следующая сессия:** `prompt_gesture_expansion.md`
 
 ---
 
 ## ✅ Что сделано
 
-### Hold Osmosis Feature
-Реализован continuous gradient вместо phased recognition:
+### Research Session
+- Провели анализ 5 существующих жестов через биологию + искусство
+- Определили gaps и возможности
+- Разработали **Membrane Model** (все жесты = способы взаимодействия с мембраной)
 
-| Файл | Изменение |
-|------|-----------|
-| `src/HapticManager.js` | **NEW** — Vibration API wrapper |
-| `src/SoundManager.js` | Osmosis bass 25-40Hz |
-| `src/ParticleSystem.js` | `uOsmosisDepth` + indent + amber warmth |
-| `src/Sphere.js` | `_calculateOsmosisDepth()` gradient curve |
-| `src/main.js` | HapticManager init |
+### Planning
+- Спланировали 4 новых жеста: Tap, Flick, Hesitation, Spiral
+- Финализировали эмоциональную семантику:
 
-### Gradient Curve
-```
-0-0.3s  → 0 (delay before feeling)
-0.3-2s  → 0 → 0.7 (main growth)
-2-5s    → 0.7 → 1.0 (deep contact)
-5s+     → 1.0 (full)
-```
-
-### Verified
-- Shaders compile ✅
-- All methods connected ✅
-- Depth calculation works ✅
+| Жест | Реакция |
+|------|---------|
+| **Tap** | Пульсация ("я тут") |
+| **Flick** | Как poke (startle + trace) |
+| **Hesitation** | Грустит + зеркалит |
+| **Spiral** | Глубокий транс (остановка дыхания, зрачок макс) |
 
 ---
 
-## 🎯 Следующая сессия
-
-**Тема:** Gesture Universe — биология + искусство
-
-**Промпт:** `prompt_gesture_universe.md`
-
-**Фокус:**
-- Stroke, Poke, Hold, Orbit, Tremble — под лупой
-- Биологические метафоры (груминг, рефлексы, гормоны)
-- Художественные метафоры (мазки, скульптура, танец)
-- Gaps в текущей имплементации
-- Возможности для углубления
-
----
-
-## 📁 Ключевые файлы для следующей сессии
+## 📁 Ключевые файлы для имплементации
 
 ```
-src/InputManager.js   — gesture detection
-src/Sphere.js         — gesture reactions  
-src/ParticleSystem.js — visual responses
-src/SoundManager.js   — audio responses
-docs/PHILOSOPHY.md    — общая философия
+src/InputManager.js   — gesture detection (+4 новых)
+src/Sphere.js         — gesture reactions (+4 case)
 ```
 
 ---
 
-## 🧠 Контекст
+## 📋 План имплементации
 
-Мы уже применяли биологический + художественный взгляд к:
-- Дыханию частиц (unified bellows)
-- Osmosis (обмен через мембрану hold)
-- Memory (ghost traces, warm traces)
+### Phase 1: InputManager (~60 строк)
+1. Add `contactDuration`, `justReleased` tracking
+2. Implement TAP detection (before poke in priority)
+3. Implement FLICK detection (fast exit)
+4. Implement HESITATION state machine
+5. Implement SPIRAL detection (orbit + shrinking radius)
+6. Add `gestureHistory` buffer
 
-Теперь — то же самое для полной вселенной жестов.
+### Phase 2: Sphere.js (~40 строк)
+1. Add `case 'tap'` → pulse
+2. Add `case 'flick'` → push + ghost trace
+3. Add `case 'hesitation'` → slow + compress
+4. Add `case 'spiral'` → trance
+
+### Phase 3: Verification
+1. Test each gesture in browser
+2. Console.log gesture classification
+3. Verify no regression
+
+---
+
+## ✅ All Semantics Finalized
+
+Все 4 жеста готовы к имплементации.
