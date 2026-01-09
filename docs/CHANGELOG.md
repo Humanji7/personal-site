@@ -1,6 +1,15 @@
 # Changelog
 
-История разработки SPHERE Prototype.
+История разработки проекта "Личный сайт как путешествие".
+
+---
+
+## 2026-01-09 — Repository Separation
+
+- **SPHERE выделена в отдельный репозиторий** — [sphere-777](https://github.com/Humanji7/sphere-777)
+- Удалена папка `prototype-sphere/`
+- Документация сферы (`ARCHITECTURE.md`, `PROTOTYPE.md`) перенесена в sphere-777
+- Этот репозиторий теперь содержит только философию и карту лабиринта
 
 ---
 
