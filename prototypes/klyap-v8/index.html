@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>КЛЯП — прототип v8</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: hsl(280, 35%, 2%);
+            overflow: hidden;
+            position: relative;
+            cursor: none;
+        }
+
+        #membrane-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Виньетка — сжимается со временем */
+        .vignette {
+            position: fixed;
+            inset: -40%;
+            pointer-events: none;
+            z-index: 5;
+            background: radial-gradient(ellipse 42% 42% at 50% 50%,
+                    transparent 5%,
+                    hsla(280, 45%, 3%, 0.4) 30%,
+                    hsla(280, 50%, 2%, 0.8) 50%,
+                    hsl(280, 55%, 1%) 70%);
+            animation: vignetteContract 4s ease-in-out infinite;
+            transition: transform 8s ease-out;
+        }
+
+        .vignette.constricted {
+            transform: scale(0.6) !important;
+        }
+
+        @keyframes vignetteContract {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.9;
+            }
+
+            30% {
+                transform: scale(0.78);
+                opacity: 1;
+            }
+        }
+
+        /* Шум */
+        .noise {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 6;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            background-size: 512px 512px;
+            mix-blend-mode: overlay;
+            opacity: 0.06;
+            animation: noisePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes noisePulse {
+
+            0%,
+            100% {
+                opacity: 0.05;
+            }
+
+            50% {
+                opacity: 0.09;
+            }
+        }
+
+        /* Контент + текст */
+        .content {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            animation: contentTremor 3s ease-in-out infinite;
+        }
+
+        @keyframes contentTremor {
+
+            0%,
+            86%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            88% {
+                transform: translate(-2px, 1px);
+            }
+
+            90% {
+                transform: translate(2px, -1px);
+            }
+
+            92% {
+                transform: translate(-1px, -1px);
+            }
+
+            94% {
+                transform: translate(0, 0);
+            }
+        }
+
+        /* Текст — одно слово */
+        .text-block {
+            color: hsl(285, 20%, 50%);
+            font-family: 'Georgia', serif;
+            font-size: clamp(2rem, 6vw, 4rem);
+            line-height: 1.4;
+            text-align: center;
+            text-shadow: 0 0 40px hsla(290, 40%, 20%, 0.6);
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 3s ease-out, transform 3s ease-out;
+            letter-spacing: 0.1em;
+        }
+
+        .text-block.visible {
+            opacity: 0.75;
+            transform: scale(1);
+        }
+
+        .text-block.pulse {
+            animation: textIntensify 2.5s ease-in-out infinite;
+        }
+
+        @keyframes textIntensify {
+
+            0%,
+            100% {
+                opacity: 0.65;
+                transform: scale(1);
+                filter: blur(0);
+            }
+
+            30% {
+                opacity: 0.9;
+                transform: scale(1.04);
+            }
+
+            48% {
+                filter: blur(1px);
+            }
+
+            52% {
+                filter: blur(0);
+            }
+        }
+
+        /* Курсор */
+        .cursor-glow {
+            position: fixed;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 20;
+            background: radial-gradient(circle,
+                    hsla(295, 50%, 35%, 0.15) 0%,
+                    hsla(290, 45%, 25%, 0.08) 40%,
+                    transparent 70%);
+            transform: translate(-50%, -50%);
+            transition: opacity 0.3s, width 0.5s, height 0.5s;
+            mix-blend-mode: screen;
+        }
+
+        .cursor-glow.active {
+            width: 180px;
+            height: 180px;
+        }
+
+        /* Проход (появляется через ~20 сек) */
+        .exit-portal {
+            position: fixed;
+            bottom: 10%;
+            right: 10%;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            z-index: 15;
+            opacity: 0;
+            pointer-events: none;
+            cursor: pointer;
+            background: radial-gradient(circle,
+                    hsla(300, 45%, 35%, 0.4) 0%,
+                    hsla(290, 40%, 20%, 0.2) 50%,
+                    transparent 80%);
+            box-shadow: 0 0 60px hsla(295, 50%, 30%, 0.4);
+            transition: opacity 3s ease-out, transform 0.3s ease;
+            animation: portalPulse 3s ease-in-out infinite;
+        }
+
+        .exit-portal.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .exit-portal:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 90px hsla(295, 60%, 40%, 0.6);
+        }
+
+        @keyframes portalPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        /* Debug overlay */
+        #debug {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            z-index: 100;
+            color: hsla(300, 60%, 60%, 0.5);
+            font-family: monospace;
+            font-size: 12px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="membrane-canvas"></canvas>
+
+    <div class="vignette" id="vignette"></div>
+    <div class="noise"></div>
+
+    <div class="content">
+        <div class="text-block" id="text">распирает</div>
+    </div>
+
+    <div class="exit-portal" id="exit-portal"></div>
+    <div class="cursor-glow" id="cursor-glow"></div>
+
+    <div id="debug"></div>
+
+    <script>
+        // === STATE ===
+        const state = {
+            timeOnPage: 0,                    // seconds
+            lastMouseMove: Date.now(),        // timestamp
+            totalIdleTime: 0,                 // seconds of inactivity
+            mouseMoveCount: 0,                // how active user is
+            pulseIntensity: 1,                // multiplier for effects
+            phase: 'entry',                   // entry -> swelling -> portal -> exit
+            exitReady: false
+        };
+
+        // === CONFIG ===
+        const CONFIG = {
+            TEXT_APPEAR_DELAY: 2,             // seconds before text fades in
+            IDLE_THRESHOLD: 5,                // seconds before deemed "idle"
+            PULSE_RAMP_START: 8,              // seconds to start intensifying
+            PORTAL_APPEAR: 20,                // seconds before portal shows
+            VIGNETTE_CONTRACT_TIME: 15,       // seconds to start contracting
+            DEBUG: true
+        };
+
+        // === DOM ===
+        const canvas = document.getElementById('membrane-canvas');
+        const ctx = canvas.getContext('2d');
+        const cursorGlow = document.getElementById('cursor-glow');
+        const textEl = document.getElementById('text');
+        const vignette = document.getElementById('vignette');
+        const exitPortal = document.getElementById('exit-portal');
+        const debugEl = document.getElementById('debug');
+
+        let width, height;
+        let mouseX = 0, mouseY = 0;
+        let targetMouseX = 0, targetMouseY = 0;
+        let animTime = 0;
+
+        // === BLOBS ===
+        const blobs = [];
+        const BLOB_COUNT = 6;
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            initBlobs();
+        }
+
+        function initBlobs() {
+            blobs.length = 0;
+            for (let i = 0; i < BLOB_COUNT; i++) {
+                blobs.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    baseRadius: 150 + Math.random() * 250,
+                    phase: Math.random() * Math.PI * 2,
+                    speed: 0.3 + Math.random() * 0.4,
+                    driftX: (Math.random() - 0.5) * 0.3,
+                    driftY: (Math.random() - 0.5) * 0.3,
+                    hue: 280 + (Math.random() - 0.5) * 30,
+                    saturation: 40 + Math.random() * 20,
+                    lightness: 15 + Math.random() * 15
+                });
+            }
+        }
+
+        // === VEINS ===
+        const veins = [];
+        const VEIN_COUNT = 12;
+
+        function initVeins() {
+            veins.length = 0;
+            for (let i = 0; i < VEIN_COUNT; i++) {
+                const startX = Math.random() * width;
+                const startY = Math.random() * height;
+                const angle = Math.random() * Math.PI * 2;
+                const length = 100 + Math.random() * 300;
+
+                veins.push({
+                    x1: startX,
+                    y1: startY,
+                    x2: startX + Math.cos(angle) * length,
+                    y2: startY + Math.sin(angle) * length,
+                    thickness: 2 + Math.random() * 6,
+                    phase: Math.random() * Math.PI * 2,
+                    opacity: 0.15 + Math.random() * 0.25
+                });
+            }
+        }
+
+        // === MECHANICS ===
+        function updateMechanics(dt) {
+            state.timeOnPage += dt;
+
+            // Check idle
+            const idleDuration = (Date.now() - state.lastMouseMove) / 1000;
+            const isIdle = idleDuration > CONFIG.IDLE_THRESHOLD;
+
+            if (isIdle) {
+                state.totalIdleTime += dt;
+                state.pulseIntensity = Math.min(3, 1 + state.totalIdleTime * 0.1);
+                cursorGlow.classList.add('active');
+            } else {
+                // Activity = slight resistance
+                state.pulseIntensity = Math.max(1, state.pulseIntensity - dt * 0.3);
+                cursorGlow.classList.remove('active');
+            }
+
+            // Text appears
+            if (state.timeOnPage > CONFIG.TEXT_APPEAR_DELAY && state.phase === 'entry') {
+                textEl.classList.add('visible');
+                state.phase = 'swelling';
+            }
+
+            // Text starts pulsing with effects
+            if (state.timeOnPage > CONFIG.PULSE_RAMP_START) {
+                textEl.classList.add('pulse');
+            }
+
+            // Vignette contracts
+            if (state.timeOnPage > CONFIG.VIGNETTE_CONTRACT_TIME) {
+                vignette.classList.add('constricted');
+            }
+
+            // Portal appears
+            if (state.timeOnPage > CONFIG.PORTAL_APPEAR && !state.exitReady) {
+                exitPortal.classList.add('visible');
+                state.exitReady = true;
+                state.phase = 'portal';
+            }
+
+            // Debug output
+            if (CONFIG.DEBUG) {
+                debugEl.innerHTML = `
+                    время: ${state.timeOnPage.toFixed(1)}с<br>
+                    idle: ${idleDuration.toFixed(1)}с<br>
+                    total idle: ${state.totalIdleTime.toFixed(1)}с<br>
+                    pulse: ${state.pulseIntensity.toFixed(2)}x<br>
+                    phase: ${state.phase}<br>
+                    moves: ${state.mouseMoveCount}
+                `;
+            }
+        }
+
+        function draw() {
+            const dt = 0.016; // ~60fps
+            animTime += dt;
+            updateMechanics(dt);
+
+            // Lerp mouse
+            mouseX += (targetMouseX - mouseX) * 0.08;
+            mouseY += (targetMouseY - mouseY) * 0.08;
+
+            // Clear
+            ctx.fillStyle = 'hsl(280, 35%, 2%)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Blobs
+            for (const blob of blobs) {
+                blob.x += blob.driftX * state.pulseIntensity;
+                blob.y += blob.driftY * state.pulseIntensity;
+
+                if (blob.x < -200 || blob.x > width + 200) blob.driftX *= -1;
+                if (blob.y < -200 || blob.y > height + 200) blob.driftY *= -1;
+
+                // Breathing с интенсификацией
+                const breathFactor = 1 + Math.sin(animTime * blob.speed * state.pulseIntensity + blob.phase) * 0.35 * state.pulseIntensity;
+                const radius = blob.baseRadius * breathFactor;
+
+                // Cursor influence
+                const dx = mouseX - blob.x;
+                const dy = mouseY - blob.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const influence = Math.max(0, 1 - dist / 400) * 0.15;
+
+                blob.x += dx * influence * 0.02;
+                blob.y += dy * influence * 0.02;
+
+                // Gradient
+                const gradient = ctx.createRadialGradient(
+                    blob.x, blob.y, 0,
+                    blob.x, blob.y, radius
+                );
+                gradient.addColorStop(0, `hsla(${blob.hue}, ${blob.saturation}%, ${blob.lightness}%, 0.8)`);
+                gradient.addColorStop(0.4, `hsla(${blob.hue}, ${blob.saturation - 10}%, ${blob.lightness - 5}%, 0.5)`);
+                gradient.addColorStop(0.7, `hsla(${blob.hue}, ${blob.saturation - 15}%, ${blob.lightness - 8}%, 0.2)`);
+                gradient.addColorStop(1, 'transparent');
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+
+                const segments = 60;
+                for (let i = 0; i <= segments; i++) {
+                    const angle = (i / segments) * Math.PI * 2;
+                    const noiseVal = Math.sin(angle * 3 + animTime + blob.phase) * 0.15 +
+                        Math.sin(angle * 5 + animTime * 0.7) * 0.1;
+                    const r = radius * (1 + noiseVal);
+                    const x = blob.x + Math.cos(angle) * r;
+                    const y = blob.y + Math.sin(angle) * r;
+
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Veins с интенсификацией
+            for (const vein of veins) {
+                const pulse = 0.5 + Math.sin(animTime * 2 * state.pulseIntensity + vein.phase) * 0.5;
+                const thickness = vein.thickness * (0.8 + pulse * 0.4 * state.pulseIntensity);
+                const opacity = vein.opacity * (0.6 + pulse * 0.4 * state.pulseIntensity);
+
+                ctx.strokeStyle = `hsla(295, 45%, 18%, ${Math.min(1, opacity)})`;
+                ctx.lineWidth = thickness;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+
+                const steps = 20;
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const x = vein.x1 + (vein.x2 - vein.x1) * t;
+                    const y = vein.y1 + (vein.y2 - vein.y1) * t;
+                    const wave = Math.sin(t * Math.PI * 3 + animTime * 2 * state.pulseIntensity + vein.phase) * (5 + thickness);
+
+                    const lenX = vein.x2 - vein.x1;
+                    const lenY = vein.y2 - vein.y1;
+                    const len = Math.sqrt(lenX * lenX + lenY * lenY);
+                    const nx = -lenY / len;
+                    const ny = lenX / len;
+
+                    const finalX = x + nx * wave;
+                    const finalY = y + ny * wave;
+
+                    if (i === 0) ctx.moveTo(finalX, finalY);
+                    else ctx.lineTo(finalX, finalY);
+                }
+                ctx.stroke();
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        // === EVENTS ===
+        window.addEventListener('resize', resize);
+
+        document.addEventListener('mousemove', (e) => {
+            targetMouseX = e.clientX;
+            targetMouseY = e.clientY;
+            cursorGlow.style.left = e.clientX + 'px';
+            cursorGlow.style.top = e.clientY + 'px';
+            cursorGlow.style.opacity = '1';
+            state.lastMouseMove = Date.now();
+            state.mouseMoveCount++;
+        });
+
+        document.addEventListener('touchstart', (e) => {
+            state.lastMouseMove = Date.now();
+            state.mouseMoveCount++;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            targetMouseX = touch.clientX;
+            targetMouseY = touch.clientY;
+            state.lastMouseMove = Date.now();
+        });
+
+        document.addEventListener('mouseleave', () => {
+            cursorGlow.style.opacity = '0';
+        });
+
+        // Exit portal
+        exitPortal.addEventListener('click', () => {
+            // Save state for next room
+            const passedData = {
+                timeSpent: state.timeOnPage,
+                totalIdleTime: state.totalIdleTime,
+                mouseMoveCount: state.mouseMoveCount,
+                pattern: state.totalIdleTime > state.timeOnPage * 0.5 ? 'passive' : 'active'
+            };
+            console.log('KLYAP exit data:', passedData);
+            localStorage.setItem('klyap_data', JSON.stringify(passedData));
+
+            // Transition effect
+            document.body.style.transition = 'opacity 2s';
+            document.body.style.opacity = '0';
+
+            setTimeout(() => {
+                alert('→ переход в МАЗУТ\n\nДанные сохранены:\n' + JSON.stringify(passedData, null, 2));
+                // window.location.href = '../mazut/index.html';
+            }, 2000);
+        });
+
+        // === INIT ===
+        resize();
+        initVeins();
+        draw();
+    </script>
+</body>
+
+</html>
