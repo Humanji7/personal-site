@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>КЛЯП — прототип v5</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: hsl(280, 30%, 4%);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Мир — дрейфует и пульсирует */
+        .world {
+            position: fixed;
+            inset: -5%;
+            animation:
+                worldPulse 1.2s ease-in-out infinite,
+                worldDrift 60s ease-in-out infinite,
+                worldTremor 4s ease-in-out infinite;
+        }
+
+        @keyframes worldPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            15% {
+                transform: scale(1.006);
+            }
+
+            25% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes worldDrift {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            25% {
+                transform: translate(0.5%, -0.3%);
+            }
+
+            50% {
+                transform: translate(-0.3%, 0.5%);
+            }
+
+            75% {
+                transform: translate(0.2%, 0.2%);
+            }
+        }
+
+        /* Редкий нервный тик */
+        @keyframes worldTremor {
+
+            0%,
+            92%,
+            100% {
+                filter: none;
+            }
+
+            93% {
+                transform: translate(-1px, 0);
+            }
+
+            94% {
+                transform: translate(1px, 0);
+            }
+
+            95% {
+                transform: translate(0, 0);
+            }
+        }
+
+        /* Вены/капилляры на фоне */
+        .veins {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.15;
+            background:
+                radial-gradient(ellipse 2px 80px at 15% 30%, hsla(290, 50%, 15%, 0.8), transparent),
+                radial-gradient(ellipse 1px 120px at 25% 60%, hsla(280, 45%, 12%, 0.6), transparent),
+                radial-gradient(ellipse 3px 100px at 80% 25%, hsla(285, 40%, 14%, 0.7), transparent),
+                radial-gradient(ellipse 2px 150px at 70% 70%, hsla(275, 50%, 10%, 0.5), transparent),
+                radial-gradient(ellipse 1px 90px at 45% 85%, hsla(295, 45%, 13%, 0.6), transparent),
+                radial-gradient(ellipse 2px 70px at 90% 50%, hsla(270, 40%, 11%, 0.4), transparent);
+            animation: veinsPulse 8s ease-in-out infinite;
+        }
+
+        @keyframes veinsPulse {
+
+            0%,
+            100% {
+                opacity: 0.1;
+            }
+
+            50% {
+                opacity: 0.2;
+            }
+        }
+
+        /* Атмосфера */
+        .atmosphere {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            will-change: transform, opacity;
+        }
+
+        .blob--1 {
+            width: 160vw;
+            height: 160vh;
+            left: -60%;
+            bottom: -50%;
+            background: radial-gradient(ellipse,
+                    hsla(290, 50%, 24%, 0.95) 0%,
+                    hsla(280, 45%, 18%, 0.6) 35%,
+                    hsla(275, 35%, 10%, 0.3) 60%,
+                    transparent 75%);
+            animation: breathe1 14s ease-in-out infinite;
+        }
+
+        .blob--2 {
+            width: 140vw;
+            height: 140vh;
+            right: -50%;
+            top: -40%;
+            background: radial-gradient(ellipse,
+                    hsla(300, 45%, 22%, 0.85) 0%,
+                    hsla(285, 40%, 15%, 0.5) 40%,
+                    transparent 70%);
+            animation: breathe2 18s ease-in-out infinite;
+            animation-delay: -6s;
+        }
+
+        .blob--3 {
+            width: 90vw;
+            height: 90vh;
+            left: 25%;
+            top: 15%;
+            background: radial-gradient(circle,
+                    hsla(270, 55%, 28%, 0.7) 0%,
+                    hsla(275, 45%, 20%, 0.3) 40%,
+                    transparent 60%);
+            animation: breathe3 22s ease-in-out infinite;
+            animation-delay: -11s;
+        }
+
+        @keyframes breathe1 {
+
+            0%,
+            100% {
+                transform: scale(1) translate(0, 0);
+                opacity: 0.7;
+            }
+
+            28% {
+                transform: scale(1.25) translate(4%, -4%);
+                opacity: 1;
+            }
+        }
+
+        @keyframes breathe2 {
+
+            0%,
+            100% {
+                transform: scale(1) translate(0, 0);
+                opacity: 0.6;
+            }
+
+            32% {
+                transform: scale(1.2) translate(-5%, 4%);
+                opacity: 0.9;
+            }
+        }
+
+        @keyframes breathe3 {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+
+            25% {
+                transform: scale(1.3);
+                opacity: 0.8;
+            }
+        }
+
+        /* Виньетка */
+        .vignette {
+            position: absolute;
+            inset: -25%;
+            pointer-events: none;
+            background: radial-gradient(ellipse 55% 55% at 50% 50%,
+                    transparent 15%,
+                    hsla(280, 35%, 3%, 0.6) 45%,
+                    hsla(280, 40%, 2%, 0.9) 70%,
+                    hsl(280, 45%, 1%) 100%);
+            animation: vignettePulse 10s ease-in-out infinite;
+        }
+
+        @keyframes vignettePulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.85;
+            }
+
+            30% {
+                transform: scale(0.88);
+                opacity: 1;
+            }
+        }
+
+        /* Шум */
+        .noise {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            background-size: 512px 512px;
+            mix-blend-mode: overlay;
+            animation: noisePulse 4s ease-in-out infinite;
+        }
+
+        @keyframes noisePulse {
+
+            0%,
+            100% {
+                opacity: 0.025;
+            }
+
+            50% {
+                opacity: 0.055;
+            }
+        }
+
+        /* Контент */
+        .content {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .text-block {
+            max-width: 560px;
+            color: hsl(280, 14%, 46%);
+            font-family: 'Georgia', serif;
+            font-size: 1.4rem;
+            line-height: 2.1;
+            text-align: center;
+            animation: textBreath 12s ease-in-out infinite;
+        }
+
+        @keyframes textBreath {
+
+            0%,
+            100% {
+                opacity: 0.75;
+                transform: scale(1);
+            }
+
+            28% {
+                opacity: 1;
+                transform: scale(1.012);
+            }
+        }
+
+        .text-block p {
+            margin-bottom: 2.2em;
+        }
+
+        .text-block em {
+            color: hsl(285, 24%, 60%);
+            font-style: normal;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="world">
+        <div class="veins"></div>
+        <div class="atmosphere">
+            <div class="blob blob--1"></div>
+            <div class="blob blob--2"></div>
+            <div class="blob blob--3"></div>
+        </div>
+
+        <div class="vignette"></div>
+        <div class="noise"></div>
+    </div>
+
+    <div class="content">
+        <div class="text-block">
+            <p>
+                Ты пришёл сюда <em>посмотреть</em>.
+            </p>
+            <p>
+                Но что-то уже происходит.
+                Не с тобой — <em>вокруг</em> тебя.
+            </p>
+            <p>
+                Стены дышат.
+                Или это ты дышишь?
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

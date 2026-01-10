@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>КЛЯП — прототип v2</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Грязно-фиолетовый → гематома (более насыщенно) */
+            --bg-base: hsl(280, 20%, 6%);
+            --bruise-1: hsla(275, 35%, 18%, 0.8);
+            --bruise-2: hsla(290, 30%, 12%, 0.7);
+            --bruise-3: hsla(265, 40%, 15%, 0.6);
+            --bruise-4: hsla(300, 25%, 10%, 0.5);
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--bg-base);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Контейнер для слоёв */
+        .atmosphere {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        /* Пятна-слои (органические формы) */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            will-change: transform, opacity;
+        }
+
+        /* Большое пятно слева снизу */
+        .blob--1 {
+            width: 120vw;
+            height: 120vh;
+            left: -40%;
+            bottom: -30%;
+            background: radial-gradient(ellipse, var(--bruise-1) 0%, transparent 70%);
+            animation: breathe1 10s ease-in-out infinite;
+        }
+
+        /* Пятно справа сверху */
+        .blob--2 {
+            width: 100vw;
+            height: 100vh;
+            right: -30%;
+            top: -20%;
+            background: radial-gradient(ellipse, var(--bruise-2) 0%, transparent 60%);
+            animation: breathe2 14s ease-in-out infinite;
+            animation-delay: -4s;
+        }
+
+        /* Центральное пятно */
+        .blob--3 {
+            width: 80vw;
+            height: 80vh;
+            left: 10%;
+            top: 20%;
+            background: radial-gradient(circle, var(--bruise-3) 0%, transparent 50%);
+            animation: breathe3 18s ease-in-out infinite;
+            animation-delay: -9s;
+        }
+
+        /* Плавающий туман */
+        .blob--4 {
+            width: 60vw;
+            height: 60vh;
+            right: 5%;
+            bottom: 10%;
+            background: radial-gradient(ellipse at 30% 70%, var(--bruise-4) 0%, transparent 60%);
+            animation: float 25s ease-in-out infinite, breathe4 12s ease-in-out infinite;
+            animation-delay: -6s, -3s;
+        }
+
+        /* Асимметричное дыхание: вдох 30%, выдох 70% */
+        @keyframes breathe1 {
+
+            0%,
+            100% {
+                transform: scale(1) translate(0, 0);
+                opacity: 0.5;
+            }
+
+            30% {
+                transform: scale(1.15) translate(2%, -2%);
+                opacity: 0.8;
+            }
+        }
+
+        @keyframes breathe2 {
+
+            0%,
+            100% {
+                transform: scale(1) translate(0, 0);
+                opacity: 0.4;
+            }
+
+            35% {
+                transform: scale(1.12) translate(-3%, 2%);
+                opacity: 0.7;
+            }
+        }
+
+        @keyframes breathe3 {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.3;
+            }
+
+            25% {
+                transform: scale(1.2);
+                opacity: 0.6;
+            }
+        }
+
+        @keyframes breathe4 {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.4;
+            }
+
+            40% {
+                transform: scale(1.1);
+                opacity: 0.65;
+            }
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            25% {
+                transform: translate(-5%, 3%);
+            }
+
+            50% {
+                transform: translate(-2%, -4%);
+            }
+
+            75% {
+                transform: translate(3%, 2%);
+            }
+        }
+
+        /* Шум-текстура поверх */
+        .noise {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            background-size: 256px 256px;
+            mix-blend-mode: overlay;
+        }
+
+        /* Контент */
+        .content {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .text-block {
+            max-width: 600px;
+            color: hsl(280, 12%, 55%);
+            font-family: 'Georgia', serif;
+            font-size: 1.3rem;
+            line-height: 1.9;
+            text-align: center;
+        }
+
+        .text-block p {
+            margin-bottom: 1.8em;
+        }
+
+        .text-block em {
+            color: hsl(280, 18%, 70%);
+            font-style: normal;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Атмосфера -->
+    <div class="atmosphere">
+        <div class="blob blob--1"></div>
+        <div class="blob blob--2"></div>
+        <div class="blob blob--3"></div>
+        <div class="blob blob--4"></div>
+    </div>
+
+    <!-- Шум -->
+    <div class="noise"></div>
+
+    <!-- Контент -->
+    <div class="content">
+        <div class="text-block">
+            <p>
+                Ты пришёл сюда <em>посмотреть</em>.
+            </p>
+            <p>
+                Но что-то уже происходит.
+                Не с тобой — <em>вокруг</em> тебя.
+            </p>
+            <p>
+                Стены дышат.
+                Или это ты дышишь?
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

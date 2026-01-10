@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>КЛЯП — прототип v4</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: hsl(280, 30%, 4%);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Контейнер с общим пульсом */
+        .world {
+            position: fixed;
+            inset: 0;
+            animation: worldPulse 1.2s ease-in-out infinite;
+        }
+
+        @keyframes worldPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            /* Микро-удар — как сердце */
+            15% {
+                transform: scale(1.008);
+            }
+
+            25% {
+                transform: scale(1);
+            }
+        }
+
+        /* Атмосфера */
+        .atmosphere {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        /* Органические пятна */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            will-change: transform, opacity;
+        }
+
+        .blob--1 {
+            width: 160vw;
+            height: 160vh;
+            left: -60%;
+            bottom: -50%;
+            background: radial-gradient(ellipse,
+                    hsla(290, 45%, 22%, 0.95) 0%,
+                    hsla(280, 40%, 16%, 0.6) 35%,
+                    hsla(275, 35%, 10%, 0.3) 60%,
+                    transparent 75%);
+            animation: breathe1 14s ease-in-out infinite;
+        }
+
+        .blob--2 {
+            width: 140vw;
+            height: 140vh;
+            right: -50%;
+            top: -40%;
+            background: radial-gradient(ellipse,
+                    hsla(300, 40%, 20%, 0.85) 0%,
+                    hsla(285, 35%, 14%, 0.5) 40%,
+                    transparent 70%);
+            animation: breathe2 18s ease-in-out infinite;
+            animation-delay: -6s;
+        }
+
+        .blob--3 {
+            width: 80vw;
+            height: 80vh;
+            left: 30%;
+            top: 20%;
+            background: radial-gradient(circle,
+                    hsla(270, 50%, 25%, 0.7) 0%,
+                    hsla(275, 40%, 18%, 0.3) 40%,
+                    transparent 60%);
+            animation: breathe3 22s ease-in-out infinite;
+            animation-delay: -11s;
+        }
+
+        /* Глубокое медленное дыхание */
+        @keyframes breathe1 {
+
+            0%,
+            100% {
+                transform: scale(1) translate(0, 0);
+                opacity: 0.7;
+            }
+
+            30% {
+                transform: scale(1.25) translate(4%, -4%);
+                opacity: 1;
+            }
+        }
+
+        @keyframes breathe2 {
+
+            0%,
+            100% {
+                transform: scale(1) translate(0, 0);
+                opacity: 0.6;
+            }
+
+            35% {
+                transform: scale(1.2) translate(-5%, 4%);
+                opacity: 0.9;
+            }
+        }
+
+        @keyframes breathe3 {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+
+            25% {
+                transform: scale(1.3);
+                opacity: 0.8;
+            }
+        }
+
+        /* Виньетка — давит сильнее */
+        .vignette {
+            position: absolute;
+            inset: -20%;
+            pointer-events: none;
+            background: radial-gradient(ellipse 60% 60% at 50% 50%,
+                    transparent 20%,
+                    hsla(280, 35%, 3%, 0.5) 50%,
+                    hsla(280, 40%, 2%, 0.85) 75%,
+                    hsl(280, 45%, 1%) 100%);
+            animation: vignettePulse 10s ease-in-out infinite;
+        }
+
+        @keyframes vignettePulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            35% {
+                transform: scale(0.9);
+                opacity: 1;
+            }
+        }
+
+        /* Шум — пульсирует */
+        .noise {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            background-size: 512px 512px;
+            mix-blend-mode: overlay;
+            animation: noisePulse 3s ease-in-out infinite;
+        }
+
+        @keyframes noisePulse {
+
+            0%,
+            100% {
+                opacity: 0.03;
+            }
+
+            50% {
+                opacity: 0.06;
+            }
+        }
+
+        /* Контент */
+        .content {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .text-block {
+            max-width: 560px;
+            color: hsl(280, 12%, 48%);
+            font-family: 'Georgia', serif;
+            font-size: 1.4rem;
+            line-height: 2.1;
+            text-align: center;
+            animation: textBreath 12s ease-in-out infinite;
+        }
+
+        @keyframes textBreath {
+
+            0%,
+            100% {
+                opacity: 0.8;
+                transform: scale(1);
+            }
+
+            30% {
+                opacity: 1;
+                transform: scale(1.01);
+            }
+        }
+
+        .text-block p {
+            margin-bottom: 2.2em;
+        }
+
+        .text-block em {
+            color: hsl(285, 22%, 62%);
+            font-style: normal;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="world">
+        <div class="atmosphere">
+            <div class="blob blob--1"></div>
+            <div class="blob blob--2"></div>
+            <div class="blob blob--3"></div>
+        </div>
+
+        <div class="vignette"></div>
+        <div class="noise"></div>
+    </div>
+
+    <div class="content">
+        <div class="text-block">
+            <p>
+                Ты пришёл сюда <em>посмотреть</em>.
+            </p>
+            <p>
+                Но что-то уже происходит.
+                Не с тобой — <em>вокруг</em> тебя.
+            </p>
+            <p>
+                Стены дышат.
+                Или это ты дышишь?
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

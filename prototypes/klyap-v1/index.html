@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>КЛЯП — прототип v1</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      /* Грязно-фиолетовый → гематома */
+      --bg-base: hsl(280, 15%, 8%);
+      --bg-layer1: hsl(275, 20%, 12%);
+      --bg-layer2: hsl(285, 18%, 10%);
+      --bg-layer3: hsl(270, 25%, 6%);
+      
+      /* Дыхание: разные ритмы для слоёв */
+      --breath-1: 8s;
+      --breath-2: 11s;
+      --breath-3: 15s;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg-base);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Слои дыхания */
+    .breath-layer {
+      position: fixed;
+      inset: -10%;
+      pointer-events: none;
+      will-change: transform, opacity;
+    }
+
+    .breath-layer--1 {
+      background: radial-gradient(
+        ellipse 120% 100% at 30% 70%,
+        var(--bg-layer1) 0%,
+        transparent 70%
+      );
+      animation: breathe1 var(--breath-1) ease-in-out infinite;
+    }
+
+    .breath-layer--2 {
+      background: radial-gradient(
+        ellipse 100% 120% at 70% 30%,
+        var(--bg-layer2) 0%,
+        transparent 60%
+      );
+      animation: breathe2 var(--breath-2) ease-in-out infinite;
+      animation-delay: -3s;
+    }
+
+    .breath-layer--3 {
+      background: radial-gradient(
+        ellipse 80% 80% at 50% 50%,
+        var(--bg-layer3) 0%,
+        transparent 50%
+      );
+      animation: breathe3 var(--breath-3) ease-in-out infinite;
+      animation-delay: -7s;
+    }
+
+    /* Асимметричные кейфреймы: вдох быстрее, выдох медленнее */
+    @keyframes breathe1 {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.6;
+      }
+      /* Вдох: 0% → 30% (быстрее) */
+      30% {
+        transform: scale(1.04);
+        opacity: 0.8;
+      }
+      /* Выдох: 30% → 100% (медленнее) */
+    }
+
+    @keyframes breathe2 {
+      0%, 100% {
+        transform: scale(1) translateX(0);
+        opacity: 0.5;
+      }
+      35% {
+        transform: scale(1.03) translateX(1%);
+        opacity: 0.7;
+      }
+    }
+
+    @keyframes breathe3 {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.4;
+      }
+      25% {
+        transform: scale(1.05);
+        opacity: 0.6;
+      }
+    }
+
+    /* Контент поверх */
+    .content {
+      position: relative;
+      z-index: 10;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .text-block {
+      max-width: 600px;
+      color: hsl(280, 10%, 60%);
+      font-family: 'Georgia', serif;
+      font-size: 1.25rem;
+      line-height: 1.8;
+      text-align: center;
+    }
+
+    .text-block p {
+      margin-bottom: 1.5em;
+    }
+
+    .text-block em {
+      color: hsl(280, 15%, 75%);
+      font-style: normal;
+    }
+  </style>
+</head>
+<body>
+  <!-- Слои дыхания -->
+  <div class="breath-layer breath-layer--1"></div>
+  <div class="breath-layer breath-layer--2"></div>
+  <div class="breath-layer breath-layer--3"></div>
+
+  <!-- Контент -->
+  <div class="content">
+    <div class="text-block">
+      <p>
+        Ты пришёл сюда <em>посмотреть</em>.
+      </p>
+      <p>
+        Но что-то уже происходит. 
+        Не с тобой — <em>вокруг</em> тебя.
+      </p>
+      <p>
+        Стены дышат. 
+        Или это ты дышишь?
+      </p>
+    </div>
+  </div>
+</body>
+</html>
