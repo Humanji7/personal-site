@@ -200,7 +200,8 @@ npm start
 
 | Версия | Дата | Изменения |
 |--------|------|-----------|
-| **v13.5** | 2026-01-11 | LLM Chat Integration: server.js с полным system prompt, контекст (depth/time/pattern), typing indicator |
+| **v13.6** | 2026-01-11 | TEXT_FLOW protection: panic text ("сладко") disabled after depth 10; LLM response stays 12s (was 8s, fixed finally block conflict) |
+| v13.5 | 2026-01-11 | LLM Chat Integration: server.js с полным system prompt, контекст (depth/time/pattern), typing indicator |
 | v13.4 | 2026-01-11 | Трёхфазный переход D+E+H: input проявляется (80-90), "..." (90-100), клик для активации (100) |
 | v13.3 | 2026-01-11 | Metamorphosis Handoff: TEXT_FLOW завершается на depth 78, Metamorphosis ведёт к LLM |
 | v13.2 | 2026-01-11 | Text Persistence Model: state machine держит текст через depth, MIN_DISPLAY_TIME 2.5s |

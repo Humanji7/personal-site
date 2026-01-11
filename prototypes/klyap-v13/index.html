@@ -1285,20 +1285,30 @@
         });
 
         // v11 M2: Panic visual effects
+        // v13.3: After depth 10, TEXT_FLOW takes priority — no text override
         function applyPanicEffects() {
+            // After depth 10, TEXT_FLOW controls text — no interruption
+            if (state.depth >= 10) {
+                // Only visual effects, no text override
+                if (state.panicLevel > 0.7) {
+                    vignette.style.background = `radial-gradient(ellipse 42% 42% at 50% 50%,
+                        transparent 5%,
+                        hsla(350, 45%, 8%, 0.5) 30%,
+                        hsla(340, 50%, 4%, 0.85) 50%,
+                        hsl(330, 55%, 2%) 70%)`;
+                }
+                return;
+            }
+
+            // Before depth 10 — panic can override text
             if (state.panicLevel > 0.3) {
-                // Room "notices" panic
                 textEl.textContent = '...чувствуем...';
                 setTimeout(() => applyDepthEffects(), 1200);
-
-                // Intensify tremor
                 document.querySelector('.content').style.animation =
                     `contentTremor ${1.5 / state.panicLevel}s ease-in-out infinite`;
-
                 console.log(`[KLYAP] Паника: ${(state.panicLevel * 100).toFixed(0)}%`);
             }
             if (state.panicLevel > 0.7) {
-                // High panic - room reacts strongly
                 textEl.textContent = '...сладко...';
                 vignette.style.background = `radial-gradient(ellipse 42% 42% at 50% 50%,
                     transparent 5%,
@@ -2048,8 +2058,8 @@
                 console.error('[KLYAP] API error:', error);
                 showRoomResponse('...');
             } finally {
-                // Hide typing indicator
-                roomResponse.classList.remove('typing', 'visible');
+                // Hide typing indicator only, NOT visible (showRoomResponse handles display time)
+                roomResponse.classList.remove('typing');
                 chatInput.disabled = false;
                 chatInput.focus();
             }
@@ -2111,10 +2121,10 @@
             roomResponse.textContent = text;
             roomResponse.classList.add('visible');
 
-            // Fade after 8s (longer presence)
+            // Fade after 12s (longer presence for reading)
             setTimeout(() => {
                 roomResponse.classList.remove('visible');
-            }, 8000);
+            }, 12000);
         }
 
         // Update debug display to show metamorphosis phase
