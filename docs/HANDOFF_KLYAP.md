@@ -47,7 +47,20 @@ depth 90+:    CHAT MODE
 
 ### Fog Effect
 
-3-слойный туман с backdrop-filter blur (3px → 10px → 18px), drift animation.
+3-слойный туман с backdrop-filter blur (3px → 10px → 18px), **condensation** (scale 5→1).
+
+### v12.1: Visual Condensation (NEW)
+
+При depth 70+ всё **стягивается к центру**:
+
+| Элемент | Эффект |
+|---------|--------|
+| Canvas blobs | Притягиваются к центру + уменьшаются |
+| Veins | Стягиваются к центру |
+| Central glow | Появляется и растёт (фиолетовый вихрь) |
+| DOM bubbles | Летят к центру с blur |
+| Fog layers | Сжимаются из scale(3-5) → scale(1) |
+| LLM ответы | Крупные, с glow + материализация из blur |
 
 ---
 
@@ -71,7 +84,7 @@ npm start
 
 | Путь | Назначение |
 |------|------------|
-| `prototypes/klyap-v10/index.html` | Прототип v12 |
+| `prototypes/klyap-v10/index.html` | Прототип v12.1 |
 | `prototypes/klyap-v10/server.js` | Express proxy для Claude API |
 | `prototypes/klyap-v10/package.json` | Dependencies |
 | `prototypes/klyap-v10/.env` | API ключ (gitignored) |
@@ -99,6 +112,7 @@ npm start
 
 | Версия | Дата | Изменения |
 |--------|------|-----------|
+| v12.1 | 2026-01-11 | Visual condensation: blobs/veins/glow converge to center |
 | v12 | 2026-01-11 | Scroll metamorphosis, LLM chat, fog layers |
 | v11 | 2026-01-11 | Strangeness: depth system, panic detection |
 | v10 | 2026-01-11 | Enhanced typography, living bubbles |
