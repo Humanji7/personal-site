@@ -171,7 +171,8 @@
             opacity: 0;
             transform: scale(0.95);
             transition: opacity 3s ease-out, transform 3s ease-out;
-            letter-spacing: 0.15em;
+            letter-spacing: 0.25em;
+            word-spacing: 0.5em;
             /* v10: transition smoothing for glitch effects */
             will-change: transform, letter-spacing, text-shadow;
         }
@@ -866,18 +867,27 @@
         const TEXT_FLOW = [
             // DRIFT (0-50) — захват, телесное awareness
             { depth: 0, text: 'ты здесь.' },
+            { depth: 4, text: 'вот так.' },
             { depth: 8, text: '', pause: 2000 },
+            { depth: 12, text: 'буквы появляются.' },
             { depth: 15, text: 'ты читаешь.' },
+            { depth: 18, text: 'продолжай.' },
             { depth: 20, text: 'это не вопрос.' },
+            { depth: 24, text: 'ты уже внутри.' },
             { depth: 28, text: 'твоя челюсть сжата.', pause: 1500 },
             { depth: 32, text: 'или нет.' },
+            { depth: 34, text: 'чувствуешь?' },
             { depth: 36, text: 'проверь.', pause: 3000 },
+            { depth: 39, text: 'теперь следи.' },
             { depth: 42, text: 'теперь сжата.' },
+            { depth: 46, text: 'я вижу.' },
 
             // SPLIT (50-80) — раздвоение наблюдателя
             { depth: 50, text: 'кто-то смотрит на экран.', pause: 2000 },
+            { depth: 54, text: 'это не ты.' },
             { depth: 56, text: 'ты думаешь, что это ты.' },
             { depth: 60, text: 'продолжай так думать.' },
+            { depth: 64, text: 'пока можешь.' },
             { depth: 66, text: 'я не могу остановиться.', pause: 2000 },
             { depth: 72, text: 'это я написал или ты подумал?' },
             { depth: 78, text: 'уже неважно.', pause: 2500 },
@@ -906,7 +916,7 @@
 
         // === CONFIG ===
         const CONFIG = {
-            TEXT_APPEAR_DELAY: 2,             // seconds before text fades in
+            TEXT_APPEAR_DELAY: 0.5,             // seconds before text fades in
             IDLE_THRESHOLD: 5,                // seconds before deemed "idle"
             PULSE_RAMP_START: 8,              // seconds to start intensifying
             PORTAL_APPEAR: 20,                // seconds before portal shows
@@ -1437,7 +1447,7 @@
             if (targetIndex === textFlowState.currentIndex) return;
 
             // Новый текст — проверяем минимальное время показа
-            const MIN_DISPLAY_TIME = 2500;  // 2.5 секунды минимум
+            const MIN_DISPLAY_TIME = 1800;  // 1.8 секунды минимум
             const now = Date.now();
             const displayedFor = now - textFlowState.displayStartTime;
 
