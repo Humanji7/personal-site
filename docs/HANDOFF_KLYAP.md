@@ -2,11 +2,23 @@
 
 ## Статус
 
-**v12 — Scroll Metamorphosis** → [prototypes/klyap-v10/](file:///Users/admin/projects/personal-site/prototypes/klyap-v10/)
+**v12.2 — Premium Horror Typography** → [prototypes/klyap-v10/](file:///Users/admin/projects/personal-site/prototypes/klyap-v10/)
 
 ---
 
-## Реализовано (v12)
+## Концепция
+
+КЛЯП — первая комната лабиринта. Интимное, давящее пространство, которое **уже внутри** пользователя. Не угрожает — уже победило. Взаимодействие необратимо: чем глубже скроллишь, тем глубже погружаешься, пока не окажешься в диалоге с комнатой.
+
+### Эстетика
+- **A24 Elevated Horror** (Hereditary, Midsommar) — атмосфера > jump scares
+- **Psychological dread** — медленное нарастание, не резкий испуг
+- **Luxury typography** — Playfair Display (Vogue-style), Mystery Quest (whisper), Special Elite (cold documentation)
+- **Organic visuals** — живые blobs, пульсирующие veins, дышащий туман
+
+---
+
+## Реализовано (v12.2)
 
 | Механика | Описание |
 |----------|----------|
@@ -14,18 +26,18 @@
 | Panic detection | Быстрые движения → tremor ускоряется |
 | Фазы | entry → swelling → accepting → dissolving |
 | beforeunload | При depth > 30 браузер предупреждает о выходе |
-| Living Bubbles | 5 провокаций с whisper-preview |
-| **Metamorphosis** | **depth 70-100: трансформация в LLM-чат** |
+| Living Bubbles | 5 провокаций с whisper-preview (Mystery Quest) |
+| **Metamorphosis** | depth 70-100: visual condensation + LLM-чат |
+| **Premium Typography** | Playfair Display, Mystery Quest, Special Elite |
 
-### v12: Scroll Metamorphosis (NEW)
+### Scroll Metamorphosis
 
 ```
 depth 70-85:  FALSE LIBERATION
               - Виньетка расширяется (scale 2)
               - Фон светлеет
-              - Bubbles исчезают
+              - Всё стягивается к центру (condensation)
               - Текст: "свободен"
-              - Tremor замедляется
               → Пользователь думает: "я победил"
 
 depth 85-90:  TRAP
@@ -40,16 +52,11 @@ depth 90:     HARD CUT
               - "ты здесь"
 
 depth 90+:    CHAT MODE
-              - Минималистичный input
-              - Hints появляются постепенно
-              - Claude Sonnet отвечает (1-3 слова)
+              - Claude Sonnet (1-3 слова)
+              - Special Elite typewriter font
 ```
 
-### Fog Effect
-
-3-слойный туман с backdrop-filter blur (3px → 10px → 18px), **condensation** (scale 5→1).
-
-### v12.1: Visual Condensation (NEW)
+### Visual Condensation
 
 При depth 70+ всё **стягивается к центру**:
 
@@ -59,8 +66,15 @@ depth 90+:    CHAT MODE
 | Veins | Стягиваются к центру |
 | Central glow | Появляется и растёт (фиолетовый вихрь) |
 | DOM bubbles | Летят к центру с blur |
-| Fog layers | Сжимаются из scale(3-5) → scale(1) |
-| LLM ответы | Крупные, с glow + материализация из blur |
+| Fog layers | Condensation: scale(5) → scale(1) |
+
+### Typography Stack
+
+| Элемент | Шрифт | Характер |
+|---------|-------|----------|
+| Основной текст | Playfair Display | A24-style elegance, sharp serifs |
+| Bubbles/Hints | Mystery Quest | Whimsical eerie, whisper |
+| LLM ответы | Special Elite | Cold typewriter, documentation |
 
 ---
 
@@ -80,11 +94,68 @@ npm start
 
 ---
 
+## Гипотетические улучшения
+
+### 🔊 Звуковое измерение
+
+| Идея | Описание |
+|------|----------|
+| **Ambient drone** | Низкий, едва слышный гул, нарастающий с depth |
+| **Whisper на hover** | При наведении на bubbles — шёпот (Web Audio) |
+| **Heartbeat sync** | Пульс ускоряется с panic level |
+| **Тишина в TRAP** | Звук резко обрывается — максимальный эффект |
+
+### 📱 Mobile Touch
+
+| Идея | Описание |
+|------|----------|
+| **Swipe down = глотание** | touchmove заменяет scroll |
+| **Tap-to-sink** | Каждый tap = +5 depth (ещё более осознанное погружение) |
+| **Haptic feedback** | Вибрация при переходе фаз |
+| **Gyroscope влияние** | Наклон телефона влияет на blobs |
+
+### 🧠 LLM Refinement
+
+| Идея | Описание |
+|------|----------|
+| **Conversation memory** | Комната помнит прошлые сессии |
+| **Typing patterns** | Реагировать на скорость печати (нервничает?) |
+| **Adaptive responses** | Разные ветки для resistance/submission/silence |
+| **Delayed response** | Иногда комната отвечает через 5-10 сек (tension) |
+
+### 👁️ Visual Evolution
+
+| Идея | Описание |
+|------|----------|
+| **Particle vortex** | WebGL частицы, засасывающиеся в центр |
+| **Breath sync** | Blobs дышат в ритме пользователя (если есть mic access) |
+| **Eye tracking illusion** | Центральный glow "следит" за курсором |
+| **Color temperature shift** | От cold purple к warm flesh tones при depth↑ |
+
+### 🚪 Exit Experience
+
+| Идея | Описание |
+|------|----------|
+| **Cookie persistence** | При возврате: "вернулся" вместо "ты здесь" |
+| **Depth memory** | Начинать с последнего достигнутого depth |
+| **Browser notification** | Через час после закрытия: push "мы ждём" |
+| **Tab title change** | Когда tab не в фокусе: "не уходи" |
+
+### 🔗 Transition to MAZUT
+
+| Идея | Описание |
+|------|----------|
+| **Data transfer** | Передать timeSpent, depth, pattern в следующую комнату |
+| **Seamless transition** | Без explicit "next room" button |
+| **MAZUT teaser** | При depth 100 — glimpse следующей комнаты |
+
+---
+
 ## Файлы
 
 | Путь | Назначение |
 |------|------------|
-| `prototypes/klyap-v10/index.html` | Прототип v12.1 |
+| `prototypes/klyap-v10/index.html` | Прототип v12.2 |
 | `prototypes/klyap-v10/server.js` | Express proxy для Claude API |
 | `prototypes/klyap-v10/package.json` | Dependencies |
 | `prototypes/klyap-v10/.env` | API ключ (gitignored) |
@@ -112,10 +183,11 @@ npm start
 
 | Версия | Дата | Изменения |
 |--------|------|-----------|
+| v12.2 | 2026-01-11 | Premium typography: Playfair Display, Mystery Quest, Special Elite |
 | v12.1 | 2026-01-11 | Visual condensation: blobs/veins/glow converge to center |
 | v12 | 2026-01-11 | Scroll metamorphosis, LLM chat, fog layers |
 | v11 | 2026-01-11 | Strangeness: depth system, panic detection |
-| v10 | 2026-01-11 | Enhanced typography, living bubbles |
+| v10 | 2026-01-11 | Enhanced typography (v10), living bubbles |
 
 ---
 
