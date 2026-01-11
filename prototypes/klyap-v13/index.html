@@ -649,6 +649,35 @@
             opacity: 0.3;
         }
 
+        /* v13.4: Soft transition classes */
+        .chat-input.revealing {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .chat-input.awaiting {
+            pointer-events: none;
+            animation: awaitingPulse 3s ease-in-out infinite;
+        }
+
+        .chat-input.active {
+            pointer-events: auto;
+        }
+
+        @keyframes awaitingPulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                text-shadow: 0 0 20px hsla(295, 50%, 40%, 0.3);
+            }
+
+            50% {
+                opacity: 0.7;
+                text-shadow: 0 0 40px hsla(295, 50%, 50%, 0.5);
+            }
+        }
+
         /* Ответ комнаты — LARGER, dramatic (Special Elite: typewriter horror) */
         .room-response {
             position: fixed;
@@ -674,6 +703,30 @@
             transform: translate(-50%, -50%) scale(1);
             filter: blur(0);
         }
+
+        /* Typing indicator */
+        .room-response.typing::after {
+            content: '...';
+            animation: typingDots 1.5s ease-in-out infinite;
+        }
+
+        @keyframes typingDots {
+
+            0%,
+            20% {
+                content: '.';
+            }
+
+            40% {
+                content: '..';
+            }
+
+            60%,
+            100% {
+                content: '...';
+            }
+        }
+
 
         /* === CHAT HINTS === */
 
@@ -778,7 +831,6 @@
 
     <!-- v12: CHAT CONTAINER -->
     <div class="chat-container" id="chat-container">
-        <div class="chat-arrival-text" id="chat-arrival-text">ты здесь</div>
         <input type="text" class="chat-input" id="chat-input" autocomplete="off">
         <div class="room-response" id="room-response"></div>
     </div>
@@ -830,20 +882,18 @@
             { depth: 72, text: 'это я написал или ты подумал?' },
             { depth: 78, text: 'уже неважно.', pause: 2500 },
 
-            // YIELD (80-95) — капитуляция
-            { depth: 82, text: 'тело, которое читает это —' },
-            { depth: 85, text: 'ему неудобно.', pause: 1500 },
-            { depth: 88, text: '', pause: 4000 },  // Длинная тишина
-            { depth: 92, text: 'напиши одно слово.', showInput: true },
-            { depth: 95, text: 'не думай какое.' },
+            // После depth 78 — metamorphosis берёт управление
+            // Liberation (70) → Trap (85) → Hard Cut → Chat
         ];
 
-        // v13: Text flow state
+        // v13.2: Text flow state — PERSISTENCE MODEL
+        // Текст "ведётся" через depth, не исчезает быстро
         const textFlowState = {
-            currentIndex: -1,
-            textQueue: [],
-            isProcessing: false,
-            pauseActive: false
+            currentIndex: -1,           // какой текст сейчас показан
+            targetIndex: -1,            // к какому тексту идём
+            isTransitioning: false,     // в процессе перехода?
+            currentText: '',            // текущий показанный текст
+            displayStartTime: 0         // когда начали показывать текущий текст
         };
 
         // v13: Font Glitch / Text-Driven state machine
@@ -880,7 +930,6 @@
         const fog3 = document.getElementById('fog-3');
         const chatContainer = document.getElementById('chat-container');
         const chatInput = document.getElementById('chat-input');
-        const chatArrivalText = document.getElementById('chat-arrival-text');
         const roomResponse = document.getElementById('room-response');
         const chatHintsContainer = document.getElementById('chat-hints');
         const chatHints = document.querySelectorAll('.chat-hint');
@@ -893,7 +942,8 @@
             chatReady: false,
             hintIndex: 0,
             hintDelay: 7000,          // 7s before first hint
-            conversationHistory: []
+            conversationHistory: [],
+            awaitingClick: false      // v13.4: waiting for click to activate chat
         };
 
         // v12: Claude API system prompt
@@ -1290,9 +1340,9 @@
         document.addEventListener('wheel', (e) => {
             if (state.phase === 'entry') return; // Not yet
 
-            // v12: TRAP/CUT/CHAT PHASE: scroll completely blocked
-            if (metamorphosis.phase === 'trap' || metamorphosis.phase === 'cut' || metamorphosis.phase === 'chat') {
-                console.log('[KLYAP] Scroll blocked — trapped');
+            // v13.4: Scroll blocked at depth 100 (not by phase)
+            if (state.depth >= 100) {
+                console.log('[KLYAP] Scroll blocked — depth 100');
                 return;
             }
 
@@ -1352,64 +1402,67 @@
             }
         }, { passive: true });
 
-        // v13: TEXT-DRIVEN DISSOCIATION ENGINE
-        function queueTextsUpTo(targetDepth) {
-            const newTexts = TEXT_FLOW.filter((item, index) =>
-                index > textFlowState.currentIndex &&
-                item.depth <= targetDepth
-            );
+        // v13.2: TEXT-DRIVEN PERSISTENCE ENGINE
+        // Определяем какой текст ДОЛЖЕН быть показан для текущего depth
+        // и плавно переходим к нему, если это новый текст
 
-            if (newTexts.length > 0) {
-                textFlowState.textQueue.push(...newTexts);
-                processTextQueue();
-            }
-        }
-
-        async function processTextQueue() {
-            if (textFlowState.isProcessing || textFlowState.textQueue.length === 0) return;
-
-            textFlowState.isProcessing = true;
-
-            while (textFlowState.textQueue.length > 0) {
-                const textItem = textFlowState.textQueue.shift();
-                await showTextItem(textItem);
-                textFlowState.currentIndex = TEXT_FLOW.indexOf(textItem);
-            }
-
-            textFlowState.isProcessing = false;
-        }
-
-        function showTextItem(textItem) {
-            return new Promise((resolve) => {
-                // v13: MINIMUM display time to ensure text is readable
-                const MIN_DISPLAY_TIME = 2000;  // 2 seconds minimum
-                
-                // Handle pause before showing text
-                if (textItem.pause && textItem.pause > 0) {
-                    textFlowState.pauseActive = true;
-                    textEl.style.opacity = '0';
-
-                    setTimeout(() => {
-                        displayTextItem(textItem);
-                        textFlowState.pauseActive = false;
-                        // Wait at least MIN_DISPLAY_TIME after pause
-                        setTimeout(resolve, MIN_DISPLAY_TIME);
-                    }, textItem.pause);
-                } else {
-                    displayTextItem(textItem);
-                    setTimeout(resolve, MIN_DISPLAY_TIME);
+        function getTextIndexForDepth(depth) {
+            // Находим последний текст, depth которого <= текущего depth
+            for (let i = TEXT_FLOW.length - 1; i >= 0; i--) {
+                if (TEXT_FLOW[i].depth <= depth) {
+                    return i;
                 }
-            });
+            }
+            return -1;
         }
 
-        function displayTextItem(textItem) {
-            // Smooth fade
-            textEl.style.transition = 'opacity 0.8s ease-out';
+        function updateTextForDepth() {
+            const targetIndex = getTextIndexForDepth(state.depth);
+
+            // Нет текста для этого depth
+            if (targetIndex < 0) return;
+
+            // Тот же текст — ничего не делаем (PERSISTENCE)
+            if (targetIndex === textFlowState.currentIndex) return;
+
+            // Новый текст — проверяем минимальное время показа
+            const MIN_DISPLAY_TIME = 2500;  // 2.5 секунды минимум
+            const now = Date.now();
+            const displayedFor = now - textFlowState.displayStartTime;
+
+            // Если текущий текст показан недостаточно долго — откладываем
+            if (textFlowState.currentIndex >= 0 && displayedFor < MIN_DISPLAY_TIME) {
+                console.log(`[KLYAP v13.2] Text holding: ${displayedFor}ms < ${MIN_DISPLAY_TIME}ms`);
+                return;
+            }
+
+            // Переходим к новому тексту
+            textFlowState.targetIndex = targetIndex;
+            transitionToText(targetIndex);
+        }
+
+        function transitionToText(index) {
+            if (textFlowState.isTransitioning) return;
+            textFlowState.isTransitioning = true;
+
+            const textItem = TEXT_FLOW[index];
+
+            // Handle pause if specified
+            const pauseTime = textItem.pause || 0;
+
+            // Fade out current text
+            textEl.style.transition = 'opacity 0.6s ease-out';
             textEl.style.opacity = '0';
 
             setTimeout(() => {
+                // After fade out + pause, show new text
                 textEl.textContent = textItem.text;
                 textEl.style.opacity = textItem.text ? '0.85' : '0';
+
+                textFlowState.currentIndex = index;
+                textFlowState.currentText = textItem.text;
+                textFlowState.displayStartTime = Date.now();
+                textFlowState.isTransitioning = false;
 
                 // Show input if flagged (YIELD phase)
                 if (textItem.showInput) {
@@ -1417,18 +1470,18 @@
                         chatInput.style.opacity = '1';
                         chatInput.style.pointerEvents = 'auto';
                         chatInput.focus();
-                        console.log('[KLYAP v13] Input field revealed');
+                        console.log('[KLYAP v13.2] Input field revealed');
                     }, 1500);
                 }
 
-                console.log(`[KLYAP v13] depth ${state.depth.toFixed(1)}: "${textItem.text}"`);
-            }, 400);
+                console.log(`[KLYAP v13.2] depth ${state.depth.toFixed(1)} → text #${index}: "${textItem.text}"`);
+            }, 600 + pauseTime);  // fade time + pause
         }
 
-        // v13: Apply visual effects based on depth (visuals preserved from v12)
+        // v13.2: Apply visual effects based on depth (visuals preserved from v12)
         function applyDepthEffects() {
-            // 1. TEXT-DRIVEN: Queue texts up to current depth
-            queueTextsUpTo(state.depth);
+            // 1. TEXT-DRIVEN: Update text for current depth (PERSISTENCE model)
+            updateTextForDepth();
 
             // 2. Vignette contracts based on depth
             const contractScale = 1 - (state.depth / 100) * 0.4; // 1.0 -> 0.6
@@ -1448,6 +1501,70 @@
                 state.phase = 'dissolving';
                 console.log('[KLYAP] Phase: dissolving');
             }
+
+            // 5. v13.4: Soft transition to chat
+            updateSoftTransition();
+        }
+
+        // v13.4: THREE-PHASE SOFT TRANSITION
+        function updateSoftTransition() {
+            const depth = state.depth;
+
+            // Фаза 1: ПРОЯВЛЕНИЕ (80-90)
+            if (depth >= 80 && depth < 90) {
+                const progress = (depth - 80) / 10;  // 0 → 1
+                chatInput.style.opacity = progress * 0.5;
+                chatInput.classList.add('revealing');
+                chatContainer.classList.add('active');
+
+                // Одновременно тушим text-block
+                textEl.style.opacity = 1 - progress * 0.5;
+
+                console.log(`[KLYAP v13.4] Phase 1 REVEALING: ${(progress * 100).toFixed(0)}%`);
+            }
+
+            // Фаза 2: ПРИСУТСТВИЕ (90-100)
+            if (depth >= 90 && depth < 100) {
+                const progress = (depth - 90) / 10;  // 0 → 1
+                chatInput.style.opacity = 0.5 + progress * 0.5;  // 0.5 → 1
+                chatContainer.classList.add('active');
+
+                // Вставляем "..." если ещё нет
+                if (chatInput.value === '') {
+                    chatInput.value = '...';
+                }
+
+                // text-block почти невидим
+                textEl.style.opacity = 0.2;
+
+                console.log(`[KLYAP v13.4] Phase 2 PRESENCE: ${(progress * 100).toFixed(0)}%`);
+            }
+
+            // Фаза 3: СОГЛАСИЕ (100)
+            if (depth >= 100 && !metamorphosis.awaitingClick) {
+                metamorphosis.awaitingClick = true;
+                chatInput.classList.add('awaiting');
+                chatInput.value = '...';
+
+                console.log('[KLYAP v13.4] Phase 3 AWAITING CLICK');
+
+                // Ждём клика где угодно
+                document.addEventListener('click', activateChat, { once: true });
+            }
+        }
+
+        function activateChat() {
+            chatInput.classList.remove('awaiting', 'revealing');
+            chatInput.classList.add('active');
+            chatInput.value = '';  // очищаем "..."
+            chatInput.focus();
+            metamorphosis.phase = 'chat';
+            metamorphosis.chatReady = true;
+
+            console.log('[KLYAP v13.4] CHAT ACTIVATED');
+
+            // Start hint timer
+            setTimeout(showNextHint, metamorphosis.hintDelay);
         }
 
         document.addEventListener('touchstart', (e) => {
@@ -1773,22 +1890,8 @@
         function updateMetamorphosis() {
             const depth = state.depth;
 
-            // Phase transitions based on depth
-            if (depth >= 70 && depth < 85 && metamorphosis.phase === 'immersion') {
-                enterLiberationPhase();
-            }
-
-            if (depth >= 85 && metamorphosis.phase === 'liberation') {
-                enterTrapPhase();
-            }
-
-            // Trap timer check (runs in animation frame, not here)
-            if (metamorphosis.phase === 'trap' && metamorphosis.trapStartTime) {
-                const elapsed = Date.now() - metamorphosis.trapStartTime;
-                if (elapsed >= metamorphosis.trapDuration) {
-                    executeHardCut();
-                }
-            }
+            // v13.4: Removed liberation/trap/cut phases
+            // Soft transition handled by updateSoftTransition()
 
             // Progressive fog (depth 70-100)
             updateFog(depth);
@@ -1927,7 +2030,11 @@
             });
 
             try {
+                // Show typing indicator while waiting
+                showTypingIndicator();
+
                 const response = await callClaude();
+
 
                 // Add to history
                 metamorphosis.conversationHistory.push({
@@ -1940,18 +2047,38 @@
                 console.error('[KLYAP] API error:', error);
                 showRoomResponse('...');
             } finally {
+                // Hide typing indicator
+                roomResponse.classList.remove('typing', 'visible');
                 chatInput.disabled = false;
                 chatInput.focus();
             }
         }
 
+        function showTypingIndicator() {
+            roomResponse.textContent = '';
+            roomResponse.classList.add('typing', 'visible');
+        }
+
+
         async function callClaude() {
+            // Determine user pattern based on behavior
+            const idleRatio = state.timeOnPage > 0 ?
+                (state.timeOnPage - (state.scrollCount * 0.5)) / state.timeOnPage : 0;
+            let pattern = 'passive';
+            if (state.scrollCount > 20 || state.mouseMoveCount > 100) pattern = 'active';
+            if (state.panicDetected) pattern = 'erratic';
+
             try {
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        messages: metamorphosis.conversationHistory
+                        messages: metamorphosis.conversationHistory,
+                        context: {
+                            depth: state.depth,
+                            time: state.timeOnPage,
+                            pattern: pattern
+                        }
                     })
                 });
 
@@ -1966,6 +2093,7 @@
                 return getFallbackResponse();
             }
         }
+
 
         function getFallbackResponse() {
             // Fallback if API fails
