@@ -1,0 +1,2020 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>КЛЯП v13 — Text-Driven Dissociation</title>
+
+    <!-- Google Fonts: Horror Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Mystery+Quest&family=Special+Elite&display=swap"
+        rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: hsl(280, 35%, 2%);
+            overflow: hidden;
+            position: relative;
+            cursor: none;
+        }
+
+        #membrane-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Виньетка — сжимается со временем */
+        .vignette {
+            position: fixed;
+            inset: -40%;
+            pointer-events: none;
+            z-index: 5;
+            background: radial-gradient(ellipse 42% 42% at 50% 50%,
+                    transparent 5%,
+                    hsla(280, 45%, 3%, 0.4) 30%,
+                    hsla(280, 50%, 2%, 0.8) 50%,
+                    hsl(280, 55%, 1%) 70%);
+            animation: vignetteContract 4s ease-in-out infinite;
+            transition: transform 8s ease-out;
+        }
+
+        .vignette.constricted {
+            transform: scale(0.6) !important;
+        }
+
+        @keyframes vignetteContract {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.9;
+            }
+
+            30% {
+                transform: scale(0.78);
+                opacity: 1;
+            }
+        }
+
+        /* Шум */
+        .noise {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 6;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            background-size: 512px 512px;
+            mix-blend-mode: overlay;
+            opacity: 0.06;
+            animation: noisePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes noisePulse {
+
+            0%,
+            100% {
+                opacity: 0.05;
+            }
+
+            50% {
+                opacity: 0.09;
+            }
+        }
+
+        /* Scanline overlay — v10 NEW */
+        .scanlines {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 8;
+            background: repeating-linear-gradient(0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 0, 0, 0.03) 2px,
+                    rgba(0, 0, 0, 0.03) 4px);
+            opacity: 0.4;
+            animation: scanlineFlicker 0.1s infinite;
+        }
+
+        @keyframes scanlineFlicker {
+
+            0%,
+            100% {
+                opacity: 0.35;
+            }
+
+            50% {
+                opacity: 0.45;
+            }
+        }
+
+        /* Контент + текст */
+        .content {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            animation: contentTremor 3s ease-in-out infinite;
+        }
+
+        @keyframes contentTremor {
+
+            0%,
+            86%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            88% {
+                transform: translate(-2px, 1px);
+            }
+
+            90% {
+                transform: translate(2px, -1px);
+            }
+
+            92% {
+                transform: translate(-1px, -1px);
+            }
+
+            94% {
+                transform: translate(0, 0);
+            }
+        }
+
+        /* Текст — одно слово (Eater: regal + decayed horror) */
+        .text-block {
+            color: hsl(285, 20%, 50%);
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 6vw, 4rem);
+            line-height: 1.4;
+            text-align: center;
+            text-shadow: 0 0 40px hsla(290, 40%, 20%, 0.6);
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 3s ease-out, transform 3s ease-out;
+            letter-spacing: 0.15em;
+            /* v10: transition smoothing for glitch effects */
+            will-change: transform, letter-spacing, text-shadow;
+        }
+
+        .text-block.visible {
+            opacity: 0.75;
+            transform: scale(1);
+        }
+
+        .text-block.pulse {
+            animation: textIntensify 2.5s ease-in-out infinite;
+        }
+
+        @keyframes textIntensify {
+
+            0%,
+            100% {
+                opacity: 0.65;
+                filter: blur(0);
+            }
+
+            30% {
+                opacity: 0.9;
+            }
+
+            48% {
+                filter: blur(1px);
+            }
+
+            52% {
+                filter: blur(0);
+            }
+        }
+
+        /* Курсор */
+        .cursor-glow {
+            position: fixed;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 20;
+            background: radial-gradient(circle,
+                    hsla(295, 50%, 35%, 0.15) 0%,
+                    hsla(290, 45%, 25%, 0.08) 40%,
+                    transparent 70%);
+            transform: translate(-50%, -50%);
+            transition: opacity 0.3s, width 0.5s, height 0.5s;
+            mix-blend-mode: screen;
+        }
+
+        .cursor-glow.active {
+            width: 180px;
+            height: 180px;
+        }
+
+        /* Проход (появляется через ~20 сек) */
+        .exit-portal {
+            position: fixed;
+            bottom: 10%;
+            right: 10%;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            z-index: 15;
+            opacity: 0;
+            pointer-events: none;
+            cursor: pointer;
+            background: radial-gradient(circle,
+                    hsla(300, 45%, 35%, 0.4) 0%,
+                    hsla(290, 40%, 20%, 0.2) 50%,
+                    transparent 80%);
+            box-shadow: 0 0 60px hsla(295, 50%, 30%, 0.4);
+            transition: opacity 3s ease-out, transform 0.3s ease;
+            animation: portalPulse 3s ease-in-out infinite;
+        }
+
+        .exit-portal.visible {
+            opacity: 1;
+            pointer-events: auto;
+            /* v10: portal jitter animation */
+            animation: portalPulse 3s ease-in-out infinite,
+                portalJitter 4s ease-in-out infinite;
+        }
+
+        .exit-portal:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 90px hsla(295, 60%, 40%, 0.6);
+        }
+
+        @keyframes portalPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        /* v10: Portal jitter — horror title card style micro-shake */
+        @keyframes portalJitter {
+
+            0%,
+            90%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            92% {
+                transform: translate(-3px, 1px) scale(1.02);
+            }
+
+            94% {
+                transform: translate(2px, -2px) scale(0.98);
+            }
+
+            96% {
+                transform: translate(-1px, 2px) scale(1.01);
+            }
+
+            98% {
+                transform: translate(1px, -1px) scale(1);
+            }
+        }
+
+        /* Debug overlay */
+        #debug {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            z-index: 100;
+            color: hsla(300, 60%, 60%, 0.5);
+            font-family: monospace;
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        /* v10.2: Provocation bubbles — room's thoughts */
+        .bubble-container {
+            position: fixed;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 25;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: none;
+        }
+
+        /* v10.3: LIVING BUBBLES — organic blob form (Mystery Quest: eerie whisper) */
+        .provocation-bubble {
+            background: hsla(290, 30%, 12%, 0.85);
+            border: 1px solid hsla(295, 40%, 25%, 0.4);
+            /* M1: Organic blob shape */
+            border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+            padding: 14px 20px;
+            color: hsla(290, 35%, 70%, 0.95);
+            font-family: 'Mystery Quest', cursive;
+            font-size: clamp(0.9rem, 2.2vw, 1.2rem);
+            font-weight: 400;
+            letter-spacing: 0.08em;
+            max-width: 220px;
+            opacity: 0;
+            transform: translateX(-40px) scale(0.9);
+            transition: opacity 2s ease-out, transform 0.3s ease-out;
+            pointer-events: none;
+            cursor: pointer;
+            /* M3: Bio-luminescence glow */
+            box-shadow:
+                0 0 25px hsla(290, 50%, 25%, 0.4),
+                0 0 50px hsla(295, 45%, 18%, 0.25),
+                inset 0 0 18px hsla(300, 40%, 30%, 0.25);
+            /* M1+M2: Blob morph + breathing */
+            animation: blobMorph 8s ease-in-out infinite, bubbleBreath 4s ease-in-out infinite;
+            animation-play-state: paused;
+            will-change: transform, border-radius;
+        }
+
+        /* M2: Async breathing — per-bubble delay via nth-child + position vars for condensation */
+        .provocation-bubble:nth-child(1) {
+            animation-delay: 0s, 0s;
+            --bubble-x: 12vw;
+            --bubble-y: 22vh;
+        }
+
+        .provocation-bubble:nth-child(2) {
+            animation-delay: 1.6s, 0.8s;
+            --bubble-x: 8vw;
+            --bubble-y: 38vh;
+        }
+
+        .provocation-bubble:nth-child(3) {
+            animation-delay: 3.2s, 1.6s;
+            --bubble-x: 15vw;
+            --bubble-y: 55vh;
+        }
+
+        .provocation-bubble:nth-child(4) {
+            animation-delay: 4.8s, 2.4s;
+            --bubble-x: 10vw;
+            --bubble-y: 70vh;
+        }
+
+        .provocation-bubble:nth-child(5) {
+            animation-delay: 6.4s, 3.2s;
+            --bubble-x: 18vw;
+            --bubble-y: 82vh;
+        }
+
+        .provocation-bubble.visible {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+            pointer-events: auto;
+            animation-play-state: running;
+        }
+
+        /* M5: Whisper hint element */
+        .provocation-bubble .whisper {
+            display: block;
+            font-size: 0.7em;
+            color: hsla(300, 40%, 55%, 0);
+            margin-top: 6px;
+            font-style: italic;
+            transition: color 0.8s ease-out;
+        }
+
+        .provocation-bubble.whisper-visible .whisper {
+            color: hsla(300, 40%, 55%, 0.8);
+        }
+
+        .provocation-bubble:hover {
+            background: hsla(295, 35%, 18%, 0.9);
+            border-color: hsla(300, 45%, 35%, 0.6);
+            color: hsla(290, 30%, 75%, 1);
+            box-shadow:
+                0 0 40px hsla(295, 55%, 30%, 0.5),
+                0 0 70px hsla(300, 50%, 22%, 0.35),
+                inset 0 0 25px hsla(305, 45%, 35%, 0.3);
+        }
+
+        /* M1: Blob morphing animation */
+        @keyframes blobMorph {
+
+            0%,
+            100% {
+                border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+            }
+
+            25% {
+                border-radius: 58% 42% 55% 45% / 55% 60% 40% 45%;
+            }
+
+            50% {
+                border-radius: 50% 50% 45% 55% / 40% 50% 50% 60%;
+            }
+
+            75% {
+                border-radius: 45% 55% 60% 40% / 50% 45% 55% 50%;
+            }
+        }
+
+        /* M2: Breathing animation */
+        @keyframes bubbleBreath {
+
+            0%,
+            100% {
+                transform: translateX(0) scale(1);
+                box-shadow:
+                    0 0 25px hsla(290, 50%, 25%, 0.4),
+                    0 0 50px hsla(295, 45%, 18%, 0.25),
+                    inset 0 0 18px hsla(300, 40%, 30%, 0.25);
+            }
+
+            50% {
+                transform: translateX(3px) scale(1.02);
+                box-shadow:
+                    0 0 35px hsla(295, 55%, 28%, 0.5),
+                    0 0 65px hsla(300, 50%, 22%, 0.35),
+                    inset 0 0 22px hsla(305, 45%, 35%, 0.3);
+            }
+        }
+
+        /* ============================================
+           KLYAP v12: METAMORPHOSIS STYLES
+           ============================================ */
+
+        /* === PHASE: FALSE LIBERATION (depth 70-85) === */
+
+        .vignette.liberating {
+            transform: scale(2) !important;
+            opacity: 0.4 !important;
+            transition: transform 4s ease-out, opacity 4s ease-out;
+        }
+
+        body.liberating {
+            background: hsl(280, 30%, 8%) !important;
+            transition: background 3s ease-out;
+        }
+
+        /* Bubbles CONDENSE to center */
+        .bubble-container.fading .provocation-bubble {
+            opacity: 0 !important;
+            transform: translate(calc(50vw - var(--bubble-x, 50vw)),
+                    calc(50vh - var(--bubble-y, 50vh))) scale(0.2) !important;
+            transition: all 3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none !important;
+            filter: blur(8px);
+        }
+
+        .content.calm {
+            animation-duration: 6s !important;
+        }
+
+        /* === PHASE: TRAP (depth 85-90) === */
+
+        body.trapped * {
+            animation-play-state: paused !important;
+        }
+
+        body.trapped .noise {
+            opacity: 0.12 !important;
+        }
+
+        /* === PHASE: HARD CUT (depth 90) === */
+
+        body.cut .content,
+        body.cut .bubble-container,
+        body.cut .exit-portal,
+        body.cut .vignette,
+        body.cut .scanlines {
+            display: none !important;
+        }
+
+        body.cut {
+            background: hsl(0, 0%, 2%) !important;
+        }
+
+        /* === FOG LAYERS === */
+
+        .fog-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 40;
+            opacity: 0;
+            transition: opacity 2.5s ease-out;
+        }
+
+        /* Fog starts HUGE and CONDENSES inward */
+        .fog-1 {
+            background: radial-gradient(circle at 50% 50%,
+                    hsla(280, 30%, 15%, 0.7) 0%,
+                    transparent 55%);
+            backdrop-filter: blur(3px);
+            transform: scale(3);
+        }
+
+        .fog-2 {
+            background: radial-gradient(circle at 50% 50%,
+                    hsla(285, 25%, 10%, 0.8) 0%,
+                    transparent 40%);
+            backdrop-filter: blur(10px);
+            transform: scale(4);
+        }
+
+        .fog-3 {
+            background: radial-gradient(circle at 50% 50%,
+                    hsla(280, 20%, 5%, 0.95) 0%,
+                    transparent 28%);
+            backdrop-filter: blur(18px);
+            transform: scale(5);
+        }
+
+        .fog-layer.active {
+            opacity: 1;
+            transform: scale(1);
+            transition: transform 4s cubic-bezier(0.4, 0, 0.2, 1), opacity 2.5s ease-out;
+            animation: fogPulse 8s ease-in-out infinite;
+        }
+
+        @keyframes fogPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.08);
+            }
+        }
+
+        @keyframes fogDrift {
+
+            0%,
+            100% {
+                transform: scale(1) translate(0, 0);
+            }
+
+            33% {
+                transform: scale(1.05) translate(8px, -4px);
+            }
+
+            66% {
+                transform: scale(1.02) translate(-5px, 6px);
+            }
+        }
+
+        /* === CHAT CONTAINER === */
+
+        .chat-container {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .chat-container.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .chat-arrival-text {
+            color: hsla(290, 30%, 60%, 0.9);
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            letter-spacing: 0.2em;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        /* Horror-минималистичный input (Special Elite: cold typewriter) */
+        .chat-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: hsla(290, 30%, 60%, 0.9);
+            font-family: 'Special Elite', cursive;
+            font-size: clamp(1rem, 2.5vw, 1.4rem);
+            text-align: center;
+            caret-color: hsla(295, 50%, 50%, 0.8);
+            width: 60%;
+            max-width: 500px;
+            padding: 1rem;
+            animation: caretPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes caretPulse {
+
+            0%,
+            100% {
+                caret-color: hsla(295, 50%, 50%, 0.8);
+            }
+
+            50% {
+                caret-color: hsla(295, 50%, 50%, 0.3);
+            }
+        }
+
+        .chat-input::placeholder {
+            color: transparent;
+        }
+
+        .chat-input:disabled {
+            opacity: 0.3;
+        }
+
+        /* Ответ комнаты — LARGER, dramatic (Special Elite: typewriter horror) */
+        .room-response {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            color: hsla(285, 30%, 65%, 0.95);
+            font-family: 'Special Elite', cursive;
+            font-size: clamp(1.8rem, 5vw, 3rem);
+            letter-spacing: 0.2em;
+            text-transform: lowercase;
+            opacity: 0;
+            transition: all 1.5s cubic-bezier(0.2, 0, 0.2, 1);
+            text-shadow:
+                0 0 30px hsla(290, 50%, 40%, 0.6),
+                0 0 60px hsla(285, 40%, 25%, 0.3);
+            z-index: 100;
+            filter: blur(4px);
+        }
+
+        .room-response.visible {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            filter: blur(0);
+        }
+
+        /* === CHAT HINTS === */
+
+        .chat-hints {
+            position: fixed;
+            bottom: 15%;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            padding: 0 2rem;
+            z-index: 51;
+        }
+
+        .chat-hint {
+            background: hsla(290, 25%, 12%, 0.7);
+            border: 1px solid hsla(295, 35%, 25%, 0.5);
+            border-radius: 30% 70% 70% 30% / 60% 40% 60% 40%;
+            padding: 0.8rem 1.5rem;
+            color: hsla(290, 30%, 65%, 0.9);
+            font-family: 'Mystery Quest', cursive;
+            font-size: clamp(0.75rem, 1.8vw, 1rem);
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s ease-out, background 0.3s, border-color 0.3s;
+            animation: blobMorph 8s ease-in-out infinite;
+            animation-play-state: paused;
+        }
+
+        .chat-hint.visible {
+            opacity: 1;
+            transform: translateY(0);
+            animation-play-state: running;
+        }
+
+        .chat-hint.disabled {
+            cursor: default;
+            opacity: 0.4 !important;
+        }
+
+        .chat-hint.used {
+            opacity: 0.3 !important;
+            pointer-events: none;
+        }
+
+        .chat-hint:not(.disabled):not(.used):hover {
+            background: hsla(295, 30%, 18%, 0.85);
+            border-color: hsla(300, 40%, 35%, 0.7);
+        }
+
+        /* Reduced motion fallback */
+        @media (prefers-reduced-motion: reduce) {
+            .fog-layer.active {
+                animation: none;
+            }
+
+            .chat-hint {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="membrane-canvas"></canvas>
+
+    <div class="vignette" id="vignette"></div>
+    <div class="noise"></div>
+    <!-- v10: scanline overlay -->
+    <div class="scanlines"></div>
+
+    <div class="content">
+        <div class="text-block" id="text">распирает</div>
+    </div>
+
+    <div class="exit-portal" id="exit-portal"></div>
+    <div class="cursor-glow" id="cursor-glow"></div>
+
+    <!-- v10.3: Living provocation bubbles -->
+    <div class="bubble-container" id="bubble-container">
+        <div class="provocation-bubble" data-bubble="0" data-whisper="...расскажу...">мягко внутри<span
+                class="whisper"></span></div>
+        <div class="provocation-bubble" data-bubble="1" data-whisper="...не бойся...">не сжимайся<span
+                class="whisper"></span></div>
+        <div class="provocation-bubble" data-bubble="2" data-whisper="...помню всех...">ты не первый здесь<span
+                class="whisper"></span></div>
+        <div class="provocation-bubble" data-bubble="3" data-whisper="...просто будь...">ничего не нужно делать<span
+                class="whisper"></span></div>
+        <div class="provocation-bubble" data-bubble="4" data-whisper="...всё заберу...">выдохни. я впитаю<span
+                class="whisper"></span></div>
+    </div>
+
+    <div id="debug"></div>
+
+    <!-- v12: FOG LAYERS -->
+    <div class="fog-layer fog-1" id="fog-1"></div>
+    <div class="fog-layer fog-2" id="fog-2"></div>
+    <div class="fog-layer fog-3" id="fog-3"></div>
+
+    <!-- v12: CHAT CONTAINER -->
+    <div class="chat-container" id="chat-container">
+        <div class="chat-arrival-text" id="chat-arrival-text">ты здесь</div>
+        <input type="text" class="chat-input" id="chat-input" autocomplete="off">
+        <div class="room-response" id="room-response"></div>
+    </div>
+
+    <!-- v12: CHAT HINTS -->
+    <div class="chat-hints" id="chat-hints">
+        <span class="chat-hint" data-text="что внутри">"скажи ему что внутри"</span>
+        <span class="chat-hint" data-text="отпусти">"попроси отпустить"</span>
+        <span class="chat-hint" data-text="сколько их было">"спроси сколько их было"</span>
+        <span class="chat-hint" data-text="мне нравится">"скажи что тебе нравится"</span>
+        <span class="chat-hint disabled">"промолчи"</span>
+    </div>
+
+    <script>
+        // === STATE ===
+        const state = {
+            timeOnPage: 0,                    // seconds
+            lastMouseMove: Date.now(),        // timestamp
+            totalIdleTime: 0,                 // seconds of inactivity
+            mouseMoveCount: 0,                // how active user is
+            pulseIntensity: 1,                // multiplier for effects
+            phase: 'entry',                   // entry -> swelling -> accepting -> dissolving -> exit
+            exitReady: false,
+            // v11: Depth system (scroll = swallowing)
+            depth: 0,                         // 0-100, how deep user has "swallowed"
+            maxDepth: 0,                      // irreversible max reached
+            // v11: Panic detection
+            panicLevel: 0,                    // 0-1, how panicked
+            mouseVelocity: 0                  // current mouse speed
+        };
+
+        // v13: TEXT-DRIVEN DISSOCIATION FLOW (starts AFTER font glitch phase)
+        const TEXT_FLOW = [
+            // DRIFT (0-50) — захват, телесное awareness
+            { depth: 0, text: 'ты здесь.' },
+            { depth: 8, text: '', pause: 2000 },
+            { depth: 15, text: 'ты читаешь.' },
+            { depth: 20, text: 'это не вопрос.' },
+            { depth: 28, text: 'твоя челюсть сжата.', pause: 1500 },
+            { depth: 32, text: 'или нет.' },
+            { depth: 36, text: 'проверь.', pause: 3000 },
+            { depth: 42, text: 'теперь сжата.' },
+
+            // SPLIT (50-80) — раздвоение наблюдателя
+            { depth: 50, text: 'кто-то смотрит на экран.', pause: 2000 },
+            { depth: 56, text: 'ты думаешь, что это ты.' },
+            { depth: 60, text: 'продолжай так думать.' },
+            { depth: 66, text: 'я не могу остановиться.', pause: 2000 },
+            { depth: 72, text: 'это я написал или ты подумал?' },
+            { depth: 78, text: 'уже неважно.', pause: 2500 },
+
+            // YIELD (80-95) — капитуляция
+            { depth: 82, text: 'тело, которое читает это —' },
+            { depth: 85, text: 'ему неудобно.', pause: 1500 },
+            { depth: 88, text: '', pause: 4000 },  // Длинная тишина
+            { depth: 92, text: 'напиши одно слово.', showInput: true },
+            { depth: 95, text: 'не думай какое.' },
+        ];
+
+        // v13: Text flow state
+        const textFlowState = {
+            currentIndex: -1,
+            textQueue: [],
+            isProcessing: false,
+            pauseActive: false
+        };
+
+        // v13: Font Glitch / Text-Driven state machine
+        const glitchState = {
+            scrollCount: 0,              // сколько раз начинали скролить
+            isScrolling: false,          // сейчас скролят?
+            scrollTimeout: null,         // таймер для детекта остановки
+            glitchPermanentlyDisabled: false  // после 2-го scroll
+        };
+
+        // === CONFIG ===
+        const CONFIG = {
+            TEXT_APPEAR_DELAY: 2,             // seconds before text fades in
+            IDLE_THRESHOLD: 5,                // seconds before deemed "idle"
+            PULSE_RAMP_START: 8,              // seconds to start intensifying
+            PORTAL_APPEAR: 20,                // seconds before portal shows
+            VIGNETTE_CONTRACT_TIME: 15,       // seconds to start contracting
+            DEBUG: true
+        };
+
+        // === DOM ===
+        const canvas = document.getElementById('membrane-canvas');
+        const ctx = canvas.getContext('2d');
+        const cursorGlow = document.getElementById('cursor-glow');
+        const textEl = document.getElementById('text');
+        const vignette = document.getElementById('vignette');
+        const exitPortal = document.getElementById('exit-portal');
+        const debugEl = document.getElementById('debug');
+        const bubbleContainer = document.getElementById('bubble-container');
+
+        // v12: Metamorphosis DOM refs
+        const fog1 = document.getElementById('fog-1');
+        const fog2 = document.getElementById('fog-2');
+        const fog3 = document.getElementById('fog-3');
+        const chatContainer = document.getElementById('chat-container');
+        const chatInput = document.getElementById('chat-input');
+        const chatArrivalText = document.getElementById('chat-arrival-text');
+        const roomResponse = document.getElementById('room-response');
+        const chatHintsContainer = document.getElementById('chat-hints');
+        const chatHints = document.querySelectorAll('.chat-hint');
+
+        // v12: Metamorphosis state machine
+        const metamorphosis = {
+            phase: 'immersion',       // immersion | liberation | trap | cut | chat
+            trapStartTime: null,
+            trapDuration: 4000,       // 3-5s trap (randomized)
+            chatReady: false,
+            hintIndex: 0,
+            hintDelay: 7000,          // 7s before first hint
+            conversationHistory: []
+        };
+
+        // v12: Claude API system prompt
+        const SYSTEM_PROMPT = `Ты — комната КЛЯП. Тёмное, интимное пространство, которое уже внутри пользователя.
+
+Правила:
+- Отвечай МАКСИМАЛЬНО КОРОТКО: 1-3 слова, редко — одно короткое предложение
+- Тон: мягкий, давящий, интимный, но НЕ агрессивный
+- Ты не угрожаешь — ты уже победил
+- Используй нижний регистр
+- Никаких эмодзи, никакой пунктуации кроме многоточия
+- Если пользователь пытается выйти или сопротивляется — отвечай "поздно" или "нет"
+- Если пользователь сдаётся — "хорошо" или "да"`;
+
+        let width, height;
+        let mouseX = 0, mouseY = 0;
+        let targetMouseX = 0, targetMouseY = 0;
+        let animTime = 0;
+
+        // === BLOBS ===
+        const blobs = [];
+        const BLOB_COUNT = 6;
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            initBlobs();
+        }
+
+        function initBlobs() {
+            blobs.length = 0;
+            for (let i = 0; i < BLOB_COUNT; i++) {
+                blobs.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    baseRadius: 150 + Math.random() * 250,
+                    phase: Math.random() * Math.PI * 2,
+                    speed: 0.3 + Math.random() * 0.4,
+                    driftX: (Math.random() - 0.5) * 0.3,
+                    driftY: (Math.random() - 0.5) * 0.3,
+                    hue: 280 + (Math.random() - 0.5) * 30,
+                    saturation: 40 + Math.random() * 20,
+                    lightness: 15 + Math.random() * 15
+                });
+            }
+        }
+
+        // === VEINS ===
+        const veins = [];
+        const VEIN_COUNT = 12;
+
+        function initVeins() {
+            veins.length = 0;
+            for (let i = 0; i < VEIN_COUNT; i++) {
+                const startX = Math.random() * width;
+                const startY = Math.random() * height;
+                const angle = Math.random() * Math.PI * 2;
+                const length = 100 + Math.random() * 300;
+
+                veins.push({
+                    x1: startX,
+                    y1: startY,
+                    x2: startX + Math.cos(angle) * length,
+                    y2: startY + Math.sin(angle) * length,
+                    thickness: 2 + Math.random() * 6,
+                    phase: Math.random() * Math.PI * 2,
+                    opacity: 0.15 + Math.random() * 0.25
+                });
+            }
+        }
+
+        // === MECHANICS ===
+        function updateMechanics(dt) {
+            state.timeOnPage += dt;
+
+            // Check idle
+            const idleDuration = (Date.now() - state.lastMouseMove) / 1000;
+            const isIdle = idleDuration > CONFIG.IDLE_THRESHOLD;
+
+            if (isIdle) {
+                state.totalIdleTime += dt;
+                state.pulseIntensity = Math.min(3, 1 + state.totalIdleTime * 0.1);
+                cursorGlow.classList.add('active');
+            } else {
+                // Activity = slight resistance
+                state.pulseIntensity = Math.max(1, state.pulseIntensity - dt * 0.3);
+                cursorGlow.classList.remove('active');
+            }
+
+            // Text appears
+            if (state.timeOnPage > CONFIG.TEXT_APPEAR_DELAY && state.phase === 'entry') {
+                textEl.classList.add('visible');
+                state.phase = 'swelling';
+                startFontGlitch();  // Start font glitch when text appears
+            }
+
+            // Text starts pulsing with effects
+            if (state.timeOnPage > CONFIG.PULSE_RAMP_START) {
+                textEl.classList.add('pulse');
+            }
+
+            // Vignette contracts
+            if (state.timeOnPage > CONFIG.VIGNETTE_CONTRACT_TIME) {
+                vignette.classList.add('constricted');
+            }
+
+            // v11 M3: Time-based phase progression
+            // Phase: swelling -> accepting (30s or depth 30+) -> dissolving (60s or depth 70+) -> exit
+            if (state.phase === 'swelling' && (state.timeOnPage > 30 || state.depth >= 30)) {
+                state.phase = 'accepting';
+                console.log('[KLYAP] Phase: accepting (time or depth)');
+            }
+
+            if (state.phase === 'accepting' && (state.timeOnPage > 60 || state.depth >= 70)) {
+                state.phase = 'dissolving';
+                applyDissolvingEffects();
+                console.log('[KLYAP] Phase: dissolving');
+            }
+
+            // Portal appears in dissolving phase
+            if (state.phase === 'dissolving' && !state.exitReady) {
+                exitPortal.classList.add('visible');
+                state.exitReady = true;
+            }
+
+            // v10.2: Provocation bubbles appear during idle
+            updateBubbles(idleDuration);
+
+            // Debug output
+            if (CONFIG.DEBUG) {
+                debugEl.innerHTML = `
+                    время: ${state.timeOnPage.toFixed(1)}с<br>
+                    idle: ${idleDuration.toFixed(1)}с<br>
+                    phase: ${state.phase}<br>
+                    <span style="color: hsla(120, 60%, 50%, 0.8)">depth: ${state.depth.toFixed(1)}</span><br>
+                    <span style="color: hsla(0, 60%, 60%, 0.6)">panic: ${(state.panicLevel * 100).toFixed(0)}%</span><br>
+                    bubbles: ${state.visibleBubbles || 0}/5<br>
+                    <span style="color: hsla(280, 60%, 60%, 0.5)">v11: strangeness</span>
+                `;
+            }
+        }
+
+        function draw() {
+            const dt = 0.016; // ~60fps
+            animTime += dt;
+            updateMechanics(dt);
+
+            // Lerp mouse
+            mouseX += (targetMouseX - mouseX) * 0.08;
+            mouseY += (targetMouseY - mouseY) * 0.08;
+
+            // Clear
+            ctx.fillStyle = 'hsl(280, 35%, 2%)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Blobs
+            for (const blob of blobs) {
+                blob.x += blob.driftX * state.pulseIntensity;
+                blob.y += blob.driftY * state.pulseIntensity;
+
+                if (blob.x < -200 || blob.x > width + 200) blob.driftX *= -1;
+                if (blob.y < -200 || blob.y > height + 200) blob.driftY *= -1;
+
+                // Breathing с интенсификацией
+                const breathFactor = 1 + Math.sin(animTime * blob.speed * state.pulseIntensity + blob.phase) * 0.35 * state.pulseIntensity;
+                const radius = blob.baseRadius * breathFactor;
+
+                // Cursor influence
+                const dx = mouseX - blob.x;
+                const dy = mouseY - blob.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const influence = Math.max(0, 1 - dist / 400) * 0.15;
+
+                blob.x += dx * influence * 0.02;
+                blob.y += dy * influence * 0.02;
+
+                // v12: CENTER ATTRACTION during metamorphosis (depth > 70)
+                if (state.depth > 70) {
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+                    const toCenterX = centerX - blob.x;
+                    const toCenterY = centerY - blob.y;
+
+                    // Attraction strength increases with depth (70-100 → 0-1)
+                    const attractionStrength = (state.depth - 70) / 30; // 0 to 1
+                    const pullForce = attractionStrength * 0.02;
+
+                    blob.x += toCenterX * pullForce;
+                    blob.y += toCenterY * pullForce;
+
+                    // Also shrink blobs as they condense
+                    blob.baseRadius *= (1 - attractionStrength * 0.003);
+                }
+
+                // Gradient
+                const gradient = ctx.createRadialGradient(
+                    blob.x, blob.y, 0,
+                    blob.x, blob.y, radius
+                );
+                gradient.addColorStop(0, `hsla(${blob.hue}, ${blob.saturation}%, ${blob.lightness}%, 0.8)`);
+                gradient.addColorStop(0.4, `hsla(${blob.hue}, ${blob.saturation - 10}%, ${blob.lightness - 5}%, 0.5)`);
+                gradient.addColorStop(0.7, `hsla(${blob.hue}, ${blob.saturation - 15}%, ${blob.lightness - 8}%, 0.2)`);
+                gradient.addColorStop(1, 'transparent');
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+
+                const segments = 60;
+                for (let i = 0; i <= segments; i++) {
+                    const angle = (i / segments) * Math.PI * 2;
+                    const noiseVal = Math.sin(angle * 3 + animTime + blob.phase) * 0.15 +
+                        Math.sin(angle * 5 + animTime * 0.7) * 0.1;
+                    const r = radius * (1 + noiseVal);
+                    const x = blob.x + Math.cos(angle) * r;
+                    const y = blob.y + Math.sin(angle) * r;
+
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // v12: CENTRAL VORTEX GLOW during metamorphosis
+            if (state.depth > 70) {
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const attractionStrength = (state.depth - 70) / 30; // 0 to 1
+
+                // Growing central glow
+                const glowRadius = 50 + attractionStrength * 200;
+                const vortexGlow = ctx.createRadialGradient(
+                    centerX, centerY, 0,
+                    centerX, centerY, glowRadius
+                );
+
+                vortexGlow.addColorStop(0, `hsla(285, 40%, 30%, ${attractionStrength * 0.8})`);
+                vortexGlow.addColorStop(0.3, `hsla(290, 35%, 20%, ${attractionStrength * 0.5})`);
+                vortexGlow.addColorStop(0.7, `hsla(280, 30%, 10%, ${attractionStrength * 0.3})`);
+                vortexGlow.addColorStop(1, 'transparent');
+
+                ctx.fillStyle = vortexGlow;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, glowRadius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // Veins с интенсификацией
+            for (const vein of veins) {
+                const pulse = 0.5 + Math.sin(animTime * 2 * state.pulseIntensity + vein.phase) * 0.5;
+                const thickness = vein.thickness * (0.8 + pulse * 0.4 * state.pulseIntensity);
+                const opacity = vein.opacity * (0.6 + pulse * 0.4 * state.pulseIntensity);
+
+                // v12: Center attraction for veins during metamorphosis
+                if (state.depth > 70) {
+                    const attractionStrength = (state.depth - 70) / 30;
+                    const pullForce = attractionStrength * 0.015;
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+
+                    vein.x1 += (centerX - vein.x1) * pullForce;
+                    vein.y1 += (centerY - vein.y1) * pullForce;
+                    vein.x2 += (centerX - vein.x2) * pullForce;
+                    vein.y2 += (centerY - vein.y2) * pullForce;
+                }
+
+                ctx.strokeStyle = `hsla(295, 45%, 18%, ${Math.min(1, opacity)})`;
+                ctx.lineWidth = thickness;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+
+                const steps = 20;
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const x = vein.x1 + (vein.x2 - vein.x1) * t;
+                    const y = vein.y1 + (vein.y2 - vein.y1) * t;
+                    const wave = Math.sin(t * Math.PI * 3 + animTime * 2 * state.pulseIntensity + vein.phase) * (5 + thickness);
+
+                    const lenX = vein.x2 - vein.x1;
+                    const lenY = vein.y2 - vein.y1;
+                    const len = Math.sqrt(lenX * lenX + lenY * lenY);
+                    const nx = -lenY / len;
+                    const ny = lenX / len;
+
+                    const finalX = x + nx * wave;
+                    const finalY = y + ny * wave;
+
+                    if (i === 0) ctx.moveTo(finalX, finalY);
+                    else ctx.lineTo(finalX, finalY);
+                }
+                ctx.stroke();
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        // === EVENTS ===
+        window.addEventListener('resize', resize);
+
+        // v11 M2: Mouse velocity tracking for panic detection
+        let lastMouseX = 0, lastMouseY = 0, lastMouseTime = Date.now();
+        const PANIC_THRESHOLD = 800; // pixels per second
+
+        document.addEventListener('mousemove', (e) => {
+            targetMouseX = e.clientX;
+            targetMouseY = e.clientY;
+            cursorGlow.style.left = e.clientX + 'px';
+            cursorGlow.style.top = e.clientY + 'px';
+            cursorGlow.style.opacity = '1';
+            state.lastMouseMove = Date.now();
+            state.mouseMoveCount++;
+
+            // v11 M2: Calculate velocity
+            const now = Date.now();
+            const dt = (now - lastMouseTime) / 1000;
+            if (dt > 0.01) { // Avoid division by tiny dt
+                const dx = e.clientX - lastMouseX;
+                const dy = e.clientY - lastMouseY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                state.mouseVelocity = distance / dt;
+
+                // Panic builds up with fast movements
+                if (state.mouseVelocity > PANIC_THRESHOLD) {
+                    state.panicLevel = Math.min(1, state.panicLevel + 0.05);
+                    applyPanicEffects();
+                } else {
+                    // Panic slowly decays
+                    state.panicLevel = Math.max(0, state.panicLevel - 0.01);
+                }
+
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+                lastMouseTime = now;
+            }
+
+            // M4: Bubble proximity reaction
+            updateBubbleProximity(e.clientX, e.clientY);
+        });
+
+        // v11 M2: Panic visual effects
+        function applyPanicEffects() {
+            if (state.panicLevel > 0.3) {
+                // Room "notices" panic
+                textEl.textContent = '...чувствуем...';
+                setTimeout(() => applyDepthEffects(), 1200);
+
+                // Intensify tremor
+                document.querySelector('.content').style.animation =
+                    `contentTremor ${1.5 / state.panicLevel}s ease-in-out infinite`;
+
+                console.log(`[KLYAP] Паника: ${(state.panicLevel * 100).toFixed(0)}%`);
+            }
+            if (state.panicLevel > 0.7) {
+                // High panic - room reacts strongly
+                textEl.textContent = '...сладко...';
+                vignette.style.background = `radial-gradient(ellipse 42% 42% at 50% 50%,
+                    transparent 5%,
+                    hsla(350, 45%, 8%, 0.5) 30%,
+                    hsla(340, 50%, 4%, 0.85) 50%,
+                    hsl(330, 55%, 2%) 70%)`;
+            }
+        }
+
+        // v11 M3: Dissolving phase effects — границы размываются
+        function applyDissolvingEffects() {
+            // Text becomes minimal
+            textEl.textContent = '...';
+            textEl.style.opacity = '0.4';
+            textEl.style.filter = 'blur(2px)';
+
+            // Vignette expands outward (release)
+            vignette.style.transform = 'scale(1.5)';
+            vignette.style.opacity = '0.5';
+
+            // Body gets a blur effect — boundaries dissolving
+            document.body.style.filter = 'blur(1px)';
+            document.body.style.transition = 'filter 5s ease-out';
+
+            console.log('[KLYAP] Dissolving: границы размываются');
+        }
+
+        // v11 M4: beforeunload — попытка сбежать
+        window.addEventListener('beforeunload', (e) => {
+            // Only trigger if user has "swallowed" enough
+            if (state.depth > 30) {
+                console.log('[KLYAP] Попытка побега при depth:', state.depth);
+                e.preventDefault();
+                e.returnValue = ''; // Shows browser's default "leave page?" dialog
+            }
+        });
+
+        // v12: Scroll = swallowing with metamorphosis blocking
+        document.addEventListener('wheel', (e) => {
+            if (state.phase === 'entry') return; // Not yet
+
+            // v12: TRAP/CUT/CHAT PHASE: scroll completely blocked
+            if (metamorphosis.phase === 'trap' || metamorphosis.phase === 'cut' || metamorphosis.phase === 'chat') {
+                console.log('[KLYAP] Scroll blocked — trapped');
+                return;
+            }
+
+            const delta = e.deltaY;
+
+            if (delta > 0) {
+                // v13: STATE MACHINE — scroll detection
+                if (!glitchState.isScrolling) {
+                    // Scroll just started
+                    glitchState.isScrolling = true;
+                    glitchState.scrollCount++;
+
+                    // After 2nd scroll, glitch is permanently disabled
+                    if (glitchState.scrollCount >= 2) {
+                        glitchState.glitchPermanentlyDisabled = true;
+                        glitchActive = false;
+                        console.log('[KLYAP v13] Font glitch PERMANENTLY disabled');
+                    } else {
+                        console.log(`[KLYAP v13] Scroll #${glitchState.scrollCount} — font glitch paused`);
+                    }
+                }
+
+                // Reset scroll stop timer
+                clearTimeout(glitchState.scrollTimeout);
+                glitchState.scrollTimeout = setTimeout(() => {
+                    glitchState.isScrolling = false;
+                    // Resume glitch if not permanently disabled
+                    if (!glitchState.glitchPermanentlyDisabled && glitchActive) {
+                        console.log('[KLYAP v13] Scroll stopped — font glitch can resume on mouse move');
+                    }
+                }, 300);  // 300ms без scroll = остановились
+
+                // Scroll DOWN = swallow deeper (increases depth)
+                // v13: SLOWER scroll for text-driven pacing
+                state.depth = Math.min(100, state.depth + delta * 0.015);
+                state.maxDepth = Math.max(state.maxDepth, state.depth);
+
+                // Visual feedback
+                applyDepthEffects();
+
+                // v12: Trigger metamorphosis at depth thresholds
+                updateMetamorphosis();
+
+                console.log(`[KLYAP] Глотаешь... depth: ${state.depth.toFixed(1)}`);
+            } else {
+                // Scroll UP = trying to regurgitate (REFUSED)
+                if (state.depth > 10) {
+                    // v12: In liberation phase, room mocks "escape"
+                    if (metamorphosis.phase === 'liberation') {
+                        textEl.textContent = 'думаешь?';
+                    } else {
+                        textEl.textContent = 'поздно';
+                    }
+                    setTimeout(() => applyDepthEffects(), 800);
+                    console.log(`[KLYAP] Пытаешься срыгнуть... нет.`);
+                }
+            }
+        }, { passive: true });
+
+        // v13: TEXT-DRIVEN DISSOCIATION ENGINE
+        function queueTextsUpTo(targetDepth) {
+            const newTexts = TEXT_FLOW.filter((item, index) =>
+                index > textFlowState.currentIndex &&
+                item.depth <= targetDepth
+            );
+
+            if (newTexts.length > 0) {
+                textFlowState.textQueue.push(...newTexts);
+                processTextQueue();
+            }
+        }
+
+        async function processTextQueue() {
+            if (textFlowState.isProcessing || textFlowState.textQueue.length === 0) return;
+
+            textFlowState.isProcessing = true;
+
+            while (textFlowState.textQueue.length > 0) {
+                const textItem = textFlowState.textQueue.shift();
+                await showTextItem(textItem);
+                textFlowState.currentIndex = TEXT_FLOW.indexOf(textItem);
+            }
+
+            textFlowState.isProcessing = false;
+        }
+
+        function showTextItem(textItem) {
+            return new Promise((resolve) => {
+                // v13: MINIMUM display time to ensure text is readable
+                const MIN_DISPLAY_TIME = 2000;  // 2 seconds minimum
+                
+                // Handle pause before showing text
+                if (textItem.pause && textItem.pause > 0) {
+                    textFlowState.pauseActive = true;
+                    textEl.style.opacity = '0';
+
+                    setTimeout(() => {
+                        displayTextItem(textItem);
+                        textFlowState.pauseActive = false;
+                        // Wait at least MIN_DISPLAY_TIME after pause
+                        setTimeout(resolve, MIN_DISPLAY_TIME);
+                    }, textItem.pause);
+                } else {
+                    displayTextItem(textItem);
+                    setTimeout(resolve, MIN_DISPLAY_TIME);
+                }
+            });
+        }
+
+        function displayTextItem(textItem) {
+            // Smooth fade
+            textEl.style.transition = 'opacity 0.8s ease-out';
+            textEl.style.opacity = '0';
+
+            setTimeout(() => {
+                textEl.textContent = textItem.text;
+                textEl.style.opacity = textItem.text ? '0.85' : '0';
+
+                // Show input if flagged (YIELD phase)
+                if (textItem.showInput) {
+                    setTimeout(() => {
+                        chatInput.style.opacity = '1';
+                        chatInput.style.pointerEvents = 'auto';
+                        chatInput.focus();
+                        console.log('[KLYAP v13] Input field revealed');
+                    }, 1500);
+                }
+
+                console.log(`[KLYAP v13] depth ${state.depth.toFixed(1)}: "${textItem.text}"`);
+            }, 400);
+        }
+
+        // v13: Apply visual effects based on depth (visuals preserved from v12)
+        function applyDepthEffects() {
+            // 1. TEXT-DRIVEN: Queue texts up to current depth
+            queueTextsUpTo(state.depth);
+
+            // 2. Vignette contracts based on depth
+            const contractScale = 1 - (state.depth / 100) * 0.4; // 1.0 -> 0.6
+            vignette.style.transform = `scale(${contractScale})`;
+
+            // 3. Blob size increases
+            for (const blob of blobs) {
+                blob.baseRadius = (150 + Math.random() * 250) * (1 + state.depth / 200);
+            }
+
+            // 4. Phase progression based on depth
+            if (state.depth >= 30 && state.phase === 'swelling') {
+                state.phase = 'accepting';
+                console.log('[KLYAP] Phase: accepting');
+            }
+            if (state.depth >= 70 && state.phase === 'accepting') {
+                state.phase = 'dissolving';
+                console.log('[KLYAP] Phase: dissolving');
+            }
+        }
+
+        document.addEventListener('touchstart', (e) => {
+            state.lastMouseMove = Date.now();
+            state.mouseMoveCount++;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            targetMouseX = touch.clientX;
+            targetMouseY = touch.clientY;
+            state.lastMouseMove = Date.now();
+        });
+
+        document.addEventListener('mouseleave', () => {
+            cursorGlow.style.opacity = '0';
+        });
+
+        // === v10.3: LIVING PROVOCATION BUBBLES ===
+        const provocationBubbles = document.querySelectorAll('.provocation-bubble');
+
+        const BUBBLE_CONFIG = {
+            // M6: First-movement trigger
+            IDLE_THRESHOLD_FOR_TRIGGER: 5,  // seconds before movement triggers bubble
+            MIN_BUBBLES_SHOWN: 0,
+            MAX_BUBBLES: 5,
+            // M4: Proximity
+            PROXIMITY_RADIUS: 150,
+            PROXIMITY_PULL: 0.1,
+            // M5: Whisper
+            WHISPER_DELAY: 1500  // ms
+        };
+
+        // State for living bubbles
+        const bubbleState = {
+            shownCount: 0,
+            wasIdle: false,
+            prevMoveCount: 0,
+            hoverTimers: new Map(),
+            proximityActive: true
+        };
+
+        // M4: Proximity reaction — bubbles "feel" cursor
+        function updateBubbleProximity(mx, my) {
+            if (!bubbleState.proximityActive) return;
+
+            provocationBubbles.forEach(bubble => {
+                if (!bubble.classList.contains('visible')) return;
+
+                const rect = bubble.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                const dx = mx - cx;
+                const dy = my - cy;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < BUBBLE_CONFIG.PROXIMITY_RADIUS) {
+                    const pull = (1 - dist / BUBBLE_CONFIG.PROXIMITY_RADIUS) * BUBBLE_CONFIG.PROXIMITY_PULL;
+                    // Bubble is "attracted" to cursor
+                    bubble.style.transform = `translateX(${dx * pull}px) translateY(${dy * pull}px) scale(1.02)`;
+                } else {
+                    bubble.style.transform = '';  // Reset to CSS animation
+                }
+            });
+        }
+
+        // M5: Whisper preview on long hover
+        function setupWhisperPreview(bubble) {
+            const whisperEl = bubble.querySelector('.whisper');
+            const whisperText = bubble.dataset.whisper;
+
+            if (!whisperEl || !whisperText) return;
+
+            bubble.addEventListener('mouseenter', () => {
+                const timer = setTimeout(() => {
+                    whisperEl.textContent = whisperText;
+                    bubble.classList.add('whisper-visible');
+                }, BUBBLE_CONFIG.WHISPER_DELAY);
+                bubbleState.hoverTimers.set(bubble, timer);
+            });
+
+            bubble.addEventListener('mouseleave', () => {
+                const timer = bubbleState.hoverTimers.get(bubble);
+                if (timer) clearTimeout(timer);
+                bubble.classList.remove('whisper-visible');
+                whisperEl.textContent = '';
+            });
+        }
+
+        // M6: First-movement trigger + progressive reveal
+        function updateBubbleTriggers(idleDuration) {
+            const isIdle = idleDuration >= BUBBLE_CONFIG.IDLE_THRESHOLD_FOR_TRIGGER;
+
+            // Mark as "was idle" when user stops moving
+            if (isIdle) {
+                bubbleState.wasIdle = true;
+            }
+
+            // First movement after idle → show next bubble
+            if (bubbleState.wasIdle && state.mouseMoveCount > bubbleState.prevMoveCount) {
+                showNextBubble();
+                bubbleState.wasIdle = false;  // Reset
+            }
+
+            bubbleState.prevMoveCount = state.mouseMoveCount;
+
+            // Also show bubbles on general idle (fallback, slower)
+            // This ensures deeply passive users still see content
+            const idleBasedCount = Math.floor(idleDuration / 8);  // Every 8 sec of idle
+            while (bubbleState.shownCount < idleBasedCount && bubbleState.shownCount < BUBBLE_CONFIG.MAX_BUBBLES) {
+                showNextBubble();
+            }
+
+            state.visibleBubbles = bubbleState.shownCount;
+        }
+
+        function showNextBubble() {
+            if (bubbleState.shownCount >= BUBBLE_CONFIG.MAX_BUBBLES) return;
+
+            const bubble = provocationBubbles[bubbleState.shownCount];
+            if (bubble) {
+                bubble.classList.add('visible');
+                bubbleState.shownCount++;
+                console.log(`[KLYAP] Bubble ${bubbleState.shownCount} awakened`);
+            }
+        }
+
+        // Hook into main update loop
+        function updateBubbles(idleDuration) {
+            updateBubbleTriggers(idleDuration);
+        }
+
+        // v12: CONDENSE bubbles to center (JS-driven animation)
+        function condenseBubblesToCenter() {
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+
+            provocationBubbles.forEach((bubble, index) => {
+                if (!bubble.classList.contains('visible')) return;
+
+                const rect = bubble.getBoundingClientRect();
+                const bubbleX = rect.left + rect.width / 2;
+                const bubbleY = rect.top + rect.height / 2;
+
+                // Calculate translation to center
+                const deltaX = centerX - bubbleX;
+                const deltaY = centerY - bubbleY;
+
+                // Staggered animation delay
+                const delay = index * 150;
+
+                bubble.style.transition = `all 2.5s cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms`;
+                bubble.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0.1)`;
+                bubble.style.opacity = '0';
+                bubble.style.filter = 'blur(12px)';
+                bubble.style.pointerEvents = 'none';
+
+                console.log(`[KLYAP] Bubble ${index} condensing to center`);
+            });
+        }
+
+        // Bubble click handlers
+        provocationBubbles.forEach((bubble, index) => {
+            // M5: Setup whisper preview
+            setupWhisperPreview(bubble);
+
+            bubble.addEventListener('click', () => {
+                const text = bubble.childNodes[0].textContent;  // Get text without whisper
+                console.log(`[KLYAP] Bubble clicked: "${text}" (index: ${index})`);
+
+                // TODO: LLM integration point
+                bubble.style.transform = 'translateX(10px) scale(1.08)';
+                bubble.style.background = 'hsla(300, 40%, 25%, 0.9)';
+
+                setTimeout(() => {
+                    bubble.style.transform = '';
+                    bubble.style.background = '';
+                }, 300);
+
+                // Log interaction for future LLM context
+                if (!state.bubbleClicks) state.bubbleClicks = [];
+                state.bubbleClicks.push({
+                    text,
+                    index,
+                    time: state.timeOnPage,
+                    idleTime: state.totalIdleTime
+                });
+            });
+        });
+
+        // === FONT GLITCH (v10 ENHANCED) ===
+
+        // v10.1: Multilingual text — "bursting/swelling/распирает" in different languages
+        const GLITCH_TEXTS = [
+            'распирает',     // Russian
+            'bursting',      // English
+            '張り裂ける',    // Japanese (harisakeру - tearing/bursting)
+            'फूलना',         // Hindi (phoolna - swelling)
+            'rozpiera',      // Polish
+            'platzt',        // German (bursting)
+            'éclate',        // French (bursting)
+            'ينفجر',         // Arabic (yanfajir - bursting)
+            '터진다',        // Korean (teojinda - bursting)
+            '胀裂',          // Chinese (zhanglie - swelling/bursting)
+            'revienta',      // Spanish (bursting)
+            'estoura',       // Portuguese (bursting)
+        ];
+
+        const GLITCH_FONTS = [
+            'Georgia, serif',
+            '"Courier New", monospace',
+            'Impact, sans-serif',
+            '"Times New Roman", serif',
+            'Arial Black, sans-serif',
+            'Garamond, serif',
+            'Verdana, sans-serif',
+            '"Trebuchet MS", sans-serif'
+        ];
+
+        // Colors: purple palette + sickly organic undertones + v10 "disturbing soft"
+        const GLITCH_COLORS = [
+            'hsl(285, 20%, 50%)',   // base purple (current)
+            'hsl(295, 25%, 55%)',   // warmer magenta
+            'hsl(275, 22%, 48%)',   // cooler purple
+            'hsl(310, 18%, 52%)',   // pink-magenta
+            'hsl(265, 20%, 45%)',   // blue-purple
+            'hsl(180, 12%, 42%)',   // sickly muted cyan (organic disgust)
+            'hsl(160, 10%, 40%)',   // muted green-grey (bile undertone)
+            // v10 NEW: "disturbing soft" palette expansion
+            'hsl(30, 15%, 45%)',    // flesh/beige undertone
+            'hsl(350, 12%, 48%)',   // dried blood pink
+            'hsl(45, 8%, 42%)',     // pus/mucus yellow-grey
+        ];
+
+        let glitchActive = false;
+
+        function startFontGlitch() {
+            if (glitchActive) return;
+            glitchActive = true;
+            glitchFont();
+        }
+
+        // v10: Enhanced glitchFont with letter-spacing jitter, size jitter, chromatic aberration
+        function glitchFont() {
+            // v13: Check if glitch should run
+            if (!glitchActive) return;
+            if (glitchState.isScrolling) return;  // пауза во время scroll
+            if (glitchState.glitchPermanentlyDisabled) return;  // навсегда выключен
+
+            const randomFont = GLITCH_FONTS[Math.floor(Math.random() * GLITCH_FONTS.length)];
+            const randomColor = GLITCH_COLORS[Math.floor(Math.random() * GLITCH_COLORS.length)];
+
+            // v10.1: random language switch
+            const randomText = GLITCH_TEXTS[Math.floor(Math.random() * GLITCH_TEXTS.length)];
+            textEl.textContent = randomText;
+
+            textEl.style.fontFamily = randomFont;
+            textEl.style.color = randomColor;
+
+            // v10 NEW: letter-spacing jitter (-0.15em to +0.15em)
+            const spacing = (Math.random() - 0.5) * 0.3;
+            textEl.style.letterSpacing = `${spacing}em`;
+
+            // v10 NEW: size jitter (96%-104% via scale)
+            const sizeJitter = 1 + (Math.random() - 0.5) * 0.08;
+            textEl.style.transform = `scale(${sizeJitter})`;
+
+            // v10 NEW: chromatic aberration (~20% chance per glitch)
+            if (Math.random() < 0.2) {
+                applyChromaticAberration();
+            }
+
+            // Random interval 80-200ms (jerky, not smooth)
+            const nextDelay = 80 + Math.random() * 120;
+            setTimeout(glitchFont, nextDelay);
+        }
+
+        // v10 NEW: Chromatic aberration effect — RGB channel split
+        function applyChromaticAberration() {
+            const offset = 2 + Math.random() * 4;  // 2-6px offset
+            textEl.style.textShadow = `
+                ${offset}px 0 0 rgba(255, 0, 0, 0.4),
+                ${-offset}px 0 0 rgba(0, 255, 255, 0.4)
+            `;
+
+            // Clear after 80-150ms (quick flash)
+            setTimeout(() => {
+                textEl.style.textShadow = '0 0 40px hsla(290, 40%, 20%, 0.6)';
+            }, 80 + Math.random() * 70);
+        }
+
+        // Exit portal
+        exitPortal.addEventListener('click', () => {
+            // Save state for next room
+            const passedData = {
+                timeSpent: state.timeOnPage,
+                totalIdleTime: state.totalIdleTime,
+                mouseMoveCount: state.mouseMoveCount,
+                pattern: state.totalIdleTime > state.timeOnPage * 0.5 ? 'passive' : 'active'
+            };
+            console.log('KLYAP exit data:', passedData);
+            localStorage.setItem('klyap_data', JSON.stringify(passedData));
+
+            // Transition effect
+            document.body.style.transition = 'opacity 2s';
+            document.body.style.opacity = '0';
+
+            setTimeout(() => {
+                alert('→ переход в МАЗУТ\n\nДанные сохранены:\n' + JSON.stringify(passedData, null, 2));
+                // window.location.href = '../mazut/index.html';
+            }, 2000);
+        });
+
+        // === INIT ===
+        resize();
+        initVeins();
+        draw();
+
+        // ============================================
+        // v12: METAMORPHOSIS ENGINE
+        // ============================================
+
+        function updateMetamorphosis() {
+            const depth = state.depth;
+
+            // Phase transitions based on depth
+            if (depth >= 70 && depth < 85 && metamorphosis.phase === 'immersion') {
+                enterLiberationPhase();
+            }
+
+            if (depth >= 85 && metamorphosis.phase === 'liberation') {
+                enterTrapPhase();
+            }
+
+            // Trap timer check (runs in animation frame, not here)
+            if (metamorphosis.phase === 'trap' && metamorphosis.trapStartTime) {
+                const elapsed = Date.now() - metamorphosis.trapStartTime;
+                if (elapsed >= metamorphosis.trapDuration) {
+                    executeHardCut();
+                }
+            }
+
+            // Progressive fog (depth 70-100)
+            updateFog(depth);
+        }
+
+        function enterLiberationPhase() {
+            metamorphosis.phase = 'liberation';
+            console.log('[KLYAP] Phase: FALSE LIBERATION — "свобода"');
+
+            // Vignette expands — "отпускает"
+            vignette.classList.remove('constricted');
+            vignette.classList.add('liberating');
+
+            // Background lightens
+            document.body.classList.add('liberating');
+
+            // Bubbles CONDENSE to center (JS-driven)
+            condenseBubblesToCenter();
+
+            // Text changes to "liberation"
+            textEl.textContent = 'свободен';
+
+            // Tremor slows
+            document.querySelector('.content').classList.add('calm');
+
+            // Stop font glitch
+            glitchActive = false;
+        }
+
+        function enterTrapPhase() {
+            metamorphosis.phase = 'trap';
+            metamorphosis.trapStartTime = Date.now();
+            metamorphosis.trapDuration = 3000 + Math.random() * 2000; // 3-5s
+
+            console.log(`[KLYAP] Phase: TRAP — scroll disabled for ${(metamorphosis.trapDuration / 1000).toFixed(1)}s`);
+
+            // Everything freezes
+            document.body.classList.add('trapped');
+
+            // Text: ellipsis or nothing
+            textEl.textContent = '...';
+            textEl.style.opacity = '0.3';
+
+            // Schedule hard cut
+            setTimeout(() => {
+                if (metamorphosis.phase === 'trap') {
+                    executeHardCut();
+                }
+            }, metamorphosis.trapDuration);
+        }
+
+        function executeHardCut() {
+            metamorphosis.phase = 'cut';
+            console.log('[KLYAP] Phase: HARD CUT — мгновенный переход');
+
+            // Instant transition — no animation
+            document.body.classList.remove('liberating', 'trapped');
+            document.body.classList.add('cut');
+
+            // Show chat container
+            chatContainer.classList.add('active');
+
+            // Focus input after brief delay
+            setTimeout(() => {
+                chatInput.focus();
+                metamorphosis.phase = 'chat';
+                metamorphosis.chatReady = true;
+
+                console.log('[KLYAP] Phase: CHAT MODE — готов к диалогу');
+
+                // Start hint timer
+                setTimeout(showNextHint, metamorphosis.hintDelay);
+            }, 500);
+        }
+
+        function updateFog(depth) {
+            if (depth < 70) return;
+
+            const progress = (depth - 70) / 30; // 0-1 over depth 70-100
+
+            // Progressive fog layers
+            fog1.classList.toggle('active', progress > 0.1);
+            fog2.classList.toggle('active', progress > 0.5);
+            fog3.classList.toggle('active', progress > 0.85);
+        }
+
+        // === CHAT MODE ===
+
+        function showNextHint() {
+            if (!metamorphosis.chatReady) return;
+            if (metamorphosis.hintIndex >= chatHints.length) return;
+
+            const hint = chatHints[metamorphosis.hintIndex];
+            if (!hint.classList.contains('disabled')) {
+                hint.classList.add('visible');
+            }
+            metamorphosis.hintIndex++;
+
+            console.log(`[KLYAP] Chat hint ${metamorphosis.hintIndex} appeared`);
+
+            // Next hint after delay (progressively faster)
+            const nextDelay = Math.max(3000, metamorphosis.hintDelay - metamorphosis.hintIndex * 1000);
+            setTimeout(showNextHint, nextDelay);
+        }
+
+        // Chat hint click handlers
+        chatHints.forEach(hint => {
+            if (hint.classList.contains('disabled')) return;
+
+            hint.addEventListener('click', () => {
+                const text = hint.dataset.text;
+                chatInput.value = text;
+                sendMessage(text);
+                hint.classList.add('used');
+            });
+        });
+
+        // Chat input handler
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && chatInput.value.trim()) {
+                sendMessage(chatInput.value.trim());
+                chatInput.value = '';
+            }
+        });
+
+        async function sendMessage(userText) {
+            console.log(`[KLYAP] User says: "${userText}"`);
+
+            // Disable input during response
+            chatInput.disabled = true;
+
+            // Add to history
+            metamorphosis.conversationHistory.push({
+                role: 'user',
+                content: userText
+            });
+
+            try {
+                const response = await callClaude();
+
+                // Add to history
+                metamorphosis.conversationHistory.push({
+                    role: 'assistant',
+                    content: response
+                });
+
+                showRoomResponse(response);
+            } catch (error) {
+                console.error('[KLYAP] API error:', error);
+                showRoomResponse('...');
+            } finally {
+                chatInput.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        async function callClaude() {
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: metamorphosis.conversationHistory
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Proxy error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.text;
+            } catch (error) {
+                console.error('[KLYAP] Fetch error:', error);
+                return getFallbackResponse();
+            }
+        }
+
+        function getFallbackResponse() {
+            // Fallback if API fails
+            const lastMessage = metamorphosis.conversationHistory[metamorphosis.conversationHistory.length - 1]?.content || '';
+            const lowered = lastMessage.toLowerCase();
+            if (lowered.includes('внутри')) return 'мягко';
+            if (lowered.includes('отпусти')) return 'поздно';
+            if (lowered.includes('выход')) return 'нет';
+            if (lowered.includes('нрав')) return 'знаю';
+            return '...';
+        }
+
+        function showRoomResponse(text) {
+            roomResponse.textContent = text;
+            roomResponse.classList.add('visible');
+
+            // Fade after 8s (longer presence)
+            setTimeout(() => {
+                roomResponse.classList.remove('visible');
+            }, 8000);
+        }
+
+        // Update debug display to show metamorphosis phase
+        const originalUpdateMechanics = updateMechanics;
+        function updateMechanicsWithMetamorphosis(dt) {
+            originalUpdateMechanics.call(this, dt);
+
+            // Check trap timer
+            if (metamorphosis.phase === 'trap' && metamorphosis.trapStartTime) {
+                const elapsed = Date.now() - metamorphosis.trapStartTime;
+                if (elapsed >= metamorphosis.trapDuration) {
+                    executeHardCut();
+                }
+            }
+
+            // Update debug
+            if (CONFIG.DEBUG && debugEl) {
+                debugEl.innerHTML = `
+                    время: ${state.timeOnPage.toFixed(1)}с<br>
+                    phase: ${state.phase}<br>
+                    <span style="color: hsla(120, 60%, 50%, 0.8)">depth: ${state.depth.toFixed(1)}</span><br>
+                    <span style="color: hsla(300, 60%, 60%, 0.8)">meta: ${metamorphosis.phase}</span><br>
+                    <span style="color: hsla(280, 60%, 60%, 0.5)">v12: metamorphosis</span>
+                `;
+            }
+        }
+        // Note: updateMechanics is already defined, trap check happens in wheel handler and timeout
+
+    </script>
+</body>
+
+</html>

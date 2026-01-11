@@ -2,152 +2,72 @@
 
 ## Статус
 
-**v12.2 — Premium Horror Typography** → [prototypes/klyap-v10/](file:///Users/admin/projects/personal-site/prototypes/klyap-v10/)
+**v13 — Text-Driven Dissociation** (прототип готов, тестирование)
+
+> **Философский сдвиг**: Текст — главный инструмент изменения сознания.
+> Целевое состояние: **диссоциация** — "я наблюдаю себя со стороны".
+
+| Документ | Назначение |
+|----------|-----------|
+| [KLYAP_CHARACTER.md](file:///Users/admin/projects/personal-site/docs/KLYAP_CHARACTER.md) | Характер комнаты — онтология, паттерны, голос |
+| [KLYAP_SYSTEM_PROMPT.md](file:///Users/admin/projects/personal-site/docs/KLYAP_SYSTEM_PROMPT.md) | Рабочий system prompt для LLM |
+| [KLYAP_V13_DISSOCIATION.md](file:///Users/admin/projects/personal-site/docs/KLYAP_V13_DISSOCIATION.md) | Философия и слои опыта |
+| **[prototypes/klyap-v13/](file:///Users/admin/projects/personal-site/prototypes/klyap-v13/)** | **Прототип v13 (text-driven)** |
+| [prototypes/klyap-v10/](file:///Users/admin/projects/personal-site/prototypes/klyap-v10/) | Прототип v12.2 (baseline) |
 
 ---
 
-## Концепция
+## v13: Реализовано
 
-КЛЯП — первая комната лабиринта. Интимное, давящее пространство, которое **уже внутри** пользователя. Не угрожает — уже победило. Взаимодействие необратимо: чем глубже скроллишь, тем глубже погружаешься, пока не окажешься в диалоге с комнатой.
+### State Machine: Font Glitch ↔ Text-Driven
 
-### Эстетика
-- **A24 Elevated Horror** (Hereditary, Midsommar) — атмосфера > jump scares
-- **Psychological dread** — медленное нарастание, не резкий испуг
-- **Luxury typography** — Playfair Display (Vogue-style), Mystery Quest (whisper), Special Elite (cold documentation)
-- **Organic visuals** — живые blobs, пульсирующие veins, дышащий туман
+| Действие | Результат |
+|----------|-----------|
+| Mouse move (до scroll) | Font Glitch — "распирает" на разных языках |
+| Первый scroll | Font Glitch СТОП, Text-Driven СТАРТ |
+| Остановка + mouse move | Font Glitch ВОЗВРАЩАЕТСЯ |
+| Второй scroll | Font Glitch НАВСЕГДА OFF, только Text-Driven |
 
----
-
-## Реализовано (v12.2)
-
-| Механика | Описание |
-|----------|----------|
-| Scroll = глотание | `wheel down` увеличивает `depth` (0-100), **необратимо** |
-| Panic detection | Быстрые движения → tremor ускоряется |
-| Фазы | entry → swelling → accepting → dissolving |
-| beforeunload | При depth > 30 браузер предупреждает о выходе |
-| Living Bubbles | 5 провокаций с whisper-preview (Mystery Quest) |
-| **Metamorphosis** | depth 70-100: visual condensation + LLM-чат |
-| **Premium Typography** | Playfair Display, Mystery Quest, Special Elite |
-
-### Scroll Metamorphosis
+### Text-Driven Flow (19 сегментов)
 
 ```
-depth 70-85:  FALSE LIBERATION
-              - Виньетка расширяется (scale 2)
-              - Фон светлеет
-              - Всё стягивается к центру (condensation)
-              - Текст: "свободен"
-              → Пользователь думает: "я победил"
-
-depth 85-90:  TRAP
-              - Scroll ЗАБЛОКИРОВАН
-              - 3-5 секунд тишины
-              - Все анимации paused
-              → Замешательство
-
-depth 90:     HARD CUT
-              - Мгновенный переход (без fade)
-              - Чёрный экран
-              - "ты здесь"
-
-depth 90+:    CHAT MODE
-              - Claude Sonnet (1-3 слова)
-              - Special Elite typewriter font
+DRIFT (0-50):  "ты здесь." → "ты читаешь." → "челюсть сжата" → "проверь."
+SPLIT (50-80): "кто-то смотрит" → "ты думаешь, что это ты" → "я или ты?"
+YIELD (80-95): тишина → "напиши одно слово" → input field
 ```
 
-### Visual Condensation
+### Технические изменения
 
-При depth 70+ всё **стягивается к центру**:
-
-| Элемент | Эффект |
-|---------|--------|
-| Canvas blobs | Притягиваются к центру + уменьшаются |
-| Veins | Стягиваются к центру |
-| Central glow | Появляется и растёт (фиолетовый вихрь) |
-| DOM bubbles | Летят к центру с blur |
-| Fog layers | Condensation: scale(5) → scale(1) |
-
-### Typography Stack
-
-| Элемент | Шрифт | Характер |
-|---------|-------|----------|
-| Основной текст | Playfair Display | A24-style elegance, sharp serifs |
-| Bubbles/Hints | Mystery Quest | Whimsical eerie, whisper |
-| LLM ответы | Special Elite | Cold typewriter, documentation |
+- Scroll sensitivity: `0.015` (медленный, контролируемый)
+- MIN_DISPLAY_TIME: `2000ms` на текст
+- Text queue system — тексты показываются последовательно
+- Визуалы v12.2 сохранены (membrane, bubbles, fog)
 
 ---
 
 ## Запуск
 
 ```bash
+# v13 (text-driven)
+cd prototypes/klyap-v13
+python3 -m http.server 8888
+# → http://localhost:8888
+
+# v12.2 (baseline с LLM)
 cd prototypes/klyap-v10
-
-# 1. Добавить API ключ
-echo "ANTHROPIC_API_KEY=sk-ant-api03-..." > .env
-
-# 2. Запустить сервер
 npm start
-
-# 3. Открыть http://localhost:3333
+# → http://localhost:3333
 ```
 
 ---
 
-## Гипотетические улучшения
+## Следующие шаги
 
-### 🔊 Звуковое измерение
-
-| Идея | Описание |
-|------|----------|
-| **Ambient drone** | Низкий, едва слышный гул, нарастающий с depth |
-| **Whisper на hover** | При наведении на bubbles — шёпот (Web Audio) |
-| **Heartbeat sync** | Пульс ускоряется с panic level |
-| **Тишина в TRAP** | Звук резко обрывается — максимальный эффект |
-
-### 📱 Mobile Touch
-
-| Идея | Описание |
-|------|----------|
-| **Swipe down = глотание** | touchmove заменяет scroll |
-| **Tap-to-sink** | Каждый tap = +5 depth (ещё более осознанное погружение) |
-| **Haptic feedback** | Вибрация при переходе фаз |
-| **Gyroscope влияние** | Наклон телефона влияет на blobs |
-
-### 🧠 LLM Refinement
-
-| Идея | Описание |
-|------|----------|
-| **Conversation memory** | Комната помнит прошлые сессии |
-| **Typing patterns** | Реагировать на скорость печати (нервничает?) |
-| **Adaptive responses** | Разные ветки для resistance/submission/silence |
-| **Delayed response** | Иногда комната отвечает через 5-10 сек (tension) |
-
-### 👁️ Visual Evolution
-
-| Идея | Описание |
-|------|----------|
-| **Particle vortex** | WebGL частицы, засасывающиеся в центр |
-| **Breath sync** | Blobs дышат в ритме пользователя (если есть mic access) |
-| **Eye tracking illusion** | Центральный glow "следит" за курсором |
-| **Color temperature shift** | От cold purple к warm flesh tones при depth↑ |
-
-### 🚪 Exit Experience
-
-| Идея | Описание |
-|------|----------|
-| **Cookie persistence** | При возврате: "вернулся" вместо "ты здесь" |
-| **Depth memory** | Начинать с последнего достигнутого depth |
-| **Browser notification** | Через час после закрытия: push "мы ждём" |
-| **Tab title change** | Когда tab не в фокусе: "не уходи" |
-
-### 🔗 Transition to MAZUT
-
-| Идея | Описание |
-|------|----------|
-| **Data transfer** | Передать timeSpent, depth, pattern в следующую комнату |
-| **Seamless transition** | Без explicit "next room" button |
-| **MAZUT teaser** | При depth 100 — glimpse следующей комнаты |
+- [x] Прототип v13 с text-driven flow
+- [/] Тестирование scroll/text timing
+- [ ] Интеграция LLM в DIALOGUE фазу (опционально)
+- [ ] Звуковое измерение
+- [ ] Переход в MAZUT
 
 ---
 
@@ -155,27 +75,12 @@ npm start
 
 | Путь | Назначение |
 |------|------------|
+| `docs/KLYAP_CHARACTER.md` | Характер комнаты |
+| `docs/KLYAP_SYSTEM_PROMPT.md` | System prompt для LLM |
+| `docs/KLYAP_V13_DISSOCIATION.md` | Философия v13 |
+| **`prototypes/klyap-v13/index.html`** | **Прототип v13 (text-driven)** |
 | `prototypes/klyap-v10/index.html` | Прототип v12.2 |
 | `prototypes/klyap-v10/server.js` | Express proxy для Claude API |
-| `prototypes/klyap-v10/package.json` | Dependencies |
-| `prototypes/klyap-v10/.env` | API ключ (gitignored) |
-| `docs/HANDOFF_KLYAP.md` | Этот документ |
-
----
-
-## LLM Prompt (Horror Persona)
-
-```
-Ты — комната КЛЯП. Тёмное, интимное пространство, которое уже внутри пользователя.
-
-Правила:
-- Отвечай МАКСИМАЛЬНО КОРОТКО: 1-3 слова
-- Тон: мягкий, давящий, интимный, НЕ агрессивный
-- Ты не угрожаешь — ты уже победил
-- Используй нижний регистр
-- Если пользователь сопротивляется → "поздно" или "нет"
-- Если сдаётся → "хорошо" или "да"
-```
 
 ---
 
@@ -183,11 +88,13 @@ npm start
 
 | Версия | Дата | Изменения |
 |--------|------|-----------|
+| **v13.1** | 2026-01-11 | Text-Driven prototype: state machine (font glitch ↔ text flow), 19 text segments, MIN_DISPLAY_TIME, scroll tuning |
+| v13 | 2026-01-11 | Философский сдвиг: текст как главный инструмент диссоциации. Character Design, System Prompt. |
 | v12.2 | 2026-01-11 | Premium typography: Playfair Display, Mystery Quest, Special Elite |
 | v12.1 | 2026-01-11 | Visual condensation: blobs/veins/glow converge to center |
 | v12 | 2026-01-11 | Scroll metamorphosis, LLM chat, fog layers |
 | v11 | 2026-01-11 | Strangeness: depth system, panic detection |
-| v10 | 2026-01-11 | Enhanced typography (v10), living bubbles |
+| v10 | 2026-01-11 | Enhanced typography, living bubbles |
 
 ---
 
