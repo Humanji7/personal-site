@@ -346,25 +346,35 @@
             will-change: transform, border-radius;
         }
 
-        /* M2: Async breathing — per-bubble delay via nth-child */
+        /* M2: Async breathing — per-bubble delay via nth-child + position vars for condensation */
         .provocation-bubble:nth-child(1) {
             animation-delay: 0s, 0s;
+            --bubble-x: 12vw;
+            --bubble-y: 22vh;
         }
 
         .provocation-bubble:nth-child(2) {
             animation-delay: 1.6s, 0.8s;
+            --bubble-x: 8vw;
+            --bubble-y: 38vh;
         }
 
         .provocation-bubble:nth-child(3) {
             animation-delay: 3.2s, 1.6s;
+            --bubble-x: 15vw;
+            --bubble-y: 55vh;
         }
 
         .provocation-bubble:nth-child(4) {
             animation-delay: 4.8s, 2.4s;
+            --bubble-x: 10vw;
+            --bubble-y: 70vh;
         }
 
         .provocation-bubble:nth-child(5) {
             animation-delay: 6.4s, 3.2s;
+            --bubble-x: 18vw;
+            --bubble-y: 82vh;
         }
 
         .provocation-bubble.visible {
@@ -457,11 +467,14 @@
             transition: background 3s ease-out;
         }
 
+        /* Bubbles CONDENSE to center */
         .bubble-container.fading .provocation-bubble {
             opacity: 0 !important;
-            transform: translateX(-80px) scale(0.8) !important;
-            transition: all 2s ease-out;
+            transform: translate(calc(50vw - var(--bubble-x, 50vw)),
+                    calc(50vh - var(--bubble-y, 50vh))) scale(0.2) !important;
+            transition: all 3s cubic-bezier(0.4, 0, 0.2, 1);
             pointer-events: none !important;
+            filter: blur(8px);
         }
 
         .content.calm {
@@ -503,11 +516,13 @@
             transition: opacity 2.5s ease-out;
         }
 
+        /* Fog starts HUGE and CONDENSES inward */
         .fog-1 {
             background: radial-gradient(circle at 50% 50%,
                     hsla(280, 30%, 15%, 0.7) 0%,
                     transparent 55%);
             backdrop-filter: blur(3px);
+            transform: scale(3);
         }
 
         .fog-2 {
@@ -515,6 +530,7 @@
                     hsla(285, 25%, 10%, 0.8) 0%,
                     transparent 40%);
             backdrop-filter: blur(10px);
+            transform: scale(4);
         }
 
         .fog-3 {
@@ -522,11 +538,26 @@
                     hsla(280, 20%, 5%, 0.95) 0%,
                     transparent 28%);
             backdrop-filter: blur(18px);
+            transform: scale(5);
         }
 
         .fog-layer.active {
             opacity: 1;
-            animation: fogDrift 10s ease-in-out infinite;
+            transform: scale(1);
+            transition: transform 4s cubic-bezier(0.4, 0, 0.2, 1), opacity 2.5s ease-out;
+            animation: fogPulse 8s ease-in-out infinite;
+        }
+
+        @keyframes fogPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.08);
+            }
         }
 
         @keyframes fogDrift {
@@ -610,22 +641,30 @@
             opacity: 0.3;
         }
 
-        /* Ответ комнаты */
+        /* Ответ комнаты — LARGER, more dramatic */
         .room-response {
-            color: hsla(280, 35%, 55%, 0.85);
-            font-family: 'Georgia', serif;
-            font-size: clamp(1.2rem, 3vw, 1.8rem);
-            font-style: italic;
-            letter-spacing: 0.1em;
-            margin-top: 2rem;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            color: hsla(285, 30%, 65%, 0.95);
+            font-family: 'Courier New', monospace;
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            letter-spacing: 0.3em;
+            text-transform: lowercase;
             opacity: 0;
-            transform: translateY(20px);
-            transition: all 1.5s ease-out;
+            transition: all 1.5s cubic-bezier(0.2, 0, 0.2, 1);
+            text-shadow:
+                0 0 30px hsla(290, 50%, 40%, 0.6),
+                0 0 60px hsla(285, 40%, 25%, 0.3);
+            z-index: 100;
+            filter: blur(4px);
         }
 
         .room-response.visible {
             opacity: 1;
-            transform: translateY(0);
+            transform: translate(-50%, -50%) scale(1);
+            filter: blur(0);
         }
 
         /* === CHAT HINTS === */
@@ -992,6 +1031,24 @@
                 blob.x += dx * influence * 0.02;
                 blob.y += dy * influence * 0.02;
 
+                // v12: CENTER ATTRACTION during metamorphosis (depth > 70)
+                if (state.depth > 70) {
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+                    const toCenterX = centerX - blob.x;
+                    const toCenterY = centerY - blob.y;
+
+                    // Attraction strength increases with depth (70-100 → 0-1)
+                    const attractionStrength = (state.depth - 70) / 30; // 0 to 1
+                    const pullForce = attractionStrength * 0.02;
+
+                    blob.x += toCenterX * pullForce;
+                    blob.y += toCenterY * pullForce;
+
+                    // Also shrink blobs as they condense
+                    blob.baseRadius *= (1 - attractionStrength * 0.003);
+                }
+
                 // Gradient
                 const gradient = ctx.createRadialGradient(
                     blob.x, blob.y, 0,
@@ -1021,11 +1078,47 @@
                 ctx.fill();
             }
 
+            // v12: CENTRAL VORTEX GLOW during metamorphosis
+            if (state.depth > 70) {
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const attractionStrength = (state.depth - 70) / 30; // 0 to 1
+
+                // Growing central glow
+                const glowRadius = 50 + attractionStrength * 200;
+                const vortexGlow = ctx.createRadialGradient(
+                    centerX, centerY, 0,
+                    centerX, centerY, glowRadius
+                );
+
+                vortexGlow.addColorStop(0, `hsla(285, 40%, 30%, ${attractionStrength * 0.8})`);
+                vortexGlow.addColorStop(0.3, `hsla(290, 35%, 20%, ${attractionStrength * 0.5})`);
+                vortexGlow.addColorStop(0.7, `hsla(280, 30%, 10%, ${attractionStrength * 0.3})`);
+                vortexGlow.addColorStop(1, 'transparent');
+
+                ctx.fillStyle = vortexGlow;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, glowRadius, 0, Math.PI * 2);
+                ctx.fill();
+            }
             // Veins с интенсификацией
             for (const vein of veins) {
                 const pulse = 0.5 + Math.sin(animTime * 2 * state.pulseIntensity + vein.phase) * 0.5;
                 const thickness = vein.thickness * (0.8 + pulse * 0.4 * state.pulseIntensity);
                 const opacity = vein.opacity * (0.6 + pulse * 0.4 * state.pulseIntensity);
+
+                // v12: Center attraction for veins during metamorphosis
+                if (state.depth > 70) {
+                    const attractionStrength = (state.depth - 70) / 30;
+                    const pullForce = attractionStrength * 0.015;
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+
+                    vein.x1 += (centerX - vein.x1) * pullForce;
+                    vein.y1 += (centerY - vein.y1) * pullForce;
+                    vein.x2 += (centerX - vein.x2) * pullForce;
+                    vein.y2 += (centerY - vein.y2) * pullForce;
+                }
 
                 ctx.strokeStyle = `hsla(295, 45%, 18%, ${Math.min(1, opacity)})`;
                 ctx.lineWidth = thickness;
@@ -1350,6 +1443,35 @@
             updateBubbleTriggers(idleDuration);
         }
 
+        // v12: CONDENSE bubbles to center (JS-driven animation)
+        function condenseBubblesToCenter() {
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+
+            provocationBubbles.forEach((bubble, index) => {
+                if (!bubble.classList.contains('visible')) return;
+
+                const rect = bubble.getBoundingClientRect();
+                const bubbleX = rect.left + rect.width / 2;
+                const bubbleY = rect.top + rect.height / 2;
+
+                // Calculate translation to center
+                const deltaX = centerX - bubbleX;
+                const deltaY = centerY - bubbleY;
+
+                // Staggered animation delay
+                const delay = index * 150;
+
+                bubble.style.transition = `all 2.5s cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms`;
+                bubble.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0.1)`;
+                bubble.style.opacity = '0';
+                bubble.style.filter = 'blur(12px)';
+                bubble.style.pointerEvents = 'none';
+
+                console.log(`[KLYAP] Bubble ${index} condensing to center`);
+            });
+        }
+
         // Bubble click handlers
         provocationBubbles.forEach((bubble, index) => {
             // M5: Setup whisper preview
@@ -1543,8 +1665,8 @@
             // Background lightens
             document.body.classList.add('liberating');
 
-            // Bubbles fade
-            bubbleContainer.classList.add('fading');
+            // Bubbles CONDENSE to center (JS-driven)
+            condenseBubblesToCenter();
 
             // Text changes to "liberation"
             textEl.textContent = 'свободен';
@@ -1720,10 +1842,10 @@
             roomResponse.textContent = text;
             roomResponse.classList.add('visible');
 
-            // Fade after 4s
+            // Fade after 8s (longer presence)
             setTimeout(() => {
                 roomResponse.classList.remove('visible');
-            }, 4000);
+            }, 8000);
         }
 
         // Update debug display to show metamorphosis phase
