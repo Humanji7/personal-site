@@ -4,7 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>КЛЯП — прототип v10</title>
+    <title>КЛЯП — прототип v12.1</title>
+
+    <!-- Google Fonts: Horror Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Mystery+Quest&family=Special+Elite&display=swap"
+        rel="stylesheet">
+
     <style>
         * {
             margin: 0;
@@ -152,10 +160,10 @@
             }
         }
 
-        /* Текст — одно слово */
+        /* Текст — одно слово (Eater: regal + decayed horror) */
         .text-block {
             color: hsl(285, 20%, 50%);
-            font-family: 'Georgia', serif;
+            font-family: 'Playfair Display', serif;
             font-size: clamp(2rem, 6vw, 4rem);
             line-height: 1.4;
             text-align: center;
@@ -163,7 +171,7 @@
             opacity: 0;
             transform: scale(0.95);
             transition: opacity 3s ease-out, transform 3s ease-out;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.15em;
             /* v10: transition smoothing for glitch effects */
             will-change: transform, letter-spacing, text-shadow;
         }
@@ -317,7 +325,7 @@
             pointer-events: none;
         }
 
-        /* v10.3: LIVING BUBBLES — organic blob form */
+        /* v10.3: LIVING BUBBLES — organic blob form (Mystery Quest: eerie whisper) */
         .provocation-bubble {
             background: hsla(290, 30%, 12%, 0.85);
             border: 1px solid hsla(295, 40%, 25%, 0.4);
@@ -325,10 +333,10 @@
             border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
             padding: 14px 20px;
             color: hsla(290, 35%, 70%, 0.95);
-            font-family: 'Times New Roman', serif;
-            font-size: clamp(1rem, 2.5vw, 1.4rem);
+            font-family: 'Mystery Quest', cursive;
+            font-size: clamp(0.9rem, 2.2vw, 1.2rem);
             font-weight: 400;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.08em;
             max-width: 220px;
             opacity: 0;
             transform: translateX(-40px) scale(0.9);
@@ -598,20 +606,20 @@
 
         .chat-arrival-text {
             color: hsla(290, 30%, 60%, 0.9);
-            font-family: 'Georgia', serif;
+            font-family: 'Playfair Display', serif;
             font-size: clamp(1.5rem, 4vw, 2.5rem);
-            letter-spacing: 0.15em;
+            letter-spacing: 0.2em;
             margin-bottom: 3rem;
             text-align: center;
         }
 
-        /* Horror-минималистичный input */
+        /* Horror-минималистичный input (Special Elite: cold typewriter) */
         .chat-input {
             background: transparent;
             border: none;
             outline: none;
             color: hsla(290, 30%, 60%, 0.9);
-            font-family: 'Georgia', serif;
+            font-family: 'Special Elite', cursive;
             font-size: clamp(1rem, 2.5vw, 1.4rem);
             text-align: center;
             caret-color: hsla(295, 50%, 50%, 0.8);
@@ -641,16 +649,16 @@
             opacity: 0.3;
         }
 
-        /* Ответ комнаты — LARGER, more dramatic */
+        /* Ответ комнаты — LARGER, dramatic (Special Elite: typewriter horror) */
         .room-response {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) scale(0.8);
             color: hsla(285, 30%, 65%, 0.95);
-            font-family: 'Courier New', monospace;
-            font-size: clamp(1.5rem, 4vw, 2.5rem);
-            letter-spacing: 0.3em;
+            font-family: 'Special Elite', cursive;
+            font-size: clamp(1.8rem, 5vw, 3rem);
+            letter-spacing: 0.2em;
             text-transform: lowercase;
             opacity: 0;
             transition: all 1.5s cubic-bezier(0.2, 0, 0.2, 1);
@@ -688,9 +696,8 @@
             border-radius: 30% 70% 70% 30% / 60% 40% 60% 40%;
             padding: 0.8rem 1.5rem;
             color: hsla(290, 30%, 65%, 0.9);
-            font-family: 'Times New Roman', serif;
-            font-size: clamp(0.8rem, 2vw, 1.1rem);
-            font-style: italic;
+            font-family: 'Mystery Quest', cursive;
+            font-size: clamp(0.75rem, 1.8vw, 1rem);
             cursor: pointer;
             opacity: 0;
             transform: translateY(30px);
