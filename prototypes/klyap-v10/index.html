@@ -439,6 +439,258 @@
                     inset 0 0 22px hsla(305, 45%, 35%, 0.3);
             }
         }
+
+        /* ============================================
+           KLYAP v12: METAMORPHOSIS STYLES
+           ============================================ */
+
+        /* === PHASE: FALSE LIBERATION (depth 70-85) === */
+
+        .vignette.liberating {
+            transform: scale(2) !important;
+            opacity: 0.4 !important;
+            transition: transform 4s ease-out, opacity 4s ease-out;
+        }
+
+        body.liberating {
+            background: hsl(280, 30%, 8%) !important;
+            transition: background 3s ease-out;
+        }
+
+        .bubble-container.fading .provocation-bubble {
+            opacity: 0 !important;
+            transform: translateX(-80px) scale(0.8) !important;
+            transition: all 2s ease-out;
+            pointer-events: none !important;
+        }
+
+        .content.calm {
+            animation-duration: 6s !important;
+        }
+
+        /* === PHASE: TRAP (depth 85-90) === */
+
+        body.trapped * {
+            animation-play-state: paused !important;
+        }
+
+        body.trapped .noise {
+            opacity: 0.12 !important;
+        }
+
+        /* === PHASE: HARD CUT (depth 90) === */
+
+        body.cut .content,
+        body.cut .bubble-container,
+        body.cut .exit-portal,
+        body.cut .vignette,
+        body.cut .scanlines {
+            display: none !important;
+        }
+
+        body.cut {
+            background: hsl(0, 0%, 2%) !important;
+        }
+
+        /* === FOG LAYERS === */
+
+        .fog-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 40;
+            opacity: 0;
+            transition: opacity 2.5s ease-out;
+        }
+
+        .fog-1 {
+            background: radial-gradient(circle at 50% 50%,
+                    hsla(280, 30%, 15%, 0.7) 0%,
+                    transparent 55%);
+            backdrop-filter: blur(3px);
+        }
+
+        .fog-2 {
+            background: radial-gradient(circle at 50% 50%,
+                    hsla(285, 25%, 10%, 0.8) 0%,
+                    transparent 40%);
+            backdrop-filter: blur(10px);
+        }
+
+        .fog-3 {
+            background: radial-gradient(circle at 50% 50%,
+                    hsla(280, 20%, 5%, 0.95) 0%,
+                    transparent 28%);
+            backdrop-filter: blur(18px);
+        }
+
+        .fog-layer.active {
+            opacity: 1;
+            animation: fogDrift 10s ease-in-out infinite;
+        }
+
+        @keyframes fogDrift {
+
+            0%,
+            100% {
+                transform: scale(1) translate(0, 0);
+            }
+
+            33% {
+                transform: scale(1.05) translate(8px, -4px);
+            }
+
+            66% {
+                transform: scale(1.02) translate(-5px, 6px);
+            }
+        }
+
+        /* === CHAT CONTAINER === */
+
+        .chat-container {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .chat-container.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .chat-arrival-text {
+            color: hsla(290, 30%, 60%, 0.9);
+            font-family: 'Georgia', serif;
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            letter-spacing: 0.15em;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        /* Horror-минималистичный input */
+        .chat-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: hsla(290, 30%, 60%, 0.9);
+            font-family: 'Georgia', serif;
+            font-size: clamp(1rem, 2.5vw, 1.4rem);
+            text-align: center;
+            caret-color: hsla(295, 50%, 50%, 0.8);
+            width: 60%;
+            max-width: 500px;
+            padding: 1rem;
+            animation: caretPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes caretPulse {
+
+            0%,
+            100% {
+                caret-color: hsla(295, 50%, 50%, 0.8);
+            }
+
+            50% {
+                caret-color: hsla(295, 50%, 50%, 0.3);
+            }
+        }
+
+        .chat-input::placeholder {
+            color: transparent;
+        }
+
+        .chat-input:disabled {
+            opacity: 0.3;
+        }
+
+        /* Ответ комнаты */
+        .room-response {
+            color: hsla(280, 35%, 55%, 0.85);
+            font-family: 'Georgia', serif;
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            font-style: italic;
+            letter-spacing: 0.1em;
+            margin-top: 2rem;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 1.5s ease-out;
+        }
+
+        .room-response.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* === CHAT HINTS === */
+
+        .chat-hints {
+            position: fixed;
+            bottom: 15%;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            padding: 0 2rem;
+            z-index: 51;
+        }
+
+        .chat-hint {
+            background: hsla(290, 25%, 12%, 0.7);
+            border: 1px solid hsla(295, 35%, 25%, 0.5);
+            border-radius: 30% 70% 70% 30% / 60% 40% 60% 40%;
+            padding: 0.8rem 1.5rem;
+            color: hsla(290, 30%, 65%, 0.9);
+            font-family: 'Times New Roman', serif;
+            font-size: clamp(0.8rem, 2vw, 1.1rem);
+            font-style: italic;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s ease-out, background 0.3s, border-color 0.3s;
+            animation: blobMorph 8s ease-in-out infinite;
+            animation-play-state: paused;
+        }
+
+        .chat-hint.visible {
+            opacity: 1;
+            transform: translateY(0);
+            animation-play-state: running;
+        }
+
+        .chat-hint.disabled {
+            cursor: default;
+            opacity: 0.4 !important;
+        }
+
+        .chat-hint.used {
+            opacity: 0.3 !important;
+            pointer-events: none;
+        }
+
+        .chat-hint:not(.disabled):not(.used):hover {
+            background: hsla(295, 30%, 18%, 0.85);
+            border-color: hsla(300, 40%, 35%, 0.7);
+        }
+
+        /* Reduced motion fallback */
+        @media (prefers-reduced-motion: reduce) {
+            .fog-layer.active {
+                animation: none;
+            }
+
+            .chat-hint {
+                animation: none;
+            }
+        }
     </style>
 </head>
 
@@ -472,6 +724,27 @@
     </div>
 
     <div id="debug"></div>
+
+    <!-- v12: FOG LAYERS -->
+    <div class="fog-layer fog-1" id="fog-1"></div>
+    <div class="fog-layer fog-2" id="fog-2"></div>
+    <div class="fog-layer fog-3" id="fog-3"></div>
+
+    <!-- v12: CHAT CONTAINER -->
+    <div class="chat-container" id="chat-container">
+        <div class="chat-arrival-text" id="chat-arrival-text">ты здесь</div>
+        <input type="text" class="chat-input" id="chat-input" autocomplete="off">
+        <div class="room-response" id="room-response"></div>
+    </div>
+
+    <!-- v12: CHAT HINTS -->
+    <div class="chat-hints" id="chat-hints">
+        <span class="chat-hint" data-text="что внутри">"скажи ему что внутри"</span>
+        <span class="chat-hint" data-text="отпусти">"попроси отпустить"</span>
+        <span class="chat-hint" data-text="сколько их было">"спроси сколько их было"</span>
+        <span class="chat-hint" data-text="мне нравится">"скажи что тебе нравится"</span>
+        <span class="chat-hint disabled">"промолчи"</span>
+    </div>
 
     <script>
         // === STATE ===
@@ -519,6 +792,41 @@
         const vignette = document.getElementById('vignette');
         const exitPortal = document.getElementById('exit-portal');
         const debugEl = document.getElementById('debug');
+        const bubbleContainer = document.getElementById('bubble-container');
+
+        // v12: Metamorphosis DOM refs
+        const fog1 = document.getElementById('fog-1');
+        const fog2 = document.getElementById('fog-2');
+        const fog3 = document.getElementById('fog-3');
+        const chatContainer = document.getElementById('chat-container');
+        const chatInput = document.getElementById('chat-input');
+        const chatArrivalText = document.getElementById('chat-arrival-text');
+        const roomResponse = document.getElementById('room-response');
+        const chatHintsContainer = document.getElementById('chat-hints');
+        const chatHints = document.querySelectorAll('.chat-hint');
+
+        // v12: Metamorphosis state machine
+        const metamorphosis = {
+            phase: 'immersion',       // immersion | liberation | trap | cut | chat
+            trapStartTime: null,
+            trapDuration: 4000,       // 3-5s trap (randomized)
+            chatReady: false,
+            hintIndex: 0,
+            hintDelay: 7000,          // 7s before first hint
+            conversationHistory: []
+        };
+
+        // v12: Claude API system prompt
+        const SYSTEM_PROMPT = `Ты — комната КЛЯП. Тёмное, интимное пространство, которое уже внутри пользователя.
+
+Правила:
+- Отвечай МАКСИМАЛЬНО КОРОТКО: 1-3 слова, редко — одно короткое предложение
+- Тон: мягкий, давящий, интимный, но НЕ агрессивный
+- Ты не угрожаешь — ты уже победил
+- Используй нижний регистр
+- Никаких эмодзи, никакой пунктуации кроме многоточия
+- Если пользователь пытается выйти или сопротивляется — отвечай "поздно" или "нет"
+- Если пользователь сдаётся — "хорошо" или "да"`;
 
         let width, height;
         let mouseX = 0, mouseY = 0;
@@ -844,9 +1152,15 @@
             }
         });
 
-        // v11 M1: Scroll = swallowing (НЕОБРАТИМОЕ глотание)
+        // v12: Scroll = swallowing with metamorphosis blocking
         document.addEventListener('wheel', (e) => {
             if (state.phase === 'entry') return; // Not yet
+
+            // v12: TRAP/CUT/CHAT PHASE: scroll completely blocked
+            if (metamorphosis.phase === 'trap' || metamorphosis.phase === 'cut' || metamorphosis.phase === 'chat') {
+                console.log('[KLYAP] Scroll blocked — trapped');
+                return;
+            }
 
             const delta = e.deltaY;
 
@@ -857,12 +1171,20 @@
 
                 // Visual feedback
                 applyDepthEffects();
+
+                // v12: Trigger metamorphosis at depth thresholds
+                updateMetamorphosis();
+
                 console.log(`[KLYAP] Глотаешь... depth: ${state.depth.toFixed(1)}`);
             } else {
                 // Scroll UP = trying to regurgitate (REFUSED)
-                // Depth stays the same, but room reacts
                 if (state.depth > 10) {
-                    textEl.textContent = 'поздно';
+                    // v12: In liberation phase, room mocks "escape"
+                    if (metamorphosis.phase === 'liberation') {
+                        textEl.textContent = 'думаешь?';
+                    } else {
+                        textEl.textContent = 'поздно';
+                    }
                     setTimeout(() => applyDepthEffects(), 800);
                     console.log(`[KLYAP] Пытаешься срыгнуть... нет.`);
                 }
@@ -1181,6 +1503,255 @@
         resize();
         initVeins();
         draw();
+
+        // ============================================
+        // v12: METAMORPHOSIS ENGINE
+        // ============================================
+
+        function updateMetamorphosis() {
+            const depth = state.depth;
+
+            // Phase transitions based on depth
+            if (depth >= 70 && depth < 85 && metamorphosis.phase === 'immersion') {
+                enterLiberationPhase();
+            }
+
+            if (depth >= 85 && metamorphosis.phase === 'liberation') {
+                enterTrapPhase();
+            }
+
+            // Trap timer check (runs in animation frame, not here)
+            if (metamorphosis.phase === 'trap' && metamorphosis.trapStartTime) {
+                const elapsed = Date.now() - metamorphosis.trapStartTime;
+                if (elapsed >= metamorphosis.trapDuration) {
+                    executeHardCut();
+                }
+            }
+
+            // Progressive fog (depth 70-100)
+            updateFog(depth);
+        }
+
+        function enterLiberationPhase() {
+            metamorphosis.phase = 'liberation';
+            console.log('[KLYAP] Phase: FALSE LIBERATION — "свобода"');
+
+            // Vignette expands — "отпускает"
+            vignette.classList.remove('constricted');
+            vignette.classList.add('liberating');
+
+            // Background lightens
+            document.body.classList.add('liberating');
+
+            // Bubbles fade
+            bubbleContainer.classList.add('fading');
+
+            // Text changes to "liberation"
+            textEl.textContent = 'свободен';
+
+            // Tremor slows
+            document.querySelector('.content').classList.add('calm');
+
+            // Stop font glitch
+            glitchActive = false;
+        }
+
+        function enterTrapPhase() {
+            metamorphosis.phase = 'trap';
+            metamorphosis.trapStartTime = Date.now();
+            metamorphosis.trapDuration = 3000 + Math.random() * 2000; // 3-5s
+
+            console.log(`[KLYAP] Phase: TRAP — scroll disabled for ${(metamorphosis.trapDuration / 1000).toFixed(1)}s`);
+
+            // Everything freezes
+            document.body.classList.add('trapped');
+
+            // Text: ellipsis or nothing
+            textEl.textContent = '...';
+            textEl.style.opacity = '0.3';
+
+            // Schedule hard cut
+            setTimeout(() => {
+                if (metamorphosis.phase === 'trap') {
+                    executeHardCut();
+                }
+            }, metamorphosis.trapDuration);
+        }
+
+        function executeHardCut() {
+            metamorphosis.phase = 'cut';
+            console.log('[KLYAP] Phase: HARD CUT — мгновенный переход');
+
+            // Instant transition — no animation
+            document.body.classList.remove('liberating', 'trapped');
+            document.body.classList.add('cut');
+
+            // Show chat container
+            chatContainer.classList.add('active');
+
+            // Focus input after brief delay
+            setTimeout(() => {
+                chatInput.focus();
+                metamorphosis.phase = 'chat';
+                metamorphosis.chatReady = true;
+
+                console.log('[KLYAP] Phase: CHAT MODE — готов к диалогу');
+
+                // Start hint timer
+                setTimeout(showNextHint, metamorphosis.hintDelay);
+            }, 500);
+        }
+
+        function updateFog(depth) {
+            if (depth < 70) return;
+
+            const progress = (depth - 70) / 30; // 0-1 over depth 70-100
+
+            // Progressive fog layers
+            fog1.classList.toggle('active', progress > 0.1);
+            fog2.classList.toggle('active', progress > 0.5);
+            fog3.classList.toggle('active', progress > 0.85);
+        }
+
+        // === CHAT MODE ===
+
+        function showNextHint() {
+            if (!metamorphosis.chatReady) return;
+            if (metamorphosis.hintIndex >= chatHints.length) return;
+
+            const hint = chatHints[metamorphosis.hintIndex];
+            if (!hint.classList.contains('disabled')) {
+                hint.classList.add('visible');
+            }
+            metamorphosis.hintIndex++;
+
+            console.log(`[KLYAP] Chat hint ${metamorphosis.hintIndex} appeared`);
+
+            // Next hint after delay (progressively faster)
+            const nextDelay = Math.max(3000, metamorphosis.hintDelay - metamorphosis.hintIndex * 1000);
+            setTimeout(showNextHint, nextDelay);
+        }
+
+        // Chat hint click handlers
+        chatHints.forEach(hint => {
+            if (hint.classList.contains('disabled')) return;
+
+            hint.addEventListener('click', () => {
+                const text = hint.dataset.text;
+                chatInput.value = text;
+                sendMessage(text);
+                hint.classList.add('used');
+            });
+        });
+
+        // Chat input handler
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && chatInput.value.trim()) {
+                sendMessage(chatInput.value.trim());
+                chatInput.value = '';
+            }
+        });
+
+        async function sendMessage(userText) {
+            console.log(`[KLYAP] User says: "${userText}"`);
+
+            // Disable input during response
+            chatInput.disabled = true;
+
+            // Add to history
+            metamorphosis.conversationHistory.push({
+                role: 'user',
+                content: userText
+            });
+
+            try {
+                const response = await callClaude();
+
+                // Add to history
+                metamorphosis.conversationHistory.push({
+                    role: 'assistant',
+                    content: response
+                });
+
+                showRoomResponse(response);
+            } catch (error) {
+                console.error('[KLYAP] API error:', error);
+                showRoomResponse('...');
+            } finally {
+                chatInput.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        async function callClaude() {
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: metamorphosis.conversationHistory
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Proxy error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.text;
+            } catch (error) {
+                console.error('[KLYAP] Fetch error:', error);
+                return getFallbackResponse();
+            }
+        }
+
+        function getFallbackResponse() {
+            // Fallback if API fails
+            const lastMessage = metamorphosis.conversationHistory[metamorphosis.conversationHistory.length - 1]?.content || '';
+            const lowered = lastMessage.toLowerCase();
+            if (lowered.includes('внутри')) return 'мягко';
+            if (lowered.includes('отпусти')) return 'поздно';
+            if (lowered.includes('выход')) return 'нет';
+            if (lowered.includes('нрав')) return 'знаю';
+            return '...';
+        }
+
+        function showRoomResponse(text) {
+            roomResponse.textContent = text;
+            roomResponse.classList.add('visible');
+
+            // Fade after 4s
+            setTimeout(() => {
+                roomResponse.classList.remove('visible');
+            }, 4000);
+        }
+
+        // Update debug display to show metamorphosis phase
+        const originalUpdateMechanics = updateMechanics;
+        function updateMechanicsWithMetamorphosis(dt) {
+            originalUpdateMechanics.call(this, dt);
+
+            // Check trap timer
+            if (metamorphosis.phase === 'trap' && metamorphosis.trapStartTime) {
+                const elapsed = Date.now() - metamorphosis.trapStartTime;
+                if (elapsed >= metamorphosis.trapDuration) {
+                    executeHardCut();
+                }
+            }
+
+            // Update debug
+            if (CONFIG.DEBUG && debugEl) {
+                debugEl.innerHTML = `
+                    время: ${state.timeOnPage.toFixed(1)}с<br>
+                    phase: ${state.phase}<br>
+                    <span style="color: hsla(120, 60%, 50%, 0.8)">depth: ${state.depth.toFixed(1)}</span><br>
+                    <span style="color: hsla(300, 60%, 60%, 0.8)">meta: ${metamorphosis.phase}</span><br>
+                    <span style="color: hsla(280, 60%, 60%, 0.5)">v12: metamorphosis</span>
+                `;
+            }
+        }
+        // Note: updateMechanics is already defined, trap check happens in wheel handler and timeout
+
     </script>
 </body>
 
