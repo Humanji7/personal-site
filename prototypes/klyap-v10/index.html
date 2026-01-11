@@ -481,9 +481,25 @@
             totalIdleTime: 0,                 // seconds of inactivity
             mouseMoveCount: 0,                // how active user is
             pulseIntensity: 1,                // multiplier for effects
-            phase: 'entry',                   // entry -> swelling -> portal -> exit
-            exitReady: false
+            phase: 'entry',                   // entry -> swelling -> accepting -> dissolving -> exit
+            exitReady: false,
+            // v11: Depth system (scroll = swallowing)
+            depth: 0,                         // 0-100, how deep user has "swallowed"
+            maxDepth: 0,                      // irreversible max reached
+            // v11: Panic detection
+            panicLevel: 0,                    // 0-1, how panicked
+            mouseVelocity: 0                  // current mouse speed
         };
+
+        // v11: Depth-based text progression
+        const DEPTH_TEXTS = [
+            { depth: 0, text: 'распирает' },
+            { depth: 15, text: 'глубже' },
+            { depth: 30, text: 'ещё' },
+            { depth: 50, text: 'да' },
+            { depth: 70, text: 'хорошо' },
+            { depth: 90, text: '...' }
+        ];
 
         // === CONFIG ===
         const CONFIG = {
@@ -598,11 +614,23 @@
                 vignette.classList.add('constricted');
             }
 
-            // Portal appears
-            if (state.timeOnPage > CONFIG.PORTAL_APPEAR && !state.exitReady) {
+            // v11 M3: Time-based phase progression
+            // Phase: swelling -> accepting (30s or depth 30+) -> dissolving (60s or depth 70+) -> exit
+            if (state.phase === 'swelling' && (state.timeOnPage > 30 || state.depth >= 30)) {
+                state.phase = 'accepting';
+                console.log('[KLYAP] Phase: accepting (time or depth)');
+            }
+
+            if (state.phase === 'accepting' && (state.timeOnPage > 60 || state.depth >= 70)) {
+                state.phase = 'dissolving';
+                applyDissolvingEffects();
+                console.log('[KLYAP] Phase: dissolving');
+            }
+
+            // Portal appears in dissolving phase
+            if (state.phase === 'dissolving' && !state.exitReady) {
                 exitPortal.classList.add('visible');
                 state.exitReady = true;
-                state.phase = 'portal';
             }
 
             // v10.2: Provocation bubbles appear during idle
@@ -613,12 +641,11 @@
                 debugEl.innerHTML = `
                     время: ${state.timeOnPage.toFixed(1)}с<br>
                     idle: ${idleDuration.toFixed(1)}с<br>
-                    total idle: ${state.totalIdleTime.toFixed(1)}с<br>
-                    pulse: ${state.pulseIntensity.toFixed(2)}x<br>
                     phase: ${state.phase}<br>
-                    moves: ${state.mouseMoveCount}<br>
+                    <span style="color: hsla(120, 60%, 50%, 0.8)">depth: ${state.depth.toFixed(1)}</span><br>
+                    <span style="color: hsla(0, 60%, 60%, 0.6)">panic: ${(state.panicLevel * 100).toFixed(0)}%</span><br>
                     bubbles: ${state.visibleBubbles || 0}/5<br>
-                    <span style="color: hsla(0, 60%, 60%, 0.5)">v10.2: provocation bubbles</span>
+                    <span style="color: hsla(280, 60%, 60%, 0.5)">v11: strangeness</span>
                 `;
             }
         }
@@ -725,6 +752,10 @@
         // === EVENTS ===
         window.addEventListener('resize', resize);
 
+        // v11 M2: Mouse velocity tracking for panic detection
+        let lastMouseX = 0, lastMouseY = 0, lastMouseTime = Date.now();
+        const PANIC_THRESHOLD = 800; // pixels per second
+
         document.addEventListener('mousemove', (e) => {
             targetMouseX = e.clientX;
             targetMouseY = e.clientY;
@@ -734,9 +765,138 @@
             state.lastMouseMove = Date.now();
             state.mouseMoveCount++;
 
+            // v11 M2: Calculate velocity
+            const now = Date.now();
+            const dt = (now - lastMouseTime) / 1000;
+            if (dt > 0.01) { // Avoid division by tiny dt
+                const dx = e.clientX - lastMouseX;
+                const dy = e.clientY - lastMouseY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                state.mouseVelocity = distance / dt;
+
+                // Panic builds up with fast movements
+                if (state.mouseVelocity > PANIC_THRESHOLD) {
+                    state.panicLevel = Math.min(1, state.panicLevel + 0.05);
+                    applyPanicEffects();
+                } else {
+                    // Panic slowly decays
+                    state.panicLevel = Math.max(0, state.panicLevel - 0.01);
+                }
+
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+                lastMouseTime = now;
+            }
+
             // M4: Bubble proximity reaction
             updateBubbleProximity(e.clientX, e.clientY);
         });
+
+        // v11 M2: Panic visual effects
+        function applyPanicEffects() {
+            if (state.panicLevel > 0.3) {
+                // Room "notices" panic
+                textEl.textContent = '...чувствуем...';
+                setTimeout(() => applyDepthEffects(), 1200);
+
+                // Intensify tremor
+                document.querySelector('.content').style.animation =
+                    `contentTremor ${1.5 / state.panicLevel}s ease-in-out infinite`;
+
+                console.log(`[KLYAP] Паника: ${(state.panicLevel * 100).toFixed(0)}%`);
+            }
+            if (state.panicLevel > 0.7) {
+                // High panic - room reacts strongly
+                textEl.textContent = '...сладко...';
+                vignette.style.background = `radial-gradient(ellipse 42% 42% at 50% 50%,
+                    transparent 5%,
+                    hsla(350, 45%, 8%, 0.5) 30%,
+                    hsla(340, 50%, 4%, 0.85) 50%,
+                    hsl(330, 55%, 2%) 70%)`;
+            }
+        }
+
+        // v11 M3: Dissolving phase effects — границы размываются
+        function applyDissolvingEffects() {
+            // Text becomes minimal
+            textEl.textContent = '...';
+            textEl.style.opacity = '0.4';
+            textEl.style.filter = 'blur(2px)';
+
+            // Vignette expands outward (release)
+            vignette.style.transform = 'scale(1.5)';
+            vignette.style.opacity = '0.5';
+
+            // Body gets a blur effect — boundaries dissolving
+            document.body.style.filter = 'blur(1px)';
+            document.body.style.transition = 'filter 5s ease-out';
+
+            console.log('[KLYAP] Dissolving: границы размываются');
+        }
+
+        // v11 M4: beforeunload — попытка сбежать
+        window.addEventListener('beforeunload', (e) => {
+            // Only trigger if user has "swallowed" enough
+            if (state.depth > 30) {
+                console.log('[KLYAP] Попытка побега при depth:', state.depth);
+                e.preventDefault();
+                e.returnValue = ''; // Shows browser's default "leave page?" dialog
+            }
+        });
+
+        // v11 M1: Scroll = swallowing (НЕОБРАТИМОЕ глотание)
+        document.addEventListener('wheel', (e) => {
+            if (state.phase === 'entry') return; // Not yet
+
+            const delta = e.deltaY;
+
+            if (delta > 0) {
+                // Scroll DOWN = swallow deeper (increases depth)
+                state.depth = Math.min(100, state.depth + delta * 0.05);
+                state.maxDepth = Math.max(state.maxDepth, state.depth);
+
+                // Visual feedback
+                applyDepthEffects();
+                console.log(`[KLYAP] Глотаешь... depth: ${state.depth.toFixed(1)}`);
+            } else {
+                // Scroll UP = trying to regurgitate (REFUSED)
+                // Depth stays the same, but room reacts
+                if (state.depth > 10) {
+                    textEl.textContent = 'поздно';
+                    setTimeout(() => applyDepthEffects(), 800);
+                    console.log(`[KLYAP] Пытаешься срыгнуть... нет.`);
+                }
+            }
+        }, { passive: true });
+
+        // v11: Apply visual effects based on depth
+        function applyDepthEffects() {
+            // 1. Text changes based on depth
+            let depthText = DEPTH_TEXTS[0].text;
+            for (const entry of DEPTH_TEXTS) {
+                if (state.depth >= entry.depth) depthText = entry.text;
+            }
+            textEl.textContent = depthText;
+
+            // 2. Vignette contracts based on depth
+            const contractScale = 1 - (state.depth / 100) * 0.4; // 1.0 -> 0.6
+            vignette.style.transform = `scale(${contractScale})`;
+
+            // 3. Blob size increases
+            for (const blob of blobs) {
+                blob.baseRadius = (150 + Math.random() * 250) * (1 + state.depth / 200);
+            }
+
+            // 4. Phase progression based on depth
+            if (state.depth >= 30 && state.phase === 'swelling') {
+                state.phase = 'accepting';
+                console.log('[KLYAP] Phase: accepting');
+            }
+            if (state.depth >= 70 && state.phase === 'accepting') {
+                state.phase = 'dissolving';
+                console.log('[KLYAP] Phase: dissolving');
+            }
+        }
 
         document.addEventListener('touchstart', (e) => {
             state.lastMouseMove = Date.now();

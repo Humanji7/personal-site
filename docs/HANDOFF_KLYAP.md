@@ -2,7 +2,7 @@
 
 ## Статус
 
-**v10.3 — Living Bubbles** → [prototypes/klyap-v10/index.html](file:///Users/admin/projects/personal-site/prototypes/klyap-v10/index.html)
+**v11 — Strangeness** → [prototypes/klyap-v10/index.html](file:///Users/admin/projects/personal-site/prototypes/klyap-v10/index.html)
 
 ---
 
@@ -14,9 +14,11 @@
 | Виньетка + tremor | ✅ пульсирующее давление |
 | Текст «распирает» | ✅ 12 языков, glitch-эффект |
 | Font glitch | ✅ 8 шрифтов, рваные переходы |
-| Chromatic aberration | ✅ RGB split |
-| Scanlines | ✅ overlay |
-| **Living Bubbles** | ✅ 5 провокаций |
+| Living Bubbles | ✅ 5 провокаций |
+| **Scroll = глотание** | ✅ **v11 NEW** |
+| **Panic detection** | ✅ **v11 NEW** |
+| **Фазовый сценарий** | ✅ **v11 NEW** |
+| **beforeunload** | ✅ **v11 NEW** |
 
 ### Living Bubbles (v10.3)
 
