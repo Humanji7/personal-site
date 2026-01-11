@@ -1309,11 +1309,12 @@
         }
 
         // v11 M3: Dissolving phase effects — границы размываются
+        // v13.3: Text is now managed by TEXT_FLOW, not here
         function applyDissolvingEffects() {
-            // Text becomes minimal
-            textEl.textContent = '...';
-            textEl.style.opacity = '0.4';
-            textEl.style.filter = 'blur(2px)';
+            // Visual effects only — TEXT_FLOW handles text content
+            // textEl.textContent = '...';  // REMOVED: conflicts with TEXT_FLOW (depth 72, 78)
+            textEl.style.opacity = '0.6';   // Slight dimming, but still readable
+            textEl.style.filter = 'blur(1px)';  // Subtle blur
 
             // Vignette expands outward (release)
             vignette.style.transform = 'scale(1.5)';
