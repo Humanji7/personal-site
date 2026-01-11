@@ -317,27 +317,54 @@
             pointer-events: none;
         }
 
+        /* v10.3: LIVING BUBBLES — organic blob form */
         .provocation-bubble {
             background: hsla(290, 30%, 12%, 0.85);
             border: 1px solid hsla(295, 40%, 25%, 0.4);
-            border-radius: 20px 20px 20px 4px;
-            padding: 12px 18px;
+            /* M1: Organic blob shape */
+            border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+            padding: 14px 20px;
             color: hsla(290, 35%, 70%, 0.95);
             font-family: 'Times New Roman', serif;
             font-size: clamp(1rem, 2.5vw, 1.4rem);
             font-weight: 400;
             letter-spacing: 0.05em;
-            max-width: 200px;
+            max-width: 220px;
             opacity: 0;
             transform: translateX(-40px) scale(0.9);
-            transition: opacity 2s ease-out, transform 2s ease-out;
+            transition: opacity 2s ease-out, transform 0.3s ease-out;
             pointer-events: none;
             cursor: pointer;
+            /* M3: Bio-luminescence glow */
             box-shadow:
-                0 0 30px hsla(290, 40%, 15%, 0.5),
-                inset 0 0 20px hsla(295, 30%, 10%, 0.3);
-            animation: bubblePulse 4s ease-in-out infinite;
+                0 0 25px hsla(290, 50%, 25%, 0.4),
+                0 0 50px hsla(295, 45%, 18%, 0.25),
+                inset 0 0 18px hsla(300, 40%, 30%, 0.25);
+            /* M1+M2: Blob morph + breathing */
+            animation: blobMorph 8s ease-in-out infinite, bubbleBreath 4s ease-in-out infinite;
             animation-play-state: paused;
+            will-change: transform, border-radius;
+        }
+
+        /* M2: Async breathing — per-bubble delay via nth-child */
+        .provocation-bubble:nth-child(1) {
+            animation-delay: 0s, 0s;
+        }
+
+        .provocation-bubble:nth-child(2) {
+            animation-delay: 1.6s, 0.8s;
+        }
+
+        .provocation-bubble:nth-child(3) {
+            animation-delay: 3.2s, 1.6s;
+        }
+
+        .provocation-bubble:nth-child(4) {
+            animation-delay: 4.8s, 2.4s;
+        }
+
+        .provocation-bubble:nth-child(5) {
+            animation-delay: 6.4s, 3.2s;
         }
 
         .provocation-bubble.visible {
@@ -347,31 +374,69 @@
             animation-play-state: running;
         }
 
+        /* M5: Whisper hint element */
+        .provocation-bubble .whisper {
+            display: block;
+            font-size: 0.7em;
+            color: hsla(300, 40%, 55%, 0);
+            margin-top: 6px;
+            font-style: italic;
+            transition: color 0.8s ease-out;
+        }
+
+        .provocation-bubble.whisper-visible .whisper {
+            color: hsla(300, 40%, 55%, 0.8);
+        }
+
         .provocation-bubble:hover {
             background: hsla(295, 35%, 18%, 0.9);
             border-color: hsla(300, 45%, 35%, 0.6);
             color: hsla(290, 30%, 75%, 1);
-            transform: translateX(5px) scale(1.02);
             box-shadow:
-                0 0 50px hsla(295, 50%, 25%, 0.6),
-                inset 0 0 25px hsla(300, 35%, 15%, 0.4);
+                0 0 40px hsla(295, 55%, 30%, 0.5),
+                0 0 70px hsla(300, 50%, 22%, 0.35),
+                inset 0 0 25px hsla(305, 45%, 35%, 0.3);
         }
 
-        @keyframes bubblePulse {
+        /* M1: Blob morphing animation */
+        @keyframes blobMorph {
+
+            0%,
+            100% {
+                border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+            }
+
+            25% {
+                border-radius: 58% 42% 55% 45% / 55% 60% 40% 45%;
+            }
+
+            50% {
+                border-radius: 50% 50% 45% 55% / 40% 50% 50% 60%;
+            }
+
+            75% {
+                border-radius: 45% 55% 60% 40% / 50% 45% 55% 50%;
+            }
+        }
+
+        /* M2: Breathing animation */
+        @keyframes bubbleBreath {
 
             0%,
             100% {
                 transform: translateX(0) scale(1);
                 box-shadow:
-                    0 0 30px hsla(290, 40%, 15%, 0.5),
-                    inset 0 0 20px hsla(295, 30%, 10%, 0.3);
+                    0 0 25px hsla(290, 50%, 25%, 0.4),
+                    0 0 50px hsla(295, 45%, 18%, 0.25),
+                    inset 0 0 18px hsla(300, 40%, 30%, 0.25);
             }
 
             50% {
-                transform: translateX(2px) scale(1.01);
+                transform: translateX(3px) scale(1.02);
                 box-shadow:
-                    0 0 40px hsla(295, 45%, 20%, 0.6),
-                    inset 0 0 25px hsla(300, 35%, 12%, 0.4);
+                    0 0 35px hsla(295, 55%, 28%, 0.5),
+                    0 0 65px hsla(300, 50%, 22%, 0.35),
+                    inset 0 0 22px hsla(305, 45%, 35%, 0.3);
             }
         }
     </style>
@@ -392,13 +457,18 @@
     <div class="exit-portal" id="exit-portal"></div>
     <div class="cursor-glow" id="cursor-glow"></div>
 
-    <!-- v10.2: Provocation bubbles -->
+    <!-- v10.3: Living provocation bubbles -->
     <div class="bubble-container" id="bubble-container">
-        <div class="provocation-bubble" data-bubble="0">мягко внутри</div>
-        <div class="provocation-bubble" data-bubble="1">не сжимайся</div>
-        <div class="provocation-bubble" data-bubble="2">ты не первый здесь</div>
-        <div class="provocation-bubble" data-bubble="3">ничего не нужно делать</div>
-        <div class="provocation-bubble" data-bubble="4">выдохни. я впитаю</div>
+        <div class="provocation-bubble" data-bubble="0" data-whisper="...расскажу...">мягко внутри<span
+                class="whisper"></span></div>
+        <div class="provocation-bubble" data-bubble="1" data-whisper="...не бойся...">не сжимайся<span
+                class="whisper"></span></div>
+        <div class="provocation-bubble" data-bubble="2" data-whisper="...помню всех...">ты не первый здесь<span
+                class="whisper"></span></div>
+        <div class="provocation-bubble" data-bubble="3" data-whisper="...просто будь...">ничего не нужно делать<span
+                class="whisper"></span></div>
+        <div class="provocation-bubble" data-bubble="4" data-whisper="...всё заберу...">выдохни. я впитаю<span
+                class="whisper"></span></div>
     </div>
 
     <div id="debug"></div>
@@ -663,6 +733,9 @@
             cursorGlow.style.opacity = '1';
             state.lastMouseMove = Date.now();
             state.mouseMoveCount++;
+
+            // M4: Bubble proximity reaction
+            updateBubbleProximity(e.clientX, e.clientY);
         });
 
         document.addEventListener('touchstart', (e) => {
@@ -681,39 +754,131 @@
             cursorGlow.style.opacity = '0';
         });
 
-        // === v10.2: PROVOCATION BUBBLES ===
-        const bubbles = document.querySelectorAll('.provocation-bubble');
+        // === v10.3: LIVING PROVOCATION BUBBLES ===
+        const provocationBubbles = document.querySelectorAll('.provocation-bubble');
+
         const BUBBLE_CONFIG = {
-            FIRST_BUBBLE_DELAY: 3,     // seconds of idle before first bubble
-            BUBBLE_INTERVAL: 4,        // seconds between each bubble
+            // M6: First-movement trigger
+            IDLE_THRESHOLD_FOR_TRIGGER: 5,  // seconds before movement triggers bubble
+            MIN_BUBBLES_SHOWN: 0,
+            MAX_BUBBLES: 5,
+            // M4: Proximity
+            PROXIMITY_RADIUS: 150,
+            PROXIMITY_PULL: 0.1,
+            // M5: Whisper
+            WHISPER_DELAY: 1500  // ms
         };
 
-        function updateBubbles(idleDuration) {
-            let visibleCount = 0;
+        // State for living bubbles
+        const bubbleState = {
+            shownCount: 0,
+            wasIdle: false,
+            prevMoveCount: 0,
+            hoverTimers: new Map(),
+            proximityActive: true
+        };
 
-            bubbles.forEach((bubble, index) => {
-                const threshold = BUBBLE_CONFIG.FIRST_BUBBLE_DELAY + (index * BUBBLE_CONFIG.BUBBLE_INTERVAL);
+        // M4: Proximity reaction — bubbles "feel" cursor
+        function updateBubbleProximity(mx, my) {
+            if (!bubbleState.proximityActive) return;
 
-                if (idleDuration >= threshold) {
-                    bubble.classList.add('visible');
-                    visibleCount++;
+            provocationBubbles.forEach(bubble => {
+                if (!bubble.classList.contains('visible')) return;
+
+                const rect = bubble.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                const dx = mx - cx;
+                const dy = my - cy;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < BUBBLE_CONFIG.PROXIMITY_RADIUS) {
+                    const pull = (1 - dist / BUBBLE_CONFIG.PROXIMITY_RADIUS) * BUBBLE_CONFIG.PROXIMITY_PULL;
+                    // Bubble is "attracted" to cursor
+                    bubble.style.transform = `translateX(${dx * pull}px) translateY(${dy * pull}px) scale(1.02)`;
                 } else {
-                    bubble.classList.remove('visible');
+                    bubble.style.transform = '';  // Reset to CSS animation
                 }
             });
+        }
 
-            state.visibleBubbles = visibleCount;
+        // M5: Whisper preview on long hover
+        function setupWhisperPreview(bubble) {
+            const whisperEl = bubble.querySelector('.whisper');
+            const whisperText = bubble.dataset.whisper;
+
+            if (!whisperEl || !whisperText) return;
+
+            bubble.addEventListener('mouseenter', () => {
+                const timer = setTimeout(() => {
+                    whisperEl.textContent = whisperText;
+                    bubble.classList.add('whisper-visible');
+                }, BUBBLE_CONFIG.WHISPER_DELAY);
+                bubbleState.hoverTimers.set(bubble, timer);
+            });
+
+            bubble.addEventListener('mouseleave', () => {
+                const timer = bubbleState.hoverTimers.get(bubble);
+                if (timer) clearTimeout(timer);
+                bubble.classList.remove('whisper-visible');
+                whisperEl.textContent = '';
+            });
+        }
+
+        // M6: First-movement trigger + progressive reveal
+        function updateBubbleTriggers(idleDuration) {
+            const isIdle = idleDuration >= BUBBLE_CONFIG.IDLE_THRESHOLD_FOR_TRIGGER;
+
+            // Mark as "was idle" when user stops moving
+            if (isIdle) {
+                bubbleState.wasIdle = true;
+            }
+
+            // First movement after idle → show next bubble
+            if (bubbleState.wasIdle && state.mouseMoveCount > bubbleState.prevMoveCount) {
+                showNextBubble();
+                bubbleState.wasIdle = false;  // Reset
+            }
+
+            bubbleState.prevMoveCount = state.mouseMoveCount;
+
+            // Also show bubbles on general idle (fallback, slower)
+            // This ensures deeply passive users still see content
+            const idleBasedCount = Math.floor(idleDuration / 8);  // Every 8 sec of idle
+            while (bubbleState.shownCount < idleBasedCount && bubbleState.shownCount < BUBBLE_CONFIG.MAX_BUBBLES) {
+                showNextBubble();
+            }
+
+            state.visibleBubbles = bubbleState.shownCount;
+        }
+
+        function showNextBubble() {
+            if (bubbleState.shownCount >= BUBBLE_CONFIG.MAX_BUBBLES) return;
+
+            const bubble = provocationBubbles[bubbleState.shownCount];
+            if (bubble) {
+                bubble.classList.add('visible');
+                bubbleState.shownCount++;
+                console.log(`[KLYAP] Bubble ${bubbleState.shownCount} awakened`);
+            }
+        }
+
+        // Hook into main update loop
+        function updateBubbles(idleDuration) {
+            updateBubbleTriggers(idleDuration);
         }
 
         // Bubble click handlers
-        bubbles.forEach((bubble, index) => {
+        provocationBubbles.forEach((bubble, index) => {
+            // M5: Setup whisper preview
+            setupWhisperPreview(bubble);
+
             bubble.addEventListener('click', () => {
-                const text = bubble.textContent;
+                const text = bubble.childNodes[0].textContent;  // Get text without whisper
                 console.log(`[KLYAP] Bubble clicked: "${text}" (index: ${index})`);
 
                 // TODO: LLM integration point
-                // For now, visual feedback
-                bubble.style.transform = 'translateX(10px) scale(1.05)';
+                bubble.style.transform = 'translateX(10px) scale(1.08)';
                 bubble.style.background = 'hsla(300, 40%, 25%, 0.9)';
 
                 setTimeout(() => {
