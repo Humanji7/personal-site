@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KLYAP v14 — Doomscroll Prototype</title>
+    <title>KLYAP v14 — Doomscroll Trap</title>
     <style>
         * {
             margin: 0;
@@ -17,31 +17,124 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background: #000;
+            background: hsl(280, 35%, 2%);
             cursor: none;
         }
 
-        /* Custom cursor */
-        .cursor {
+        /* ====== ATMOSPHERIC LAYERS ====== */
+
+        /* Breathing Vignette */
+        #vignette {
             position: fixed;
-            width: 20px;
-            height: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
+            inset: -40%;
             pointer-events: none;
-            z-index: 9999;
-            transform: translate(-50%, -50%);
-            transition: transform 0.1s ease, opacity 0.3s;
+            z-index: 100;
+            background: radial-gradient(ellipse 50% 50% at 50% 50%,
+                    transparent 10%,
+                    hsla(280, 45%, 3%, 0.5) 35%,
+                    hsla(280, 50%, 2%, 0.85) 55%,
+                    hsl(280, 55%, 1%) 75%);
+            animation: vignetteBreathe 6s ease-in-out infinite;
+            transition: transform 2s ease-out;
         }
 
-        /* Container for fragments */
+        @keyframes vignetteBreathe {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.9;
+            }
+
+            50% {
+                transform: scale(0.85);
+                opacity: 1;
+            }
+        }
+
+        #vignette.intense {
+            transform: scale(0.7) !important;
+        }
+
+        /* Scanlines */
+        #scanlines {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 101;
+            background: repeating-linear-gradient(0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 0, 0, 0.04) 2px,
+                    rgba(0, 0, 0, 0.04) 4px);
+            animation: scanlineFlicker 0.15s infinite;
+        }
+
+        @keyframes scanlineFlicker {
+
+            0%,
+            100% {
+                opacity: 0.35;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* Noise overlay */
+        #noise {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 102;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            mix-blend-mode: overlay;
+            animation: noisePulse 3s ease-in-out infinite;
+        }
+
+        @keyframes noisePulse {
+
+            0%,
+            100% {
+                opacity: 0.04;
+            }
+
+            50% {
+                opacity: 0.1;
+            }
+        }
+
+        /* ====== CURSOR ====== */
+        .cursor-glow {
+            position: fixed;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 200;
+            background: radial-gradient(circle,
+                    hsla(290, 50%, 40%, 0.15) 0%,
+                    hsla(285, 45%, 25%, 0.08) 40%,
+                    transparent 70%);
+            transform: translate(-50%, -50%);
+            mix-blend-mode: screen;
+            transition: width 0.3s, height 0.3s;
+        }
+
+        .cursor-glow.active {
+            width: 150px;
+            height: 150px;
+        }
+
+        /* ====== FRAGMENT STREAM ====== */
         #stream {
             position: fixed;
             inset: 0;
             overflow: hidden;
+            z-index: 10;
         }
 
-        /* Individual fragment */
         .fragment {
             position: absolute;
             left: 50%;
@@ -51,12 +144,12 @@
             filter: blur(20px);
             pointer-events: none;
             will-change: transform, opacity, filter;
-            animation: fragment-emerge 4s ease-out forwards;
+            animation: fragment-emerge var(--anim-duration, 5s) ease-out forwards;
         }
 
         .fragment img {
-            max-width: 400px;
-            max-height: 400px;
+            max-width: 450px;
+            max-height: 450px;
             object-fit: contain;
         }
 
@@ -67,12 +160,12 @@
                 filter: blur(20px);
             }
 
-            20% {
-                opacity: 0.8;
-                filter: blur(5px);
+            15% {
+                opacity: 0.85;
+                filter: blur(6px);
             }
 
-            40% {
+            35% {
                 transform: translate(-50%, -50%) scale(1);
                 opacity: 1;
                 filter: blur(0);
@@ -81,156 +174,238 @@
             100% {
                 transform: translate(var(--drift-x), var(--drift-y)) scale(1.1);
                 opacity: 0;
-                filter: blur(10px);
+                filter: blur(12px);
             }
         }
 
-        /* Vignette overlay */
-        #vignette {
+        /* ====== META MESSAGES ====== */
+        .meta-message {
             position: fixed;
-            inset: 0;
-            background: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.8) 100%);
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            color: hsla(290, 30%, 50%, 0);
+            font-family: 'Courier New', monospace;
+            font-size: clamp(0.8rem, 2vw, 1.2rem);
+            letter-spacing: 0.3em;
+            text-transform: lowercase;
             pointer-events: none;
-            z-index: 100;
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.5s ease-out, color 0.5s ease-out;
         }
 
-        /* Noise overlay */
-        #noise {
-            position: fixed;
-            inset: 0;
-            opacity: 0.05;
-            pointer-events: none;
-            z-index: 101;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        .meta-message.visible {
+            opacity: 1;
+            color: hsla(290, 30%, 50%, 0.6);
         }
 
-        /* Debug info */
+        /* ====== TREMOR (activated later) ====== */
+        @keyframes contentTremor {
+
+            0%,
+            86%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            88% {
+                transform: translate(-2px, 1px);
+            }
+
+            90% {
+                transform: translate(2px, -1px);
+            }
+
+            92% {
+                transform: translate(-1px, -1px);
+            }
+
+            94% {
+                transform: translate(0, 0);
+            }
+        }
+
+        #stream.tremor {
+            animation: contentTremor 2.5s ease-in-out infinite;
+        }
+
+        /* ====== DEBUG ====== */
         #debug {
             position: fixed;
             bottom: 20px;
             left: 20px;
-            color: rgba(255, 255, 255, 0.3);
+            color: hsla(290, 50%, 60%, 0.4);
             font-family: monospace;
-            font-size: 12px;
-            z-index: 200;
+            font-size: 11px;
+            z-index: 300;
+            line-height: 1.5;
         }
     </style>
 </head>
 
 <body>
-    <div class="cursor" id="cursor"></div>
-    <div id="stream"></div>
     <div id="vignette"></div>
+    <div id="scanlines"></div>
     <div id="noise"></div>
-    <div id="debug">
-        <div>fragments: <span id="count">0</span></div>
-        <div>speed: <span id="speed">1.0</span>x</div>
-        <div>scroll: <span id="scroll">0</span></div>
-    </div>
+    <div class="cursor-glow" id="cursor"></div>
+    <div id="stream"></div>
+    <div class="meta-message" id="meta"></div>
+    <div id="debug"></div>
 
     <script>
-        // Configuration
+        // ====== CONFIGURATION ======
         const CONFIG = {
             fragmentCount: 23,
-            baseInterval: 2000,    // ms between fragments (baseline)
-            minInterval: 300,      // ms minimum (max speed)
-            scrollAcceleration: 0.5,
-            fragmentLifetime: 4000, // ms before fragment fades
-            maxActiveFragments: 15
+            maxActiveFragments: 12,
+            
+            // DENSITY CURVE phases
+            phases: {
+                sparse: { maxDepth: 20, interval: 3500, variance: 1000 },    // "naживка"
+                hook: { maxDepth: 50, interval: 1500, variance: 500 },       // "втягивает"
+                overwhelm: { maxDepth: 100, interval: 600, variance: 200 }   // "перегрузка"
+            },
+            
+            // BURST mechanics
+            burstChance: 0.08,        // 8% chance of burst
+            burstCount: [4, 6],       // 4-6 fragments at once
+            
+            // VOID mechanics
+            voidChance: 0.06,         // 6% chance of void
+            voidDuration: [4000, 7000], // 4-7 sec of nothing
+            
+            // EXHAUSTION mechanics
+            exhaustionThreshold: 800,  // scroll delta to trigger exhaustion
+            exhaustionPenalty: 2.5,    // multiplier for interval when exhausted
+            exhaustionDecay: 0.99,     // slow decay of exhaustion
+            
+            // META messages
+            metaMessages: [
+                { depth: 30, text: "ты всё ещё здесь" },
+                { depth: 45, text: "сколько времени прошло?" },
+                { depth: 60, text: "они хотят именно этого" },
+                { depth: 75, text: "можешь остановиться. в теории." },
+                { depth: 90, text: "уже поздно" }
+            ]
         };
 
-        // State
+        // ====== STATE ======
         const state = {
             fragmentsSpawned: 0,
             activeFragments: 0,
+            depth: 0,               // progression 0-100
             scrollDelta: 0,
-            speedMultiplier: 1,
-            lastScrollTime: 0
+            exhaustionLevel: 0,     // never fully resets
+            lastScrollTime: 0,
+            isVoid: false,          // in void phase?
+            lastMetaIndex: -1,
+            startTime: Date.now()
         };
 
-        // Preload fragment paths
+        // ====== PRELOAD FRAGMENTS ======
         const fragmentPaths = [];
         for (let i = 1; i <= CONFIG.fragmentCount; i++) {
             fragmentPaths.push(`/assets/klyap-v14/fragments/fragment-${String(i).padStart(3, '0')}.png`);
         }
+        // Preload
+        fragmentPaths.forEach(path => { new Image().src = path; });
 
-        // DOM elements
+        // ====== DOM ======
         const stream = document.getElementById('stream');
         const cursor = document.getElementById('cursor');
-        const countEl = document.getElementById('count');
-        const speedEl = document.getElementById('speed');
-        const scrollEl = document.getElementById('scroll');
+        const vignette = document.getElementById('vignette');
+        const metaEl = document.getElementById('meta');
+        const debugEl = document.getElementById('debug');
 
-        // Custom cursor
+        // ====== CURSOR ======
+        let mouseX = 0, mouseY = 0;
         document.addEventListener('mousemove', (e) => {
-            cursor.style.left = e.clientX + 'px';
-            cursor.style.top = e.clientY + 'px';
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursor.style.left = mouseX + 'px';
+            cursor.style.top = mouseY + 'px';
         });
 
-        // Scroll detection (wheel as accelerator)
+        // ====== SCROLL DETECTION ======
         document.addEventListener('wheel', (e) => {
             e.preventDefault();
-            state.scrollDelta += Math.abs(e.deltaY);
+            const delta = Math.abs(e.deltaY);
+            state.scrollDelta += delta;
             state.lastScrollTime = Date.now();
-            scrollEl.textContent = Math.round(state.scrollDelta);
+            
+            // Accumulate exhaustion (never fully resets)
+            if (state.scrollDelta > CONFIG.exhaustionThreshold) {
+                state.exhaustionLevel = Math.min(1, state.exhaustionLevel + 0.05);
+            }
+            
+            cursor.classList.add('active');
+            setTimeout(() => cursor.classList.remove('active'), 200);
         }, { passive: false });
 
-        // Calculate current spawn interval
-        function getCurrentInterval() {
-            const scrollBoost = Math.min(state.scrollDelta / 500, 3);
-            state.speedMultiplier = 1 + scrollBoost * CONFIG.scrollAcceleration;
-
-            // Decay scroll delta over time
-            const timeSinceScroll = Date.now() - state.lastScrollTime;
-            if (timeSinceScroll > 100) {
-                state.scrollDelta *= 0.95;
-            }
-
-            const interval = CONFIG.baseInterval / state.speedMultiplier;
-            speedEl.textContent = state.speedMultiplier.toFixed(1);
-
-            return Math.max(interval, CONFIG.minInterval);
+        // ====== GET CURRENT PHASE ======
+        function getCurrentPhase() {
+            if (state.depth < CONFIG.phases.sparse.maxDepth) return CONFIG.phases.sparse;
+            if (state.depth < CONFIG.phases.hook.maxDepth) return CONFIG.phases.hook;
+            return CONFIG.phases.overwhelm;
         }
 
-        // Spawn a fragment
-        function spawnFragment() {
-            if (state.activeFragments >= CONFIG.maxActiveFragments) {
-                scheduleNextFragment();
-                return;
+        // ====== CALCULATE SPAWN INTERVAL ======
+        function getSpawnInterval() {
+            const phase = getCurrentPhase();
+            let interval = phase.interval + (Math.random() - 0.5) * phase.variance;
+            
+            // Scroll boost (capped)
+            const scrollBoost = Math.min(state.scrollDelta / 300, 2);
+            interval /= (1 + scrollBoost * 0.5);
+            
+            // Exhaustion penalty
+            if (state.exhaustionLevel > 0.3) {
+                interval *= (1 + state.exhaustionLevel * CONFIG.exhaustionPenalty);
             }
+            
+            // Decay scroll delta
+            const timeSinceScroll = Date.now() - state.lastScrollTime;
+            if (timeSinceScroll > 100) {
+                state.scrollDelta *= 0.92;
+            }
+            
+            // Slow decay of exhaustion (almost permanent)
+            state.exhaustionLevel *= CONFIG.exhaustionDecay;
+            
+            return Math.max(interval, 300);
+        }
+
+        // ====== SPAWN FRAGMENT ======
+        function spawnFragment() {
+            if (state.activeFragments >= CONFIG.maxActiveFragments) return;
 
             const fragment = document.createElement('div');
             fragment.className = 'fragment';
 
-            // Random drift direction
+            // Random drift
             const angle = Math.random() * Math.PI * 2;
-            const distance = 200 + Math.random() * 300;
-            const driftX = Math.cos(angle) * distance + 'px';
-            const driftY = Math.sin(angle) * distance + 'px';
+            const distance = 180 + Math.random() * 280;
+            fragment.style.setProperty('--drift-x', Math.cos(angle) * distance + 'px');
+            fragment.style.setProperty('--drift-y', Math.sin(angle) * distance + 'px');
 
-            fragment.style.setProperty('--drift-x', driftX);
-            fragment.style.setProperty('--drift-y', driftY);
-
-            // Random position offset from center
-            const offsetX = (Math.random() - 0.5) * 200;
-            const offsetY = (Math.random() - 0.5) * 200;
+            // Position offset
+            const offsetX = (Math.random() - 0.5) * 180;
+            const offsetY = (Math.random() - 0.5) * 180;
             fragment.style.left = `calc(50% + ${offsetX}px)`;
             fragment.style.top = `calc(50% + ${offsetY}px)`;
-
-            // Random rotation
-            fragment.style.rotate = (Math.random() * 30 - 15) + 'deg';
-
-            // Random z-index for layering
+            fragment.style.rotate = (Math.random() * 24 - 12) + 'deg';
             fragment.style.zIndex = Math.floor(Math.random() * 50);
 
-            // Create image
-            const img = document.createElement('img');
-            const randomIndex = Math.floor(Math.random() * fragmentPaths.length);
-            img.src = fragmentPaths[randomIndex];
-            img.alt = '';
+            // Animation duration varies by phase
+            const phase = getCurrentPhase();
+            const animDuration = phase === CONFIG.phases.overwhelm ? 3.5 : 5;
+            fragment.style.setProperty('--anim-duration', animDuration + 's');
 
-            // Random size variation
-            const scale = 0.5 + Math.random() * 0.8;
+            // Image
+            const img = document.createElement('img');
+            img.src = fragmentPaths[Math.floor(Math.random() * fragmentPaths.length)];
+            img.alt = '';
+            const scale = 0.4 + Math.random() * 0.7;
             img.style.transform = `scale(${scale})`;
 
             fragment.appendChild(img);
@@ -238,36 +413,101 @@
 
             state.activeFragments++;
             state.fragmentsSpawned++;
-            countEl.textContent = state.fragmentsSpawned;
+            
+            // Update depth (progress toward 100)
+            state.depth = Math.min(100, state.fragmentsSpawned * 1.5);
 
-            // Remove after animation completes
+            // Remove after animation
             setTimeout(() => {
                 fragment.remove();
                 state.activeFragments--;
-            }, CONFIG.fragmentLifetime);
-
-            scheduleNextFragment();
+            }, animDuration * 1000);
         }
 
-        // Schedule next fragment spawn
-        function scheduleNextFragment() {
-            const interval = getCurrentInterval();
-            setTimeout(spawnFragment, interval);
+        // ====== CHECK META MESSAGES ======
+        function checkMeta() {
+            for (let i = CONFIG.metaMessages.length - 1; i >= 0; i--) {
+                const msg = CONFIG.metaMessages[i];
+                if (state.depth >= msg.depth && state.lastMetaIndex < i) {
+                    state.lastMetaIndex = i;
+                    showMeta(msg.text);
+                    break;
+                }
+            }
+            
+            // Activate tremor after depth 50
+            if (state.depth >= 50) {
+                stream.classList.add('tremor');
+            }
+            
+            // Intense vignette after depth 60
+            if (state.depth >= 60) {
+                vignette.classList.add('intense');
+            }
         }
 
-        // Start the stream
-        function init() {
-            // Preload images
-            fragmentPaths.forEach(path => {
-                const img = new Image();
-                img.src = path;
-            });
-
-            // Begin spawning
-            setTimeout(spawnFragment, 500);
+        function showMeta(text) {
+            metaEl.textContent = text;
+            metaEl.classList.add('visible');
+            setTimeout(() => {
+                metaEl.classList.remove('visible');
+            }, 2500);
         }
 
-        init();
+        // ====== MAIN LOOP ======
+        function scheduleNext() {
+            // VOID check
+            if (!state.isVoid && Math.random() < CONFIG.voidChance && state.depth > 20) {
+                state.isVoid = true;
+                const voidTime = CONFIG.voidDuration[0] + 
+                    Math.random() * (CONFIG.voidDuration[1] - CONFIG.voidDuration[0]);
+                setTimeout(() => {
+                    state.isVoid = false;
+                    tick();
+                }, voidTime);
+                return;
+            }
+
+            // BURST check
+            if (Math.random() < CONFIG.burstChance && state.depth > 15) {
+                const count = CONFIG.burstCount[0] + 
+                    Math.floor(Math.random() * (CONFIG.burstCount[1] - CONFIG.burstCount[0] + 1));
+                for (let i = 0; i < count; i++) {
+                    setTimeout(() => spawnFragment(), i * 80);
+                }
+                setTimeout(tick, getSpawnInterval() * 1.5);
+                return;
+            }
+
+            // Normal spawn
+            setTimeout(tick, getSpawnInterval());
+        }
+
+        function tick() {
+            if (!state.isVoid) {
+                spawnFragment();
+                checkMeta();
+            }
+            updateDebug();
+            scheduleNext();
+        }
+
+        // ====== DEBUG ======
+        function updateDebug() {
+            const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+            const phase = getCurrentPhase();
+            const phaseName = phase === CONFIG.phases.sparse ? 'SPARSE' : 
+                             phase === CONFIG.phases.hook ? 'HOOK' : 'OVERWHELM';
+            
+            debugEl.innerHTML = `
+                frags: ${state.fragmentsSpawned} | depth: ${state.depth.toFixed(0)}<br>
+                phase: ${phaseName} | exhaust: ${(state.exhaustionLevel * 100).toFixed(0)}%<br>
+                time: ${elapsed}s ${state.isVoid ? '| VOID' : ''}
+            `;
+        }
+
+        // ====== INIT ======
+        setTimeout(tick, 800);
     </script>
 </body>
 
