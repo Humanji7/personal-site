@@ -144,13 +144,49 @@
             filter: blur(20px);
             pointer-events: none;
             will-change: transform, opacity, filter;
-            animation: fragment-emerge var(--anim-duration, 5s) ease-out forwards;
+            animation: fragment-emerge var(--anim-duration, 2s) ease-out forwards;
         }
 
         .fragment img {
             max-width: 450px;
             max-height: 450px;
             object-fit: contain;
+        }
+
+        /* ====== LAYER EFFECTS ====== */
+        .fragment.layer-intimate {
+            filter: sepia(0.8) contrast(1.2) brightness(0.9);
+        }
+
+        .fragment.layer-mirror {
+            filter: hue-rotate(180deg) saturate(2) brightness(1.3);
+            animation: glitchPulse 0.3s infinite;
+        }
+
+        .fragment.layer-visceral {
+            filter: hue-rotate(-30deg) saturate(3) contrast(1.4);
+            box-shadow: 0 0 60px 20px rgba(180, 30, 30, 0.5);
+        }
+
+        .fragment.layer-noise {
+            filter: grayscale(1) contrast(2) brightness(0.7);
+            opacity: 0.5;
+        }
+
+        @keyframes glitchPulse {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+            25% {
+                transform: translate(-52%, -48%) scale(1.02);
+            }
+
+            75% {
+                transform: translate(-48%, -52%) scale(0.98);
+            }
         }
 
         @keyframes fragment-emerge {
@@ -200,34 +236,95 @@
             color: hsla(290, 30%, 50%, 0.6);
         }
 
-        /* ====== TREMOR (activated later) ====== */
+        /* ====== TREMOR (AGGRESSIVE) ====== */
         @keyframes contentTremor {
 
             0%,
-            86%,
             100% {
-                transform: translate(0, 0);
+                transform: translate(0, 0) rotate(0deg);
             }
 
-            88% {
-                transform: translate(-2px, 1px);
+            20% {
+                transform: translate(-4px, 2px) rotate(-0.3deg);
+            }
+
+            40% {
+                transform: translate(4px, -3px) rotate(0.2deg);
+            }
+
+            60% {
+                transform: translate(-3px, -2px) rotate(-0.2deg);
+            }
+
+            80% {
+                transform: translate(3px, 2px) rotate(0.3deg);
+            }
+        }
+
+        @keyframes intenseTremor {
+
+            0%,
+            100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            10% {
+                transform: translate(-8px, 4px) rotate(-0.8deg);
+            }
+
+            30% {
+                transform: translate(6px, -6px) rotate(0.6deg);
+            }
+
+            50% {
+                transform: translate(-6px, 4px) rotate(-0.6deg);
+            }
+
+            70% {
+                transform: translate(8px, -4px) rotate(0.8deg);
             }
 
             90% {
-                transform: translate(2px, -1px);
-            }
-
-            92% {
-                transform: translate(-1px, -1px);
-            }
-
-            94% {
-                transform: translate(0, 0);
+                transform: translate(-4px, 6px) rotate(-0.4deg);
             }
         }
 
         #stream.tremor {
-            animation: contentTremor 2.5s ease-in-out infinite;
+            animation: contentTremor 0.5s ease-in-out infinite;
+        }
+
+        #stream.intense-tremor {
+            animation: intenseTremor 0.2s ease-in-out infinite;
+        }
+
+        /* ====== LAYER FLASH ====== */
+        #layer-flash {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 90;
+            opacity: 0;
+            transition: opacity 0.3s ease-out;
+        }
+
+        #layer-flash.intimate {
+            background: radial-gradient(circle, rgba(255, 200, 100, 0.5), transparent 70%);
+        }
+
+        #layer-flash.mirror {
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.6), transparent 70%);
+        }
+
+        #layer-flash.visceral {
+            background: radial-gradient(circle, rgba(200, 30, 30, 0.6), transparent 70%);
+        }
+
+        #layer-flash.noise {
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.4), transparent 70%);
+        }
+
+        #layer-flash.active {
+            opacity: 1;
         }
 
         /* ====== DEBUG ====== */
@@ -248,58 +345,76 @@
     <div id="vignette"></div>
     <div id="scanlines"></div>
     <div id="noise"></div>
+    <div id="layer-flash"></div>
     <div class="cursor-glow" id="cursor"></div>
     <div id="stream"></div>
     <div class="meta-message" id="meta"></div>
     <div id="debug"></div>
 
     <script>
-        // ====== CONFIGURATION ======
+        // ====== CONFIGURATION — HELLISH MODE ======
         const CONFIG = {
             fragmentCount: 23,
-            maxActiveFragments: 12,
-            
-            // DENSITY CURVE phases
+            maxActiveFragments: 35,  // МНОГО
+
+            // DENSITY CURVE — АГРЕССИВНАЯ
             phases: {
-                sparse: { maxDepth: 20, interval: 3500, variance: 1000 },    // "naживка"
-                hook: { maxDepth: 50, interval: 1500, variance: 500 },       // "втягивает"
-                overwhelm: { maxDepth: 100, interval: 600, variance: 200 }   // "перегрузка"
+                sparse: { maxDepth: 8, interval: 500, variance: 200 },
+                hook: { maxDepth: 35, interval: 150, variance: 50 },
+                overwhelm: { maxDepth: 100, interval: 50, variance: 20 }  // АД
             },
-            
-            // BURST mechanics
-            burstChance: 0.08,        // 8% chance of burst
-            burstCount: [4, 6],       // 4-6 fragments at once
-            
-            // VOID mechanics
-            voidChance: 0.06,         // 6% chance of void
-            voidDuration: [4000, 7000], // 4-7 sec of nothing
-            
-            // EXHAUSTION mechanics
-            exhaustionThreshold: 800,  // scroll delta to trigger exhaustion
-            exhaustionPenalty: 2.5,    // multiplier for interval when exhausted
-            exhaustionDecay: 0.99,     // slow decay of exhaustion
-            
+
+            // BURST — ЧАСТЫЕ
+            burstChance: 0.25,
+            burstCount: [8, 15],
+
+            // VOID — РЕДКИЕ
+            voidChance: 0.01,
+            voidDuration: [500, 1000],
+
+            // EXHAUSTION
+            exhaustionThreshold: 1500,
+            exhaustionPenalty: 2.5,
+            exhaustionDecay: 0.99,
+
             // META messages
             metaMessages: [
-                { depth: 30, text: "ты всё ещё здесь" },
-                { depth: 45, text: "сколько времени прошло?" },
-                { depth: 60, text: "они хотят именно этого" },
-                { depth: 75, text: "можешь остановиться. в теории." },
-                { depth: 90, text: "уже поздно" }
+                { depth: 15, text: "ты всё ещё здесь" },
+                { depth: 30, text: "сколько времени прошло?" },
+                { depth: 50, text: "они хотят именно этого" },
+                { depth: 70, text: "можешь остановиться. в теории." },
+                { depth: 85, text: "уже поздно" }
             ]
         };
+
+        // ====== LAYER SYSTEM ======
+        const LAYER_MAP = {
+            intimate: ['003', '010', '014', '017', '018', '022', '023'],
+            mirror: ['001', '002', '006', '008', '020', '021'],
+            visceral: ['004', '007', '009', '012', '013', '019'],
+            noise: ['005', '011', '015', '016']
+        };
+        const LAYER_THRESHOLDS = [
+            { depth: 0, layer: 'noise' },
+            { depth: 15, layer: 'intimate' },
+            { depth: 35, layer: 'mirror' },
+            { depth: 55, layer: 'visceral' },
+            { depth: 75, layer: 'noise' }
+        ];
 
         // ====== STATE ======
         const state = {
             fragmentsSpawned: 0,
             activeFragments: 0,
-            depth: 0,               // progression 0-100
+            depth: 0,
             scrollDelta: 0,
-            exhaustionLevel: 0,     // never fully resets
+            exhaustionLevel: 0,
             lastScrollTime: 0,
-            isVoid: false,          // in void phase?
+            isVoid: false,
             lastMetaIndex: -1,
-            startTime: Date.now()
+            startTime: Date.now(),
+            currentLayer: 'noise',
+            previousLayer: null
         };
 
         // ====== PRELOAD FRAGMENTS ======
@@ -332,12 +447,12 @@
             const delta = Math.abs(e.deltaY);
             state.scrollDelta += delta;
             state.lastScrollTime = Date.now();
-            
+
             // Accumulate exhaustion (never fully resets)
             if (state.scrollDelta > CONFIG.exhaustionThreshold) {
                 state.exhaustionLevel = Math.min(1, state.exhaustionLevel + 0.05);
             }
-            
+
             cursor.classList.add('active');
             setTimeout(() => cursor.classList.remove('active'), 200);
         }, { passive: false });
@@ -349,63 +464,84 @@
             return CONFIG.phases.overwhelm;
         }
 
+        // ====== GET CURRENT LAYER ======
+        function getCurrentLayer() {
+            for (let i = LAYER_THRESHOLDS.length - 1; i >= 0; i--) {
+                if (state.depth >= LAYER_THRESHOLDS[i].depth) {
+                    return LAYER_THRESHOLDS[i].layer;
+                }
+            }
+            return 'noise';
+        }
+
         // ====== CALCULATE SPAWN INTERVAL ======
         function getSpawnInterval() {
             const phase = getCurrentPhase();
             let interval = phase.interval + (Math.random() - 0.5) * phase.variance;
-            
+
             // Scroll boost (capped)
             const scrollBoost = Math.min(state.scrollDelta / 300, 2);
             interval /= (1 + scrollBoost * 0.5);
-            
+
             // Exhaustion penalty
             if (state.exhaustionLevel > 0.3) {
                 interval *= (1 + state.exhaustionLevel * CONFIG.exhaustionPenalty);
             }
-            
+
             // Decay scroll delta
             const timeSinceScroll = Date.now() - state.lastScrollTime;
             if (timeSinceScroll > 100) {
                 state.scrollDelta *= 0.92;
             }
-            
+
             // Slow decay of exhaustion (almost permanent)
             state.exhaustionLevel *= CONFIG.exhaustionDecay;
-            
-            return Math.max(interval, 300);
+
+            return Math.max(interval, 30);  // MINIMUM 30ms = АД
         }
 
         // ====== SPAWN FRAGMENT ======
         function spawnFragment() {
             if (state.activeFragments >= CONFIG.maxActiveFragments) return;
 
-            const fragment = document.createElement('div');
-            fragment.className = 'fragment';
+            // Update layer
+            const newLayer = getCurrentLayer();
+            if (newLayer !== state.currentLayer) {
+                state.previousLayer = state.currentLayer;
+                state.currentLayer = newLayer;
+                triggerLayerFlash(newLayer);
+            }
 
-            // Random drift
+            const fragment = document.createElement('div');
+            fragment.className = `fragment layer-${state.currentLayer}`;
+
+            // Random drift — AGGRESSIVE
             const angle = Math.random() * Math.PI * 2;
-            const distance = 180 + Math.random() * 280;
+            const distance = 300 + Math.random() * 600;
             fragment.style.setProperty('--drift-x', Math.cos(angle) * distance + 'px');
             fragment.style.setProperty('--drift-y', Math.sin(angle) * distance + 'px');
 
-            // Position offset
-            const offsetX = (Math.random() - 0.5) * 180;
-            const offsetY = (Math.random() - 0.5) * 180;
+            // Position — FULL SCREEN CHAOS
+            const offsetX = (Math.random() - 0.5) * window.innerWidth * 0.9;
+            const offsetY = (Math.random() - 0.5) * window.innerHeight * 0.9;
             fragment.style.left = `calc(50% + ${offsetX}px)`;
             fragment.style.top = `calc(50% + ${offsetY}px)`;
-            fragment.style.rotate = (Math.random() * 24 - 12) + 'deg';
+            fragment.style.rotate = (Math.random() * 60 - 30) + 'deg';
             fragment.style.zIndex = Math.floor(Math.random() * 50);
 
-            // Animation duration varies by phase
+            // Animation duration — FAST
             const phase = getCurrentPhase();
-            const animDuration = phase === CONFIG.phases.overwhelm ? 3.5 : 5;
+            const animDuration = phase === CONFIG.phases.overwhelm ? 1.2 : 2;
             fragment.style.setProperty('--anim-duration', animDuration + 's');
 
-            // Image
+            // Pick image from CURRENT LAYER
+            const layerFragments = LAYER_MAP[state.currentLayer];
+            const fragmentId = layerFragments[Math.floor(Math.random() * layerFragments.length)];
+
             const img = document.createElement('img');
-            img.src = fragmentPaths[Math.floor(Math.random() * fragmentPaths.length)];
+            img.src = `/assets/klyap-v14/fragments/fragment-${fragmentId}.png`;
             img.alt = '';
-            const scale = 0.4 + Math.random() * 0.7;
+            const scale = 0.5 + Math.random() * 0.8;
             img.style.transform = `scale(${scale})`;
 
             fragment.appendChild(img);
@@ -413,9 +549,9 @@
 
             state.activeFragments++;
             state.fragmentsSpawned++;
-            
-            // Update depth (progress toward 100)
-            state.depth = Math.min(100, state.fragmentsSpawned * 1.5);
+
+            // Update depth faster
+            state.depth = Math.min(100, state.fragmentsSpawned * 2);
 
             // Remove after animation
             setTimeout(() => {
@@ -434,16 +570,32 @@
                     break;
                 }
             }
-            
-            // Activate tremor after depth 50
-            if (state.depth >= 50) {
+
+            // Tremor — EARLY
+            if (state.depth >= 15) {
                 stream.classList.add('tremor');
             }
-            
-            // Intense vignette after depth 60
-            if (state.depth >= 60) {
+
+            // INTENSE tremor
+            if (state.depth >= 55) {
+                stream.classList.remove('tremor');
+                stream.classList.add('intense-tremor');
+            }
+
+            // Intense vignette — EARLY
+            if (state.depth >= 35) {
                 vignette.classList.add('intense');
             }
+        }
+
+        // ====== LAYER FLASH ======
+        const layerFlash = document.getElementById('layer-flash');
+        function triggerLayerFlash(layer) {
+            layerFlash.className = layer + ' active';
+            setTimeout(() => {
+                layerFlash.classList.remove('active');
+            }, 400);
+            console.log(`Layer: ${layer}`);
         }
 
         function showMeta(text) {
@@ -459,7 +611,7 @@
             // VOID check
             if (!state.isVoid && Math.random() < CONFIG.voidChance && state.depth > 20) {
                 state.isVoid = true;
-                const voidTime = CONFIG.voidDuration[0] + 
+                const voidTime = CONFIG.voidDuration[0] +
                     Math.random() * (CONFIG.voidDuration[1] - CONFIG.voidDuration[0]);
                 setTimeout(() => {
                     state.isVoid = false;
@@ -470,7 +622,7 @@
 
             // BURST check
             if (Math.random() < CONFIG.burstChance && state.depth > 15) {
-                const count = CONFIG.burstCount[0] + 
+                const count = CONFIG.burstCount[0] +
                     Math.floor(Math.random() * (CONFIG.burstCount[1] - CONFIG.burstCount[0] + 1));
                 for (let i = 0; i < count; i++) {
                     setTimeout(() => spawnFragment(), i * 80);
@@ -496,12 +648,12 @@
         function updateDebug() {
             const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
             const phase = getCurrentPhase();
-            const phaseName = phase === CONFIG.phases.sparse ? 'SPARSE' : 
-                             phase === CONFIG.phases.hook ? 'HOOK' : 'OVERWHELM';
-            
+            const phaseName = phase === CONFIG.phases.sparse ? 'SPARSE' :
+                phase === CONFIG.phases.hook ? 'HOOK' : 'OVERWHELM';
+
             debugEl.innerHTML = `
                 frags: ${state.fragmentsSpawned} | depth: ${state.depth.toFixed(0)}<br>
-                phase: ${phaseName} | exhaust: ${(state.exhaustionLevel * 100).toFixed(0)}%<br>
+                phase: ${phaseName} | layer: ${state.currentLayer.toUpperCase()}<br>
                 time: ${elapsed}s ${state.isVoid ? '| VOID' : ''}
             `;
         }
