@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KLYAP v15 — Hypnotic Integration</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: hsl(280, 35%, 2%);
+            cursor: none;
+        }
+
+        /* ====== ATMOSPHERIC LAYERS ====== */
+
+        /* Breathing Vignette — SLOWER */
+        #vignette {
+            position: fixed;
+            inset: -40%;
+            pointer-events: none;
+            z-index: 100;
+            background: radial-gradient(ellipse 50% 50% at 50% 50%,
+                    transparent 10%,
+                    hsla(280, 45%, 3%, 0.5) 35%,
+                    hsla(280, 50%, 2%, 0.85) 55%,
+                    hsl(280, 55%, 1%) 75%);
+            animation: vignetteBreathe 10s ease-in-out infinite;
+            transition: transform 3s ease-out;
+        }
+
+        @keyframes vignetteBreathe {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.9;
+            }
+
+            50% {
+                transform: scale(0.88);
+                opacity: 1;
+            }
+        }
+
+        #vignette.intense {
+            transform: scale(0.75) !important;
+        }
+
+        /* Scanlines */
+        #scanlines {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 101;
+            background: repeating-linear-gradient(0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 0, 0, 0.04) 2px,
+                    rgba(0, 0, 0, 0.04) 4px);
+            animation: scanlineFlicker 0.2s infinite;
+        }
+
+        @keyframes scanlineFlicker {
+
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 0.45;
+            }
+        }
+
+        /* Noise overlay */
+        #noise {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 102;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            mix-blend-mode: overlay;
+            animation: noisePulse 5s ease-in-out infinite;
+        }
+
+        @keyframes noisePulse {
+
+            0%,
+            100% {
+                opacity: 0.03;
+            }
+
+            50% {
+                opacity: 0.08;
+            }
+        }
+
+        /* ====== CURSOR ====== */
+        .cursor-glow {
+            position: fixed;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 200;
+            background: radial-gradient(circle,
+                    hsla(290, 50%, 40%, 0.15) 0%,
+                    hsla(285, 45%, 25%, 0.08) 40%,
+                    transparent 70%);
+            transform: translate(-50%, -50%);
+            mix-blend-mode: screen;
+            transition: width 0.5s, height 0.5s;
+        }
+
+        .cursor-glow.active {
+            width: 150px;
+            height: 150px;
+        }
+
+        /* ====== FRAGMENT STREAM ====== */
+        #stream {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        .fragment {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) scale(0.3);
+            opacity: 0;
+            filter: blur(20px);
+            pointer-events: none;
+            will-change: transform, opacity, filter;
+            animation: fragment-emerge var(--anim-duration, 4s) ease-out forwards;
+        }
+
+        .fragment img {
+            max-width: 450px;
+            max-height: 450px;
+            object-fit: contain;
+        }
+
+        /* ====== LAYER EFFECTS ====== */
+        .fragment.layer-intimate {
+            filter: sepia(0.8) contrast(1.2) brightness(0.9);
+        }
+
+        .fragment.layer-mirror {
+            filter: hue-rotate(180deg) saturate(2) brightness(1.3);
+            animation: glitchPulse 0.5s infinite;
+        }
+
+        .fragment.layer-visceral {
+            filter: hue-rotate(-30deg) saturate(3) contrast(1.4);
+            box-shadow: 0 0 60px 20px rgba(180, 30, 30, 0.5);
+        }
+
+        .fragment.layer-noise {
+            filter: grayscale(1) contrast(2) brightness(0.7);
+            opacity: 0.5;
+        }
+
+        @keyframes glitchPulse {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+            25% {
+                transform: translate(-51%, -49%) scale(1.01);
+            }
+
+            75% {
+                transform: translate(-49%, -51%) scale(0.99);
+            }
+        }
+
+        @keyframes fragment-emerge {
+            0% {
+                transform: translate(-50%, -50%) scale(0.3);
+                opacity: 0;
+                filter: blur(20px);
+            }
+
+            20% {
+                opacity: 0.8;
+                filter: blur(8px);
+            }
+
+            40% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+                filter: blur(0);
+            }
+
+            100% {
+                transform: translate(var(--drift-x), var(--drift-y)) scale(1.05);
+                opacity: 0;
+                filter: blur(8px);
+            }
+        }
+
+        /* ====== META MESSAGES — UPGRADED ====== */
+        .meta-message {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            color: hsla(290, 30%, 50%, 0);
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: 400;
+            letter-spacing: 0.1em;
+            text-transform: lowercase;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 1s ease-out, color 1s ease-out;
+            text-shadow: 0 0 40px hsla(290, 40%, 30%, 0.5);
+        }
+
+        .meta-message.visible {
+            opacity: 1;
+            color: hsla(290, 30%, 55%, 0.7);
+            animation: textBreathe 6s ease-in-out infinite;
+        }
+
+        @keyframes textBreathe {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.7;
+            }
+
+            50% {
+                transform: translate(-50%, -50%) scale(1.03);
+                opacity: 1;
+            }
+        }
+
+        /* ====== TREMOR (GENTLER) ====== */
+        @keyframes contentTremor {
+
+            0%,
+            100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            25% {
+                transform: translate(-2px, 1px) rotate(-0.15deg);
+            }
+
+            50% {
+                transform: translate(2px, -1px) rotate(0.1deg);
+            }
+
+            75% {
+                transform: translate(-1px, -1px) rotate(-0.1deg);
+            }
+        }
+
+        @keyframes intenseTremor {
+
+            0%,
+            100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            20% {
+                transform: translate(-4px, 2px) rotate(-0.4deg);
+            }
+
+            40% {
+                transform: translate(3px, -3px) rotate(0.3deg);
+            }
+
+            60% {
+                transform: translate(-3px, 2px) rotate(-0.3deg);
+            }
+
+            80% {
+                transform: translate(4px, -2px) rotate(0.4deg);
+            }
+        }
+
+        #stream.tremor {
+            animation: contentTremor 0.8s ease-in-out infinite;
+        }
+
+        #stream.intense-tremor {
+            animation: intenseTremor 0.4s ease-in-out infinite;
+        }
+
+        /* ====== LAYER FLASH ====== */
+        #layer-flash {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 90;
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+        }
+
+        #layer-flash.intimate {
+            background: radial-gradient(circle, rgba(255, 200, 100, 0.4), transparent 70%);
+        }
+
+        #layer-flash.mirror {
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.5), transparent 70%);
+        }
+
+        #layer-flash.visceral {
+            background: radial-gradient(circle, rgba(200, 30, 30, 0.5), transparent 70%);
+        }
+
+        #layer-flash.noise {
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.3), transparent 70%);
+        }
+
+        #layer-flash.active {
+            opacity: 1;
+        }
+
+        /* ====== DISPLACEMENT ====== */
+        #stream.displacement-active {
+            filter: url(#displacement-filter);
+        }
+
+        /* ====== DEBUG ====== */
+        #debug {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: hsla(290, 50%, 60%, 0.4);
+            font-family: monospace;
+            font-size: 11px;
+            z-index: 300;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- SVG Displacement Filter -->
+    <svg style="position:absolute;width:0;height:0">
+        <defs>
+            <filter id="displacement-filter" x="-20%" y="-20%" width="140%" height="140%">
+                <feTurbulence type="turbulence" baseFrequency="0.01" numOctaves="3" result="noise" seed="1" />
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G"
+                    id="displace-map" />
+            </filter>
+        </defs>
+    </svg>
+    <div id="vignette"></div>
+    <div id="scanlines"></div>
+    <div id="noise"></div>
+    <div id="layer-flash"></div>
+    <div class="cursor-glow" id="cursor"></div>
+    <div id="stream"></div>
+    <div class="meta-message" id="meta"></div>
+    <div id="debug"></div>
+
+    <script>
+        // ====== CONFIGURATION — v15 HYPNOTIC MODE ======
+        const CONFIG = {
+            fragmentCount: 23,
+            maxActiveFragments: 18,  // v15: reduced from 35
+
+            // DENSITY CURVE — HYPNOTIC (slower, more deliberate)
+            phases: {
+                sparse: { maxDepth: 12, interval: 1200, variance: 300 },   // v15: 1200ms (was 500)
+                hook: { maxDepth: 40, interval: 400, variance: 100 },      // v15: 400ms (was 150)
+                overwhelm: { maxDepth: 100, interval: 180, variance: 40 }  // v15: 180ms (was 50)
+            },
+
+            // FRAGMENT LIFETIME — LONGER
+            fragmentLifetime: { min: 3, max: 5 },  // v15: 3-5s (was 1.2-2s)
+
+            // BURST — LESS FREQUENT, SMALLER
+            burstChance: 0.08,  // v15: 8% (was 25%)
+            burstCount: [4, 8], // v15: smaller bursts
+
+            // VOID — SIMILAR
+            voidChance: 0.015,
+            voidDuration: [800, 1500],
+
+            // EXHAUSTION
+            exhaustionThreshold: 1500,
+            exhaustionPenalty: 2.0,
+            exhaustionDecay: 0.995,
+
+            // META messages — more poetic
+            metaMessages: [
+                { depth: 15, text: "ты здесь" },
+                { depth: 30, text: "время замедляется" },
+                { depth: 45, text: "кто смотрит?" },
+                { depth: 60, text: "можно остановиться" },
+                { depth: 75, text: "но не хочется" },
+                { depth: 90, text: "уже неважно" }
+            ]
+        };
+
+        // ====== LAYER SYSTEM ======
+        const LAYER_MAP = {
+            intimate: ['003', '010', '014', '017', '018', '022', '023'],
+            mirror: ['001', '002', '006', '008', '020', '021'],
+            visceral: ['004', '007', '009', '012', '013', '019'],
+            noise: ['005', '011', '015', '016']
+        };
+        const LAYER_THRESHOLDS = [
+            { depth: 0, layer: 'noise' },
+            { depth: 15, layer: 'intimate' },
+            { depth: 35, layer: 'mirror' },
+            { depth: 55, layer: 'visceral' },
+            { depth: 75, layer: 'noise' }
+        ];
+
+        // Displacement intensity — SOFTENED
+        const DISPLACEMENT_INTENSITY = {
+            'noise→intimate': 30,   // v15: softened
+            'intimate→mirror': 60,  // v15: was 80
+            'mirror→visceral': 80,  // v15: was 150 (max now 80)
+            'visceral→noise': 45,   // v15: softened
+            'default': 40
+        };
+
+        // Displacement decay — SLOWER
+        const DISPLACEMENT_DECAY = 0.92;  // v15: was 0.85
+
+        // ====== STATE ======
+        const state = {
+            fragmentsSpawned: 0,
+            activeFragments: 0,
+            depth: 0,
+            scrollDelta: 0,
+            exhaustionLevel: 0,
+            lastScrollTime: 0,
+            isVoid: false,
+            lastMetaIndex: -1,
+            startTime: Date.now(),
+            currentLayer: 'noise',
+            previousLayer: null
+        };
+
+        // ====== PRELOAD FRAGMENTS ======
+        const fragmentPaths = [];
+        for (let i = 1; i <= CONFIG.fragmentCount; i++) {
+            fragmentPaths.push(`/assets/klyap-v14/fragments/fragment-${String(i).padStart(3, '0')}.png`);
+        }
+        // Preload
+        fragmentPaths.forEach(path => { new Image().src = path; });
+
+        // ====== DOM ======
+        const stream = document.getElementById('stream');
+        const cursor = document.getElementById('cursor');
+        const vignette = document.getElementById('vignette');
+        const metaEl = document.getElementById('meta');
+        const debugEl = document.getElementById('debug');
+
+        // ====== CURSOR ======
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursor.style.left = mouseX + 'px';
+            cursor.style.top = mouseY + 'px';
+        });
+
+        // ====== SCROLL DETECTION ======
+        document.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = Math.abs(e.deltaY);
+            state.scrollDelta += delta;
+            state.lastScrollTime = Date.now();
+
+            // Accumulate exhaustion (slower buildup)
+            if (state.scrollDelta > CONFIG.exhaustionThreshold) {
+                state.exhaustionLevel = Math.min(1, state.exhaustionLevel + 0.03);
+            }
+
+            cursor.classList.add('active');
+            setTimeout(() => cursor.classList.remove('active'), 300);
+        }, { passive: false });
+
+        // ====== GET CURRENT PHASE ======
+        function getCurrentPhase() {
+            if (state.depth < CONFIG.phases.sparse.maxDepth) return CONFIG.phases.sparse;
+            if (state.depth < CONFIG.phases.hook.maxDepth) return CONFIG.phases.hook;
+            return CONFIG.phases.overwhelm;
+        }
+
+        // ====== GET CURRENT LAYER ======
+        function getCurrentLayer() {
+            for (let i = LAYER_THRESHOLDS.length - 1; i >= 0; i--) {
+                if (state.depth >= LAYER_THRESHOLDS[i].depth) {
+                    return LAYER_THRESHOLDS[i].layer;
+                }
+            }
+            return 'noise';
+        }
+
+        // ====== CALCULATE SPAWN INTERVAL ======
+        function getSpawnInterval() {
+            const phase = getCurrentPhase();
+            let interval = phase.interval + (Math.random() - 0.5) * phase.variance;
+
+            // Scroll boost (gentler)
+            const scrollBoost = Math.min(state.scrollDelta / 400, 1.5);
+            interval /= (1 + scrollBoost * 0.3);
+
+            // Exhaustion penalty
+            if (state.exhaustionLevel > 0.3) {
+                interval *= (1 + state.exhaustionLevel * CONFIG.exhaustionPenalty);
+            }
+
+            // Decay scroll delta
+            const timeSinceScroll = Date.now() - state.lastScrollTime;
+            if (timeSinceScroll > 150) {
+                state.scrollDelta *= 0.9;
+            }
+
+            // Slow decay of exhaustion
+            state.exhaustionLevel *= CONFIG.exhaustionDecay;
+
+            return Math.max(interval, 100);  // v15: minimum 100ms (was 30)
+        }
+
+        // ====== SPAWN FRAGMENT ======
+        function spawnFragment() {
+            if (state.activeFragments >= CONFIG.maxActiveFragments) return;
+
+            // Update layer
+            const newLayer = getCurrentLayer();
+            if (newLayer !== state.currentLayer) {
+                state.previousLayer = state.currentLayer;
+                state.currentLayer = newLayer;
+                triggerLayerFlash(newLayer);
+                triggerDisplacement(state.previousLayer, newLayer);
+            }
+
+            const fragment = document.createElement('div');
+            fragment.className = `fragment layer-${state.currentLayer}`;
+
+            // Random drift — gentler
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 200 + Math.random() * 400;
+            fragment.style.setProperty('--drift-x', Math.cos(angle) * distance + 'px');
+            fragment.style.setProperty('--drift-y', Math.sin(angle) * distance + 'px');
+
+            // Position — still full screen but less chaotic
+            const offsetX = (Math.random() - 0.5) * window.innerWidth * 0.75;
+            const offsetY = (Math.random() - 0.5) * window.innerHeight * 0.75;
+            fragment.style.left = `calc(50% + ${offsetX}px)`;
+            fragment.style.top = `calc(50% + ${offsetY}px)`;
+            fragment.style.rotate = (Math.random() * 40 - 20) + 'deg';
+            fragment.style.zIndex = Math.floor(Math.random() * 50);
+
+            // Animation duration — LONGER (3-5s)
+            const { min, max } = CONFIG.fragmentLifetime;
+            const animDuration = min + Math.random() * (max - min);
+            fragment.style.setProperty('--anim-duration', animDuration + 's');
+
+            // Pick image from CURRENT LAYER
+            const layerFragments = LAYER_MAP[state.currentLayer];
+            const fragmentId = layerFragments[Math.floor(Math.random() * layerFragments.length)];
+
+            const img = document.createElement('img');
+            img.src = `/assets/klyap-v14/fragments/fragment-${fragmentId}.png`;
+            img.alt = '';
+            const scale = 0.6 + Math.random() * 0.6;
+            img.style.transform = `scale(${scale})`;
+
+            fragment.appendChild(img);
+            stream.appendChild(fragment);
+
+            state.activeFragments++;
+            state.fragmentsSpawned++;
+
+            // Update depth (slower progression)
+            state.depth = Math.min(100, state.fragmentsSpawned * 1.2);
+
+            // Remove after animation
+            setTimeout(() => {
+                fragment.remove();
+                state.activeFragments--;
+            }, animDuration * 1000);
+        }
+
+        // ====== CHECK META MESSAGES ======
+        function checkMeta() {
+            for (let i = CONFIG.metaMessages.length - 1; i >= 0; i--) {
+                const msg = CONFIG.metaMessages[i];
+                if (state.depth >= msg.depth && state.lastMetaIndex < i) {
+                    state.lastMetaIndex = i;
+                    showMeta(msg.text);
+                    break;
+                }
+            }
+
+            // Tremor — later onset
+            if (state.depth >= 25) {
+                stream.classList.add('tremor');
+            }
+
+            // INTENSE tremor — later
+            if (state.depth >= 65) {
+                stream.classList.remove('tremor');
+                stream.classList.add('intense-tremor');
+            }
+
+            // Intense vignette — later
+            if (state.depth >= 45) {
+                vignette.classList.add('intense');
+            }
+        }
+
+        // ====== LAYER FLASH ======
+        const layerFlash = document.getElementById('layer-flash');
+        function triggerLayerFlash(layer) {
+            layerFlash.className = layer + ' active';
+            setTimeout(() => {
+                layerFlash.classList.remove('active');
+            }, 600);  // v15: longer flash
+            console.log(`Layer: ${layer}`);
+        }
+
+        // ====== DISPLACEMENT EFFECT — SOFTENED ======
+        function triggerDisplacement(fromLayer, toLayer) {
+            const key = `${fromLayer}→${toLayer}`;
+            const intensity = DISPLACEMENT_INTENSITY[key] || DISPLACEMENT_INTENSITY.default;
+
+            const displaceMap = document.getElementById('displace-map');
+            displaceMap.setAttribute('scale', intensity);
+            stream.classList.add('displacement-active');
+
+            // Animate scale down with SLOWER decay
+            let currentScale = intensity;
+            const decay = () => {
+                currentScale *= DISPLACEMENT_DECAY;
+                if (currentScale < 2) {
+                    stream.classList.remove('displacement-active');
+                    displaceMap.setAttribute('scale', 0);
+                    return;
+                }
+                displaceMap.setAttribute('scale', currentScale);
+                requestAnimationFrame(decay);
+            };
+            requestAnimationFrame(decay);
+        }
+
+        function showMeta(text) {
+            metaEl.textContent = text;
+            metaEl.classList.add('visible');
+            setTimeout(() => {
+                metaEl.classList.remove('visible');
+            }, 4000);  // v15: longer display (was 2500)
+        }
+
+        // ====== MAIN LOOP ======
+        function scheduleNext() {
+            // VOID check
+            if (!state.isVoid && Math.random() < CONFIG.voidChance && state.depth > 25) {
+                state.isVoid = true;
+                const voidTime = CONFIG.voidDuration[0] +
+                    Math.random() * (CONFIG.voidDuration[1] - CONFIG.voidDuration[0]);
+                setTimeout(() => {
+                    state.isVoid = false;
+                    tick();
+                }, voidTime);
+                return;
+            }
+
+            // BURST check — less frequent
+            if (Math.random() < CONFIG.burstChance && state.depth > 20) {
+                const count = CONFIG.burstCount[0] +
+                    Math.floor(Math.random() * (CONFIG.burstCount[1] - CONFIG.burstCount[0] + 1));
+                for (let i = 0; i < count; i++) {
+                    setTimeout(() => spawnFragment(), i * 150);  // v15: slower burst
+                }
+                setTimeout(tick, getSpawnInterval() * 1.8);
+                return;
+            }
+
+            // Normal spawn
+            setTimeout(tick, getSpawnInterval());
+        }
+
+        function tick() {
+            if (!state.isVoid) {
+                spawnFragment();
+                checkMeta();
+            }
+            updateDebug();
+            scheduleNext();
+        }
+
+        // ====== DEBUG ======
+        function updateDebug() {
+            const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+            const phase = getCurrentPhase();
+            const phaseName = phase === CONFIG.phases.sparse ? 'SPARSE' :
+                phase === CONFIG.phases.hook ? 'HOOK' : 'OVERWHELM';
+
+            debugEl.innerHTML = `
+                v15 HYPNOTIC | frags: ${state.fragmentsSpawned} | depth: ${state.depth.toFixed(0)}<br>
+                phase: ${phaseName} | layer: ${state.currentLayer.toUpperCase()}<br>
+                time: ${elapsed}s ${state.isVoid ? '| VOID' : ''}
+            `;
+        }
+
+        // ====== INIT — SLOWER START ======
+        setTimeout(tick, 1200);
+    </script>
+</body>
+
+</html>

@@ -327,6 +327,11 @@
             opacity: 1;
         }
 
+        /* ====== DISPLACEMENT ====== */
+        #stream.displacement-active {
+            filter: url(#displacement-filter);
+        }
+
         /* ====== DEBUG ====== */
         #debug {
             position: fixed;
@@ -342,6 +347,16 @@
 </head>
 
 <body>
+    <!-- SVG Displacement Filter -->
+    <svg style="position:absolute;width:0;height:0">
+        <defs>
+            <filter id="displacement-filter" x="-20%" y="-20%" width="140%" height="140%">
+                <feTurbulence type="turbulence" baseFrequency="0.01" numOctaves="3" result="noise" seed="1" />
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G"
+                    id="displace-map" />
+            </filter>
+        </defs>
+    </svg>
     <div id="vignette"></div>
     <div id="scanlines"></div>
     <div id="noise"></div>
@@ -401,6 +416,15 @@
             { depth: 55, layer: 'visceral' },
             { depth: 75, layer: 'noise' }
         ];
+
+        // Displacement intensity per transition
+        const DISPLACEMENT_INTENSITY = {
+            'noise→intimate': 40,
+            'intimate→mirror': 80,
+            'mirror→visceral': 150,  // МАКСИМУМ
+            'visceral→noise': 60,
+            'default': 50
+        };
 
         // ====== STATE ======
         const state = {
@@ -510,6 +534,7 @@
                 state.previousLayer = state.currentLayer;
                 state.currentLayer = newLayer;
                 triggerLayerFlash(newLayer);
+                triggerDisplacement(state.previousLayer, newLayer);
             }
 
             const fragment = document.createElement('div');
@@ -596,6 +621,30 @@
                 layerFlash.classList.remove('active');
             }, 400);
             console.log(`Layer: ${layer}`);
+        }
+
+        // ====== DISPLACEMENT EFFECT ======
+        function triggerDisplacement(fromLayer, toLayer) {
+            const key = `${fromLayer}→${toLayer}`;
+            const intensity = DISPLACEMENT_INTENSITY[key] || DISPLACEMENT_INTENSITY.default;
+            
+            const displaceMap = document.getElementById('displace-map');
+            displaceMap.setAttribute('scale', intensity);
+            stream.classList.add('displacement-active');
+            
+            // Animate scale down with decay
+            let currentScale = intensity;
+            const decay = () => {
+                currentScale *= 0.85;
+                if (currentScale < 2) {
+                    stream.classList.remove('displacement-active');
+                    displaceMap.setAttribute('scale', 0);
+                    return;
+                }
+                displaceMap.setAttribute('scale', currentScale);
+                requestAnimationFrame(decay);
+            };
+            requestAnimationFrame(decay);
         }
 
         function showMeta(text) {
