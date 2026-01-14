@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KLYAP v14 — Doomscroll Prototype</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            cursor: none;
+        }
+
+        /* Custom cursor */
+        .cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s ease, opacity 0.3s;
+        }
+
+        /* Container for fragments */
+        #stream {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+        }
+
+        /* Individual fragment */
+        .fragment {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) scale(0.3);
+            opacity: 0;
+            filter: blur(20px);
+            pointer-events: none;
+            will-change: transform, opacity, filter;
+            animation: fragment-emerge 4s ease-out forwards;
+        }
+
+        .fragment img {
+            max-width: 400px;
+            max-height: 400px;
+            object-fit: contain;
+        }
+
+        @keyframes fragment-emerge {
+            0% {
+                transform: translate(-50%, -50%) scale(0.3);
+                opacity: 0;
+                filter: blur(20px);
+            }
+
+            20% {
+                opacity: 0.8;
+                filter: blur(5px);
+            }
+
+            40% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+                filter: blur(0);
+            }
+
+            100% {
+                transform: translate(var(--drift-x), var(--drift-y)) scale(1.1);
+                opacity: 0;
+                filter: blur(10px);
+            }
+        }
+
+        /* Vignette overlay */
+        #vignette {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.8) 100%);
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        /* Noise overlay */
+        #noise {
+            position: fixed;
+            inset: 0;
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: 101;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        }
+
+        /* Debug info */
+        #debug {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.3);
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 200;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="cursor" id="cursor"></div>
+    <div id="stream"></div>
+    <div id="vignette"></div>
+    <div id="noise"></div>
+    <div id="debug">
+        <div>fragments: <span id="count">0</span></div>
+        <div>speed: <span id="speed">1.0</span>x</div>
+        <div>scroll: <span id="scroll">0</span></div>
+    </div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            fragmentCount: 23,
+            baseInterval: 2000,    // ms between fragments (baseline)
+            minInterval: 300,      // ms minimum (max speed)
+            scrollAcceleration: 0.5,
+            fragmentLifetime: 4000, // ms before fragment fades
+            maxActiveFragments: 15
+        };
+
+        // State
+        const state = {
+            fragmentsSpawned: 0,
+            activeFragments: 0,
+            scrollDelta: 0,
+            speedMultiplier: 1,
+            lastScrollTime: 0
+        };
+
+        // Preload fragment paths
+        const fragmentPaths = [];
+        for (let i = 1; i <= CONFIG.fragmentCount; i++) {
+            fragmentPaths.push(`/assets/klyap-v14/fragments/fragment-${String(i).padStart(3, '0')}.png`);
+        }
+
+        // DOM elements
+        const stream = document.getElementById('stream');
+        const cursor = document.getElementById('cursor');
+        const countEl = document.getElementById('count');
+        const speedEl = document.getElementById('speed');
+        const scrollEl = document.getElementById('scroll');
+
+        // Custom cursor
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        });
+
+        // Scroll detection (wheel as accelerator)
+        document.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            state.scrollDelta += Math.abs(e.deltaY);
+            state.lastScrollTime = Date.now();
+            scrollEl.textContent = Math.round(state.scrollDelta);
+        }, { passive: false });
+
+        // Calculate current spawn interval
+        function getCurrentInterval() {
+            const scrollBoost = Math.min(state.scrollDelta / 500, 3);
+            state.speedMultiplier = 1 + scrollBoost * CONFIG.scrollAcceleration;
+
+            // Decay scroll delta over time
+            const timeSinceScroll = Date.now() - state.lastScrollTime;
+            if (timeSinceScroll > 100) {
+                state.scrollDelta *= 0.95;
+            }
+
+            const interval = CONFIG.baseInterval / state.speedMultiplier;
+            speedEl.textContent = state.speedMultiplier.toFixed(1);
+
+            return Math.max(interval, CONFIG.minInterval);
+        }
+
+        // Spawn a fragment
+        function spawnFragment() {
+            if (state.activeFragments >= CONFIG.maxActiveFragments) {
+                scheduleNextFragment();
+                return;
+            }
+
+            const fragment = document.createElement('div');
+            fragment.className = 'fragment';
+
+            // Random drift direction
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 200 + Math.random() * 300;
+            const driftX = Math.cos(angle) * distance + 'px';
+            const driftY = Math.sin(angle) * distance + 'px';
+
+            fragment.style.setProperty('--drift-x', driftX);
+            fragment.style.setProperty('--drift-y', driftY);
+
+            // Random position offset from center
+            const offsetX = (Math.random() - 0.5) * 200;
+            const offsetY = (Math.random() - 0.5) * 200;
+            fragment.style.left = `calc(50% + ${offsetX}px)`;
+            fragment.style.top = `calc(50% + ${offsetY}px)`;
+
+            // Random rotation
+            fragment.style.rotate = (Math.random() * 30 - 15) + 'deg';
+
+            // Random z-index for layering
+            fragment.style.zIndex = Math.floor(Math.random() * 50);
+
+            // Create image
+            const img = document.createElement('img');
+            const randomIndex = Math.floor(Math.random() * fragmentPaths.length);
+            img.src = fragmentPaths[randomIndex];
+            img.alt = '';
+
+            // Random size variation
+            const scale = 0.5 + Math.random() * 0.8;
+            img.style.transform = `scale(${scale})`;
+
+            fragment.appendChild(img);
+            stream.appendChild(fragment);
+
+            state.activeFragments++;
+            state.fragmentsSpawned++;
+            countEl.textContent = state.fragmentsSpawned;
+
+            // Remove after animation completes
+            setTimeout(() => {
+                fragment.remove();
+                state.activeFragments--;
+            }, CONFIG.fragmentLifetime);
+
+            scheduleNextFragment();
+        }
+
+        // Schedule next fragment spawn
+        function scheduleNextFragment() {
+            const interval = getCurrentInterval();
+            setTimeout(spawnFragment, interval);
+        }
+
+        // Start the stream
+        function init() {
+            // Preload images
+            fragmentPaths.forEach(path => {
+                const img = new Image();
+                img.src = path;
+            });
+
+            // Begin spawning
+            setTimeout(spawnFragment, 500);
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

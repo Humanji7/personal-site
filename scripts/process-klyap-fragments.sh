@@ -39,11 +39,11 @@ for img in "$INPUT_DIR"/*.png "$INPUT_DIR"/*.jpg "$INPUT_DIR"/*.jpeg; do
     echo "  [$count] $filename"
     
     # Pipeline:
-    # 1. Crop off watermark (60px from bottom-right)
+    # 1. Crop off SynthID watermark (120px from bottom-right to fully remove star)
     # 2. Make near-black pixels transparent
     # 3. Trim to content bounds
     magick "$img" \
-        -gravity SouthEast -chop 60x60 \
+        -gravity SouthEast -chop 120x120 \
         -fuzz 10% -transparent black \
         -trim +repage \
         "$output"
