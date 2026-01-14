@@ -78,21 +78,23 @@ python3 -m http.server 8889
 ## NEXT SESSION PROMPT
 
 ```
-Продолжи KLYAP v14.
+Продолжи KLYAP v14 — tweak frontend.
 
 Статус:
-- Прототип работает: prototypes/klyap-v14/index.html
-- 23 фрагмента с прозрачностью готовы
+- Механика doomscroll trap реализована (density curve, exhaustion, meta layer)
+- Visual layers добавлены (vignette, scanlines, noise, purple tint)
 
-Что нужно:
-1. Протестировать ощущение doomscroll — достаточно ли "затягивает"?
-2. Добавить ambient звук (drone + glitch при scroll)
-3. Реализовать "насыщение" и переход в MAZUT
+Что нужно докрутить:
+1. Поиграть с таймингами (sparse/hook/overwhelm intervals)
+2. Настроить силу visual effects (vignette breathing, noise intensity)
+3. Протестировать burst/void частоту — достаточно ли неожиданно?
+4. Оценить meta messages — в нужные ли моменты появляются?
+5. Общее ощущение: "хочу остановиться но не могу" — достигнуто?
 
-См. docs/plans/2026-01-14-klyap-v14-handoff.md
+Тест: http://localhost:8889/prototypes/klyap-v14/
 ```
 
 ---
 
-*Обновлено: 2026-01-14 20:51*
+*Обновлено: 2026-01-14 21:13*
 
