@@ -371,6 +371,14 @@
             filter: url(#displacement-filter);
         }
 
+        /* ====== PARTICLE CANVAS ====== */
+        #particle-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 15;
+            pointer-events: none;
+        }
+
         /* ====== DEBUG ====== */
         #debug {
             position: fixed;
@@ -387,6 +395,7 @@
 
 <body>
     <canvas id="membrane-canvas"></canvas>
+    <canvas id="particle-canvas"></canvas>
     <!-- SVG Displacement Filter -->
     <svg style="position:absolute;width:0;height:0">
         <defs>
@@ -691,6 +700,8 @@
                 state.currentLayer = newLayer;
                 triggerLayerFlash(newLayer);
                 triggerDisplacement(state.previousLayer, newLayer);
+                // Wind sweep on layer transition
+                if (typeof triggerWindSweep === 'function') triggerWindSweep();
             }
 
             const fragment = document.createElement('div');
@@ -734,11 +745,17 @@
             // Update depth (slower progression)
             state.depth = Math.min(100, state.fragmentsSpawned * 1.2);
 
-            // Remove after animation
+            // Remove after animation — trigger particle decomposition
             setTimeout(() => {
+                decomposeFragment(fragment);
                 fragment.remove();
                 state.activeFragments--;
             }, animDuration * 1000);
+
+            // Particle assembly effect (30% chance, after fragment is visible)
+            if (Math.random() < 0.3 && typeof assembleFragment === 'function') {
+                setTimeout(() => assembleFragment(fragment), 300);
+            }
         }
 
         // ====== CHECK META MESSAGES ======
@@ -862,6 +879,231 @@
                 time: ${elapsed}s ${state.isVoid ? '| VOID' : ''}
             `;
         }
+
+        // ====== PARTICLE SYSTEM ======
+        const particleCanvas = document.getElementById('particle-canvas');
+        const particleCtx = particleCanvas.getContext('2d');
+        let particleWidth, particleHeight;
+        const particles = [];
+        const MAX_PARTICLES = 300;
+        const PARTICLES_PER_FRAGMENT = { min: 15, max: 25 };
+        const ASSEMBLY_PARTICLES = { min: 20, max: 35 };
+
+        // Wind sweep state
+        const wind = { x: 0, y: 0, decay: 0.95 };
+        const WIND_SWEEP_CHANCE = 0.05; // 5% per second
+        let lastWindCheck = 0;
+
+        // Layer colors for particles (bruised/organic palette)
+        const LAYER_PARTICLE_COLORS = {
+            noise: ['hsla(0, 0%, 20%, 0.8)', 'hsla(0, 0%, 30%, 0.7)', 'hsla(280, 10%, 15%, 0.9)'],
+            intimate: ['hsla(35, 40%, 35%, 0.8)', 'hsla(25, 50%, 25%, 0.9)', 'hsla(40, 30%, 20%, 0.7)'],
+            vivid: ['hsla(300, 60%, 40%, 0.8)', 'hsla(320, 50%, 30%, 0.9)', 'hsla(280, 70%, 35%, 0.7)'],
+            mirror: ['hsla(180, 50%, 35%, 0.8)', 'hsla(200, 40%, 25%, 0.9)', 'hsla(160, 60%, 30%, 0.7)'],
+            flesh: ['hsla(10, 40%, 40%, 0.8)', 'hsla(350, 35%, 30%, 0.9)', 'hsla(20, 50%, 35%, 0.7)'],
+            visceral: ['hsla(0, 60%, 30%, 0.85)', 'hsla(350, 70%, 25%, 0.9)', 'hsla(10, 50%, 20%, 0.8)']
+        };
+
+        // Particle class with viscosity physics (optimized)
+        class Particle {
+            constructor(x, y, layer, isAssembly = false, targetX = 0, targetY = 0) {
+                this.x = x;
+                this.y = y;
+                this.isAssembly = isAssembly;
+                this.targetX = targetX;
+                this.targetY = targetY;
+
+                if (isAssembly) {
+                    // Assembly: move TOWARD target
+                    this.vx = 0;
+                    this.vy = 0;
+                    this.easing = 0.02 + Math.random() * 0.03;
+                    this.delay = Math.floor(Math.random() * 20); // staggered start
+                } else {
+                    // Decompose: burst outward
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 1 + Math.random() * 3;
+                    this.vx = Math.cos(angle) * speed + (Math.random() - 0.5) * 2;
+                    this.vy = Math.sin(angle) * speed * 0.5 - Math.random() * 1.5;
+                }
+
+                // Pick color from layer palette
+                const colors = LAYER_PARTICLE_COLORS[layer] || LAYER_PARTICLE_COLORS.noise;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+
+                this.alpha = isAssembly ? 0.3 : (0.7 + Math.random() * 0.3);
+                this.targetAlpha = isAssembly ? 0.9 : 0;
+                this.size = 2 + Math.random() * 6;
+                this.decay = isAssembly ? -0.008 : (0.005 + Math.random() * 0.01); // faster decay
+                this.gravity = 0.06 + Math.random() * 0.1;
+                this.viscosity = 0.90 + Math.random() * 0.07;
+                this.stickChance = !isAssembly && Math.random() < 0.12;
+                this.stickTime = this.stickChance ? 20 + Math.random() * 40 : 0;
+                this.wobble = Math.random() * Math.PI * 2;
+                this.wobbleSpeed = 0.1 + Math.random() * 0.15;
+                this.alive = true;
+            }
+
+            update() {
+                if (this.isAssembly) {
+                    // Assembly mode: converge to target
+                    if (this.delay > 0) {
+                        this.delay--;
+                        return true;
+                    }
+                    const dx = this.targetX - this.x;
+                    const dy = this.targetY - this.y;
+                    this.x += dx * this.easing;
+                    this.y += dy * this.easing;
+                    this.alpha += 0.015;
+                    if (this.alpha > this.targetAlpha) this.alpha = this.targetAlpha;
+
+                    // Arrived at target?
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 5) {
+                        this.alpha -= 0.05;
+                        if (this.alpha <= 0) this.alive = false;
+                    }
+                    return this.alive;
+                }
+
+                // Decompose mode
+                if (this.stickTime > 0) {
+                    this.stickTime--;
+                    this.alpha -= this.decay * 0.3;
+                    return this.alpha > 0;
+                }
+
+                // Apply wind
+                this.vx += wind.x * 0.1;
+                this.vy += wind.y * 0.05;
+
+                // Organic wobble
+                this.wobble += this.wobbleSpeed;
+                this.vx += Math.sin(this.wobble) * 0.04;
+
+                // Viscous physics
+                this.vy += this.gravity;
+                this.vx *= this.viscosity;
+                this.vy *= this.viscosity;
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Decay
+                this.alpha -= this.decay;
+                this.size *= 0.998;
+
+                this.alive = this.alpha > 0.01 && this.y < particleHeight + 50;
+                return this.alive;
+            }
+        }
+
+        // Resize particle canvas
+        function resizeParticleCanvas() {
+            particleWidth = window.innerWidth;
+            particleHeight = window.innerHeight;
+            particleCanvas.width = particleWidth;
+            particleCanvas.height = particleHeight;
+        }
+        window.addEventListener('resize', resizeParticleCanvas);
+        resizeParticleCanvas();
+
+        // Decompose fragment into particles
+        function decomposeFragment(fragment) {
+            if (particles.length >= MAX_PARTICLES) return;
+
+            const rect = fragment.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            const layerMatch = fragment.className.match(/layer-(\w+)/);
+            const layer = layerMatch ? layerMatch[1] : 'noise';
+
+            const count = PARTICLES_PER_FRAGMENT.min +
+                Math.floor(Math.random() * (PARTICLES_PER_FRAGMENT.max - PARTICLES_PER_FRAGMENT.min));
+
+            for (let i = 0; i < count; i++) {
+                const x = centerX + (Math.random() - 0.5) * rect.width * 0.8;
+                const y = centerY + (Math.random() - 0.5) * rect.height * 0.8;
+                particles.push(new Particle(x, y, layer, false));
+            }
+        }
+
+        // Assemble particles INTO a new fragment
+        function assembleFragment(fragment) {
+            if (particles.length >= MAX_PARTICLES) return;
+
+            const rect = fragment.getBoundingClientRect();
+            const targetX = rect.left + rect.width / 2;
+            const targetY = rect.top + rect.height / 2;
+
+            const layerMatch = fragment.className.match(/layer-(\w+)/);
+            const layer = layerMatch ? layerMatch[1] : 'noise';
+
+            const count = ASSEMBLY_PARTICLES.min +
+                Math.floor(Math.random() * (ASSEMBLY_PARTICLES.max - ASSEMBLY_PARTICLES.min));
+
+            for (let i = 0; i < count; i++) {
+                // Start from random edge positions
+                let x, y;
+                const edge = Math.floor(Math.random() * 4);
+                switch (edge) {
+                    case 0: x = Math.random() * particleWidth; y = -50; break; // top
+                    case 1: x = Math.random() * particleWidth; y = particleHeight + 50; break; // bottom
+                    case 2: x = -50; y = Math.random() * particleHeight; break; // left
+                    case 3: x = particleWidth + 50; y = Math.random() * particleHeight; break; // right
+                }
+                particles.push(new Particle(x, y, layer, true, targetX, targetY));
+            }
+        }
+
+        // Trigger wind sweep
+        function triggerWindSweep() {
+            const angle = Math.random() * Math.PI * 2;
+            const strength = 4 + Math.random() * 6;
+            wind.x = Math.cos(angle) * strength;
+            wind.y = Math.sin(angle) * strength * 0.4; // less vertical
+        }
+
+        // Particle render loop (optimized: no save/restore, no shadows, swap-and-pop)
+        function drawParticles() {
+            particleCtx.clearRect(0, 0, particleWidth, particleHeight);
+
+            // Update wind
+            wind.x *= wind.decay;
+            wind.y *= wind.decay;
+
+            // Check for wind sweep trigger
+            const now = Date.now();
+            if (now - lastWindCheck > 1000) {
+                lastWindCheck = now;
+                const phase = getCurrentPhase();
+                if (phase !== CONFIG.phases.sparse && Math.random() < WIND_SWEEP_CHANCE) {
+                    triggerWindSweep();
+                }
+            }
+
+            // Batch render all particles (no ctx.save/restore per particle)
+            let i = particles.length;
+            while (i--) {
+                const p = particles[i];
+                if (!p.update()) {
+                    // Swap-and-pop removal (faster than splice)
+                    particles[i] = particles[particles.length - 1];
+                    particles.pop();
+                } else {
+                    // Simple circle drawing (no shadowBlur)
+                    particleCtx.globalAlpha = p.alpha;
+                    particleCtx.fillStyle = p.color;
+                    particleCtx.beginPath();
+                    particleCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    particleCtx.fill();
+                }
+            }
+
+            requestAnimationFrame(drawParticles);
+        }
+        drawParticles();
 
         // ====== INIT MEMBRANE ======
         resizeMembrane();
