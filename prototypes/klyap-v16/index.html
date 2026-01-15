@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KLYAP v16 — Atmospheric Expansion</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=Mystery+Quest&display=swap"
+        rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -390,6 +392,183 @@
             z-index: 300;
             line-height: 1.5;
         }
+
+        /* ====== TEXT-BLOCK (центральное слово) ====== */
+        .text-block {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            color: hsl(285, 20%, 50%);
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 6vw, 4rem);
+            line-height: 1.4;
+            text-align: center;
+            text-shadow: 0 0 40px hsla(290, 40%, 20%, 0.6);
+            opacity: 0;
+            transition: opacity 4s ease-out, transform 3s ease-out;
+            letter-spacing: 0.25em;
+            pointer-events: none;
+            z-index: 45;
+        }
+
+        .text-block.visible {
+            opacity: 0.75;
+        }
+
+        .text-block.pulse {
+            animation: textIntensify 4s ease-in-out infinite;
+        }
+
+        @keyframes textIntensify {
+
+            0%,
+            100% {
+                opacity: 0.65;
+                filter: blur(0);
+            }
+
+            30% {
+                opacity: 0.9;
+            }
+
+            50% {
+                filter: blur(1px);
+            }
+
+            55% {
+                filter: blur(0);
+            }
+        }
+
+        /* ====== BUBBLE CONTAINER ====== */
+        .bubble-container {
+            position: fixed;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 55;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: none;
+        }
+
+        /* ====== PROVOCATION BUBBLES (живые баблы) ====== */
+        .provocation-bubble {
+            background: hsla(290, 30%, 12%, 0.85);
+            border: 1px solid hsla(295, 40%, 25%, 0.4);
+            border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+            padding: 14px 20px;
+            color: hsla(290, 35%, 70%, 0.95);
+            font-family: 'Mystery Quest', cursive;
+            font-size: clamp(0.9rem, 2.2vw, 1.2rem);
+            font-weight: 400;
+            letter-spacing: 0.08em;
+            max-width: 220px;
+            opacity: 0;
+            transform: translateX(-40px) scale(0.9);
+            transition: opacity 2s ease-out, transform 0.3s ease-out;
+            pointer-events: none;
+            cursor: pointer;
+            box-shadow:
+                0 0 25px hsla(290, 50%, 25%, 0.4),
+                0 0 50px hsla(295, 45%, 18%, 0.25),
+                inset 0 0 18px hsla(300, 40%, 30%, 0.25);
+            animation: blobMorph 8s ease-in-out infinite, bubbleBreath 4s ease-in-out infinite;
+            animation-play-state: paused;
+            will-change: transform, border-radius;
+        }
+
+        .provocation-bubble:nth-child(1) {
+            animation-delay: 0s, 0s;
+        }
+
+        .provocation-bubble:nth-child(2) {
+            animation-delay: 1.6s, 0.8s;
+        }
+
+        .provocation-bubble:nth-child(3) {
+            animation-delay: 3.2s, 1.6s;
+        }
+
+        .provocation-bubble:nth-child(4) {
+            animation-delay: 4.8s, 2.4s;
+        }
+
+        .provocation-bubble:nth-child(5) {
+            animation-delay: 6.4s, 3.2s;
+        }
+
+        .provocation-bubble.visible {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+            pointer-events: auto;
+            animation-play-state: running;
+        }
+
+        .provocation-bubble .whisper {
+            display: block;
+            font-size: 0.7em;
+            color: hsla(300, 40%, 55%, 0);
+            margin-top: 6px;
+            font-style: italic;
+            transition: color 0.8s ease-out;
+        }
+
+        .provocation-bubble.whisper-visible .whisper {
+            color: hsla(300, 40%, 55%, 0.8);
+        }
+
+        .provocation-bubble:hover {
+            background: hsla(295, 35%, 18%, 0.9);
+            border-color: hsla(300, 45%, 35%, 0.6);
+            color: hsla(290, 30%, 75%, 1);
+            box-shadow:
+                0 0 40px hsla(295, 55%, 30%, 0.5),
+                0 0 70px hsla(300, 50%, 22%, 0.35),
+                inset 0 0 25px hsla(305, 45%, 35%, 0.3);
+        }
+
+        @keyframes blobMorph {
+
+            0%,
+            100% {
+                border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+            }
+
+            25% {
+                border-radius: 58% 42% 55% 45% / 55% 60% 40% 45%;
+            }
+
+            50% {
+                border-radius: 50% 50% 45% 55% / 40% 50% 50% 60%;
+            }
+
+            75% {
+                border-radius: 45% 55% 60% 40% / 50% 45% 55% 50%;
+            }
+        }
+
+        @keyframes bubbleBreath {
+
+            0%,
+            100% {
+                transform: translateX(0) scale(1);
+                box-shadow:
+                    0 0 25px hsla(290, 50%, 25%, 0.4),
+                    0 0 50px hsla(295, 45%, 18%, 0.25),
+                    inset 0 0 18px hsla(300, 40%, 30%, 0.25);
+            }
+
+            50% {
+                transform: translateX(3px) scale(1.02);
+                box-shadow:
+                    0 0 35px hsla(295, 55%, 28%, 0.5),
+                    0 0 65px hsla(300, 50%, 22%, 0.35),
+                    inset 0 0 22px hsla(305, 45%, 35%, 0.3);
+            }
+        }
     </style>
 </head>
 
@@ -413,6 +592,24 @@
     <div class="cursor-glow" id="cursor"></div>
     <div id="stream"></div>
     <div class="meta-message" id="meta"></div>
+
+    <!-- Text-block (центральное слово) -->
+    <div class="text-block" id="text-block">распирает</div>
+
+    <!-- Provocation bubbles (живые баблы) -->
+    <div class="bubble-container" id="bubble-container">
+        <div class="provocation-bubble" data-bubble="0" data-whisper="...расскажу...">мягко внутри<span
+                class="whisper"></span></div>
+        <div class="provocation-bubble" data-bubble="1" data-whisper="...не бойся...">не сжимайся<span
+                class="whisper"></span></div>
+        <div class="provocation-bubble" data-bubble="2" data-whisper="...помню всех...">ты не первый здесь<span
+                class="whisper"></span></div>
+        <div class="provocation-bubble" data-bubble="3" data-whisper="...просто будь...">ничего не нужно делать<span
+                class="whisper"></span></div>
+        <div class="provocation-bubble" data-bubble="4" data-whisper="...всё заберу...">выдохни. я впитаю<span
+                class="whisper"></span></div>
+    </div>
+
     <div id="debug"></div>
 
     <script>
@@ -607,12 +804,12 @@
         };
 
         // ====== PRELOAD FRAGMENTS ======
-        const fragmentPaths = [];
-        for (let i = 1; i <= CONFIG.fragmentCount; i++) {
-            fragmentPaths.push(`/assets/klyap-v14/fragments/fragment-${String(i).padStart(3, '0')}.png`);
-        }
-        // Preload
-        fragmentPaths.forEach(path => { new Image().src = path; });
+        // Preload all layer-based fragments from v16
+        Object.entries(LAYER_MAP).forEach(([layer, fragments]) => {
+            fragments.forEach(id => {
+                new Image().src = `${FRAGMENT_BASE}/${layer}/fragment-${id}.png`;
+            });
+        });
 
         // ====== DOM ======
         const stream = document.getElementById('stream');
@@ -1108,6 +1305,148 @@
         // ====== INIT MEMBRANE ======
         resizeMembrane();
         drawMembrane();
+
+        // ====== TEXT-BLOCK SYSTEM ======
+        const textBlock = document.getElementById('text-block');
+        const TEXT_PHRASES = [
+            'распирает', 'глубже', 'ещё', 'не останавливайся',
+            'внутрь', 'растворяет', 'тяжело', 'сладко'
+        ];
+        let currentPhraseIndex = 0;
+
+        function showTextBlock() {
+            textBlock.classList.add('visible');
+            setTimeout(() => textBlock.classList.add('pulse'), 2000);
+        }
+
+        function rotateTextBlock() {
+            textBlock.classList.remove('visible', 'pulse');
+            setTimeout(() => {
+                currentPhraseIndex = (currentPhraseIndex + 1) % TEXT_PHRASES.length;
+                textBlock.textContent = TEXT_PHRASES[currentPhraseIndex];
+                textBlock.classList.add('visible');
+                setTimeout(() => textBlock.classList.add('pulse'), 1500);
+            }, 1000);
+        }
+
+        // Show text after 3s, rotate every 15s
+        setTimeout(showTextBlock, 3000);
+        setInterval(rotateTextBlock, 15000);
+
+        // ====== BUBBLE SYSTEM ======
+        const provocationBubbles = document.querySelectorAll('.provocation-bubble');
+
+        const BUBBLE_CONFIG = {
+            IDLE_THRESHOLD_FOR_TRIGGER: 5,
+            MAX_BUBBLES: 5,
+            PROXIMITY_RADIUS: 150,
+            PROXIMITY_PULL: 0.1,
+            WHISPER_DELAY: 1500
+        };
+
+        const bubbleState = {
+            shownCount: 0,
+            wasIdle: false,
+            prevMoveCount: 0,
+            hoverTimers: new Map(),
+            mouseMoveCount: 0,
+            lastMouseMove: Date.now()
+        };
+
+        // Track mouse movement
+        document.addEventListener('mousemove', () => {
+            bubbleState.mouseMoveCount++;
+            bubbleState.lastMouseMove = Date.now();
+        });
+
+        function showNextBubble() {
+            if (bubbleState.shownCount >= BUBBLE_CONFIG.MAX_BUBBLES) return;
+            const bubble = provocationBubbles[bubbleState.shownCount];
+            if (bubble) {
+                bubble.classList.add('visible');
+                bubbleState.shownCount++;
+                console.log(`[KLYAP] Bubble ${bubbleState.shownCount} awakened`);
+            }
+        }
+
+        // Auto-show first bubble after 5s, then every 10s
+        setTimeout(showNextBubble, 5000);
+        setInterval(() => {
+            if (bubbleState.shownCount < BUBBLE_CONFIG.MAX_BUBBLES) {
+                showNextBubble();
+            }
+        }, 10000);
+
+        // Proximity reaction — bubbles feel cursor
+        function updateBubbleProximity(mx, my) {
+            provocationBubbles.forEach(bubble => {
+                if (!bubble.classList.contains('visible')) return;
+                const rect = bubble.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                const dx = mx - cx;
+                const dy = my - cy;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < BUBBLE_CONFIG.PROXIMITY_RADIUS) {
+                    const pull = (1 - dist / BUBBLE_CONFIG.PROXIMITY_RADIUS) * BUBBLE_CONFIG.PROXIMITY_PULL;
+                    bubble.style.transform = `translateX(${dx * pull}px) translateY(${dy * pull}px) scale(1.02)`;
+                } else {
+                    bubble.style.transform = '';
+                }
+            });
+        }
+
+        // Whisper preview on long hover
+        provocationBubbles.forEach(bubble => {
+            const whisperEl = bubble.querySelector('.whisper');
+            const whisperText = bubble.dataset.whisper;
+            if (!whisperEl || !whisperText) return;
+
+            bubble.addEventListener('mouseenter', () => {
+                const timer = setTimeout(() => {
+                    whisperEl.textContent = whisperText;
+                    bubble.classList.add('whisper-visible');
+                }, BUBBLE_CONFIG.WHISPER_DELAY);
+                bubbleState.hoverTimers.set(bubble, timer);
+            });
+
+            bubble.addEventListener('mouseleave', () => {
+                const timer = bubbleState.hoverTimers.get(bubble);
+                if (timer) clearTimeout(timer);
+                bubble.classList.remove('whisper-visible');
+                whisperEl.textContent = '';
+            });
+        });
+
+        // Bubble trigger loop
+        function updateBubbles() {
+            const idleDuration = (Date.now() - bubbleState.lastMouseMove) / 1000;
+            const isIdle = idleDuration >= BUBBLE_CONFIG.IDLE_THRESHOLD_FOR_TRIGGER;
+
+            if (isIdle) {
+                bubbleState.wasIdle = true;
+            }
+
+            // First movement after idle → show bubble
+            if (bubbleState.wasIdle && bubbleState.mouseMoveCount > bubbleState.prevMoveCount) {
+                showNextBubble();
+                bubbleState.wasIdle = false;
+            }
+
+            bubbleState.prevMoveCount = bubbleState.mouseMoveCount;
+
+            // Also show on deep idle (every 8s)
+            const idleBasedCount = Math.floor(idleDuration / 8);
+            while (bubbleState.shownCount < idleBasedCount && bubbleState.shownCount < BUBBLE_CONFIG.MAX_BUBBLES) {
+                showNextBubble();
+            }
+
+            // Proximity check
+            updateBubbleProximity(mouseX, mouseY);
+        }
+
+        setInterval(updateBubbles, 500);
 
         // ====== INIT — SLOWER START ======
         setTimeout(tick, 1200);
