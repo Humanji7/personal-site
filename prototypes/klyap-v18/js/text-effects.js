@@ -126,15 +126,19 @@ export function animateRansomAppear(container) {
     const rotations = Array.from(letters).map(() => randomInRange(-20, 20));
 
     gsap.from(letters, {
-        y: -30,
-        autoAlpha: 0,  // Better than opacity for GSAP
-        scale: 0.3,
-        rotation: (i) => rotations[i],  // Pre-calculated
-        duration: 0.4,
-        ease: 'back.out(2.2)',
+        y: -80,              // More dramatic "падёж"
+        autoAlpha: 0,
+        scale: 0.2,          // Smaller start for impact
+        rotation: (i) => rotations[i],
+        duration: 0.55,      // Slightly longer for weight
+        ease: 'back.out(2.8)', // More pronounced overshoot
         stagger: {
             each: RANSOM_CONFIG.staggerDelay / 1000,
             from: 'start'
+        },
+        onComplete: () => {
+            // Reset will-change to prevent GPU memory leak
+            letters.forEach(l => l.style.willChange = 'auto');
         }
     });
 }

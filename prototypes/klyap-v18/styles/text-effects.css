@@ -8,17 +8,22 @@
     align-items: baseline;
     gap: 0.08em;
     letter-spacing: 0;
+    overflow: visible;
+    padding: 1em;
+    /* Space for shadows at scale 1.8 */
 }
 
 /* ====== RANSOM LETTER — FULL TREATMENT ====== */
 .ransom-letter {
     display: inline-block;
-    padding: 0.1em 0.15em;
+    padding: 0.2em 0.25em;
+    /* Increased for shadow visibility at scale */
     border-radius: 1px;
     line-height: 1;
     font-weight: 500;
     will-change: transform;
     transform-origin: center bottom;
+    overflow: visible;
     position: relative;
 
     /* Paper grain texture via inline SVG */
@@ -35,37 +40,56 @@
 
 /* ====== INVERTED LETTERS (white on black) ====== */
 .ransom-letter.inverted {
-    background: #1a1a1a !important;
-    color: #ffffff !important;
+    background: #2a2a2a !important;
+    /* Softer black */
+    color: #f0f0f0 !important;
+    /* Not pure white */
+    opacity: 0.92;
+    z-index: 3;
+    /* Above regular letters */
     box-shadow:
-        2px 3px 4px rgba(0, 0, 0, 0.6),
-        inset 0 0 5px rgba(255, 255, 255, 0.1);
+        1.5px 2.5px 3px rgba(0, 0, 0, 0.5),
+        inset 0 0 4px rgba(255, 255, 255, 0.05);
 }
 
 /* ====== TAPE EFFECT (scotch tape overlay) ====== */
+.ransom-letter.taped {
+    z-index: 4;
+    /* Taped on top of all */
+}
+
 .ransom-letter.taped::after {
     content: '';
     position: absolute;
-    inset: -4px -6px;
+    inset: -5px -8px;
     background: linear-gradient(var(--tape-angle, 135deg),
-            rgba(255, 255, 220, 0.1) 0%,
-            rgba(255, 255, 220, 0.4) 40%,
-            rgba(255, 255, 220, 0.2) 60%,
-            rgba(255, 255, 220, 0.1) 100%);
-    border-radius: 1px;
+            rgba(255, 255, 230, 0.15) 0%,
+            rgba(255, 255, 230, 0.55) 35%,
+            rgba(255, 255, 230, 0.35) 65%,
+            rgba(255, 255, 230, 0.1) 100%);
+    border-radius: 2px;
     pointer-events: none;
-    mix-blend-mode: overlay;
+    mix-blend-mode: screen;
+    /* More visible than overlay */
 }
 
-/* ====== BLOOD SPECK ====== */
+/* ====== BLOOD SPECK (organic, layered) ====== */
 .ransom-letter.bloody::before {
     content: '';
     position: absolute;
-    width: 8px;
-    height: 6px;
-    background: radial-gradient(ellipse, rgba(139, 0, 0, 0.7) 0%, transparent 70%);
+    width: 10px;
+    height: 8px;
+    background:
+        radial-gradient(ellipse 60% 80% at 40% 40%,
+            rgba(120, 20, 20, 0.85) 0%,
+            rgba(139, 0, 0, 0.6) 40%,
+            transparent 70%),
+        radial-gradient(ellipse at 70% 60%,
+            rgba(80, 0, 0, 0.4) 0%,
+            transparent 50%);
     top: var(--blood-y, -2px);
     left: var(--blood-x, 80%);
+    filter: blur(0.5px);
     pointer-events: none;
 }
 

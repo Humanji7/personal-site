@@ -221,27 +221,27 @@ export const RANSOM_CONFIG = {
     chance: 0.20,                     // 20% — реже, но impact больше
 
     fonts: [
-        'Georgia, serif',
-        'Impact, sans-serif',              // TABLOID HEADER
-        'Arial Black, sans-serif',         // Bold sans
-        'Courier New, monospace',
-        'Times New Roman, serif',
-        '"Palatino Linotype", serif',
-        '"Trebuchet MS", sans-serif',
-        'Verdana, sans-serif'
+        'Georgia, "Times New Roman", serif',
+        'Impact, "Arial Black", Haettenschweiler, sans-serif',
+        '"Arial Black", Impact, sans-serif',
+        '"Courier New", Courier, monospace',
+        '"Times New Roman", Times, serif',
+        '"Palatino Linotype", Palatino, "Book Antiqua", serif',
+        '"Trebuchet MS", "Lucida Grande", sans-serif',
+        'Verdana, Geneva, sans-serif'
     ],
 
-    rotation: { min: -25, max: 25 },       // Более агрессивный
-    scale: { min: 0.7, max: 1.8 },         // Шире
-    hueShift: { min: -30, max: 30 },       // degrees
+    rotation: { min: -25, max: 25 },
+    scale: { min: 0.7, max: 1.8 },
+    hueShift: { min: -30, max: 30 },
 
-    // Вариации приклеенности
-    tapeChance: 0.12,                      // 12% имеют "скотч"
-    invertedChance: 0.08,                  // 8% инвертированные (белый на чёрном)
-    bloodSpeckChance: 0.05,                // 5% с красным пятном
-    overlapChance: 0.10,                   // 10% налезают на соседнюю
+    // Effect probabilities
+    tapeChance: 0.12,
+    invertedChance: 0.08,
+    bloodSpeckChance: 0.05,
+    overlapChance: 0.10,
 
-    staggerDelay: 45,                      // Быстрее
+    staggerDelay: 55,                      // More readable stagger
 
     // Контрастные фоны
     backgrounds: [
