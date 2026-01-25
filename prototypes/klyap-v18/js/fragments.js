@@ -6,7 +6,7 @@
 import {
     CONFIG, MAX_FRAGMENT_REPETITIONS, FRAGMENT_BASE, LAYER_MAP,
     LAYER_THRESHOLDS, DISPLACEMENT_INTENSITY, DISPLACEMENT_DECAY,
-    TEMPORAL_DISPLACEMENT, MORPH_VARIANTS, PERIODIC_MORPH
+    TEMPORAL_DISPLACEMENT, MORPH_VARIANTS, MORPH_WEIGHTS, PERIODIC_MORPH
 } from './config.js';
 import { AppState, getCycleTime, setLayer, updateDepth, resetFragmentUsage } from './state.js';
 import { decomposeFragment, assembleFragment, triggerWindSweep } from './particles.js';
@@ -135,9 +135,13 @@ function triggerDisplacement(fromLayer, toLayer) {
  * Get random morph variant for periodic morphing (v18.2)
  */
 function getRandomMorphVariant() {
-    const variants = Object.keys(MORPH_VARIANTS);
-    const key = variants[Math.floor(Math.random() * variants.length)];
-    return { name: key, ...MORPH_VARIANTS[key] };
+    const total = Object.values(MORPH_WEIGHTS).reduce((a, b) => a + b, 0);
+    let rand = Math.random() * total;
+    for (const [name, weight] of Object.entries(MORPH_WEIGHTS)) {
+        rand -= weight;
+        if (rand <= 0) return { name, ...MORPH_VARIANTS[name] };
+    }
+    return { name: 'subtle', ...MORPH_VARIANTS.subtle };
 }
 
 /**
@@ -188,7 +192,7 @@ export function spawnFragment() {
     fragment.style.left = `calc(50% + ${offsetX}px)`;
     fragment.style.top = `calc(50% + ${offsetY}px)`;
     fragment.style.rotate = (Math.random() * 40 - 20) + 'deg';
-    fragment.style.zIndex = Math.floor(Math.random() * 50);
+    fragment.style.zIndex = 10 + Math.floor(Math.random() * 15);  // Tighter grouping for overlap
 
     // Animation duration
     const { min, max } = CONFIG.fragmentLifetime;
@@ -237,9 +241,12 @@ export function spawnFragment() {
         const sourceUrl = `${FRAGMENT_BASE}/${fromLayer}/fragment-${fromId}.png`;
         const targetUrl = `${FRAGMENT_BASE}/${toLayer}/fragment-${toId}.png`;
 
+        fragment.classList.add('morphing');
         window.localizedMorph.morphElement(fragment, sourceUrl, targetUrl, {
             duration: variant.duration,
-            intensity: variant.intensity
+            intensity: variant.intensity,
+            easing: variant.easing,
+            onComplete: () => fragment.classList.remove('morphing')
         });
 
         console.log(`[v18.2] Periodic morph: ${variant.name} (intensity: ${variant.intensity}, duration: ${variant.duration}ms)`);

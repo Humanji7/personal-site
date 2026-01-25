@@ -227,7 +227,7 @@ class LocalizedMorphRenderer {
                 gsap.to(morph, {
                     progress: 1,
                     duration: duration / 1000,
-                    ease: 'power2.inOut',
+                    ease: options.easing || 'power2.inOut',
                     onComplete: resolve
                 });
             });

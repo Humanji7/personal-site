@@ -4,23 +4,24 @@
  */
 
 // ====== TIMING ======
-export const CYCLE_DURATION = 40000; // 40 seconds
-export const MAX_FRAGMENT_REPETITIONS = 2;
+export const CYCLE_DURATION = 20000; // 20 seconds (v18.4)
+export const MAX_FRAGMENT_REPETITIONS = 3; // Increased for 20s cycle
 
 // ====== MAIN CONFIG ======
 export const CONFIG = {
     fragmentCount: 43,
     maxActiveFragments: 12,
 
-    // Time-based phases (v17 40s cycle)
+    // Time-based phases (v18.4 20s cycle — 0.5x duration, tighter intervals)
     phases: {
-        sparse: { start: 0, end: 15000, interval: 1500, variance: 400 },
-        hook: { start: 15000, end: 30000, interval: 600, variance: 150 },
-        overwhelm: { start: 30000, end: 38000, interval: 250, variance: 50 },
-        fade: { start: 38000, end: 40000, interval: 3000, variance: 0 }
+        sparse: { start: 0, end: 7500, interval: 1000, variance: 250 },      // 0-7.5s
+        hook: { start: 7500, end: 15000, interval: 450, variance: 100 },      // 7.5-15s
+        overwhelm: { start: 15000, end: 19000, interval: 200, variance: 40 }, // 15-19s
+        fade: { start: 19000, end: 20000, interval: 2000, variance: 0 }       // 19-20s
     },
 
-    fragmentLifetime: { min: 3, max: 5 },
+    // Increased lifetime for smoother overlap in faster cycle
+    fragmentLifetime: { min: 4, max: 7 },
     burstChance: 0.08,
     burstCount: [4, 8],
     voidChance: 0.015,
@@ -36,11 +37,12 @@ export const CONFIG = {
         MIN_SPAWN_INTERVAL: 100
     },
 
+    // Meta-messages rescaled for 20s cycle
     metaMessages: [
-        { time: 5000, text: "ты здесь" },
-        { time: 18000, text: "время замедляется" },
-        { time: 28000, text: "кто смотрит?" },
-        { time: 35000, text: "можно остановиться" }
+        { time: 2500, text: "ты здесь" },          // 5000 → 2500 (sparse phase)
+        { time: 9000, text: "время замедляется" }, // 18000 → 9000 (hook phase)
+        { time: 14000, text: "кто смотрит?" },     // 28000 → 14000 (late hook)
+        { time: 17500, text: "можно остановиться" } // 35000 → 17500 (overwhelm)
     ]
 };
 
@@ -115,17 +117,28 @@ export const TEMPORAL_DISPLACEMENT = {
     shockPauseDuration: 1500          // Пауза после первого удара (ms)
 };
 
-// ====== MORPH VARIANTS (v18.2) ======
+// ====== MORPH VARIANTS (v18.5) ======
 export const MORPH_VARIANTS = {
-    subtle: { intensity: 0.3, duration: 1500 },  // Мягкое перетекание
-    aggressive: { intensity: 0.8, duration: 800 },   // Резкий разрыв
+    subtle: { intensity: 0.3, duration: 1500 },       // Мягкое перетекание
+    aggressive: { intensity: 0.8, duration: 800 },    // Резкий разрыв
     'slow-burn': { intensity: 0.5, duration: 2500 },  // Медленная трансформация
-    glitch: { intensity: 1.0, duration: 400 }    // Мгновенный сбой
+    glitch: { intensity: 1.0, duration: 400 },        // Мгновенный сбой
+    jelly: { intensity: 0.4, duration: 2000, easing: 'sine.inOut' }  // Желейное перетекание
 };
 
 export const PERIODIC_MORPH = {
     enabled: true,
-    frequency: 3   // Каждый N-й фрагмент
+    frequency: 2   // Каждый N-й фрагмент (v18.5: increased)
+};
+
+// ====== MORPH WEIGHTS (v18.5) ======
+// 80% smooth (jelly, slow-burn, subtle), 20% sharp (aggressive, glitch)
+export const MORPH_WEIGHTS = {
+    jelly: 35,
+    'slow-burn': 30,
+    subtle: 15,
+    aggressive: 12,
+    glitch: 8
 };
 
 // ====== LAYER PARTICLE COLORS ======

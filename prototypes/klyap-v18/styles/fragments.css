@@ -183,3 +183,46 @@
         filter: blur(0);
     }
 }
+
+/* ====== JELLY EFFECTS (v18.5) ====== */
+
+.fragment {
+    mix-blend-mode: soft-light;
+}
+
+.fragment.morphing {
+    filter: blur(2px);
+    animation: jellyWobble 0.6s ease-in-out infinite !important;
+}
+
+@keyframes jellyWobble {
+
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+    }
+
+    25% {
+        transform: translate(-50%, -50%) scale(1.02, 0.98) rotate(0.5deg);
+    }
+
+    75% {
+        transform: translate(-50%, -50%) scale(0.98, 1.02) rotate(-0.5deg);
+    }
+}
+
+.fragment.pulsing {
+    animation: jellyPulse 3.5s ease-in-out infinite;
+}
+
+@keyframes jellyPulse {
+
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.05);
+    }
+}
