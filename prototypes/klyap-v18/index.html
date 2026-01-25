@@ -1050,15 +1050,21 @@
                 if (typeof triggerWindSweep === 'function') triggerWindSweep();
 
                 // ====== v18: WebGL MORPH на смену layer ======
-                if (window.morphCanvas && window.morphCanvas.canMorph()) {
-                    const prevFrags = LAYER_MAP[state.previousLayer];
-                    const newFrags = LAYER_MAP[newLayer];
-                    const sourceId = prevFrags[Math.floor(Math.random() * prevFrags.length)];
-                    const targetId = newFrags[Math.floor(Math.random() * newFrags.length)];
-                    const sourceUrl = `${FRAGMENT_BASE}/${state.previousLayer}/fragment-${sourceId}.png`;
-                    const targetUrl = `${FRAGMENT_BASE}/${newLayer}/fragment-${targetId}.png`;
-                    window.morphCanvas.morph(sourceUrl, targetUrl);
-                    console.log(`[v18] Morph: ${state.previousLayer} → ${newLayer}`);
+                // Локализованный морфинг на последнем активном фрагменте
+                if (window.localizedMorph?.canMorph() && state.previousLayer) {
+                    const existingFrags = stream.querySelectorAll('.fragment');
+                    const morphTarget = existingFrags[existingFrags.length - 1];
+                    if (morphTarget) {
+                        const prevFrags = LAYER_MAP[state.previousLayer];
+                        const newFrags = LAYER_MAP[newLayer];
+                        const sourceId = prevFrags[Math.floor(Math.random() * prevFrags.length)];
+                        const targetId = newFrags[Math.floor(Math.random() * newFrags.length)];
+                        const sourceUrl = `${FRAGMENT_BASE}/${state.previousLayer}/fragment-${sourceId}.png`;
+                        const targetUrl = `${FRAGMENT_BASE}/${newLayer}/fragment-${targetId}.png`;
+
+                        window.localizedMorph.morphElement(morphTarget, sourceUrl, targetUrl);
+                        console.log(`[v18] Localized morph on fragment`);
+                    }
                 }
             }
 

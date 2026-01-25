@@ -1,57 +1,55 @@
 /**
- * KLYAP v18 — MorphCanvas
- * WebGL-based displacement morphing between fragment images
- * 
- * Uses Three.js for WebGL rendering with procedural noise displacement
+ * KLYAP v18 — LocalizedMorphRenderer
+ * WebGL-based displacement morphing attached to DOM elements
  */
 
-class MorphCanvas {
+class LocalizedMorphRenderer {
     constructor() {
-        // WebGL support check
         this.enabled = this._canUseWebGL() && !('ontouchstart' in window);
 
         if (!this.enabled) {
-            console.log('[MorphCanvas] WebGL disabled, using CSS fallback');
+            console.log('[LocalizedMorph] Disabled, using CSS fallback');
             return;
         }
 
-        // Configuration
         this.config = {
-            duration: 2000,
+            duration: 1500,
             intensity: 0.5,
-            maxConcurrent: 2,
-            cooldown: 3000
+            maxConcurrent: 5
         };
 
-        // State
-        this.activeMorphs = 0;
-        this.lastMorphTime = 0;
+        // Map: element → { tex1, tex2, progress, gsapTween, startTime }
+        this.activeMorphs = new Map();
         this.textureCache = new Map();
+        this.rafId = null;
 
-        // Three.js setup
         this._initThree();
+        this._startRenderLoop();
 
-        console.log('[MorphCanvas] Initialized');
+        // Debug hotkey (Shift+M) - only in debug mode
+        if (location.search.includes('debug=true')) {
+            document.addEventListener('keydown', (e) => {
+                if (e.shiftKey && e.key === 'M') {
+                    this.toggle();
+                }
+            });
+        }
+
+        console.log('[LocalizedMorph] Initialized');
     }
 
     _canUseWebGL() {
         try {
             const canvas = document.createElement('canvas');
             return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
-        } catch (e) {
-            return false;
-        }
+        } catch (e) { return false; }
     }
 
     _initThree() {
-        // Scene
         this.scene = new THREE.Scene();
-
-        // Camera (orthographic for 2D effect)
         this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
         this.camera.position.z = 1;
 
-        // Renderer
         this.renderer = new THREE.WebGLRenderer({
             alpha: true,
             antialias: false,
@@ -65,20 +63,18 @@ class MorphCanvas {
             inset: 0;
             z-index: 20;
             pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s ease-out;
         `;
+        this.renderer.autoClear = false;
         document.getElementById('klyap-container').appendChild(this.renderer.domElement);
 
-        // Shader material
+        // Shader (same as before)
         this.material = new THREE.ShaderMaterial({
             uniforms: {
                 uTexture1: { value: null },
                 uTexture2: { value: null },
                 uProgress: { value: 0 },
                 uIntensity: { value: this.config.intensity },
-                uTime: { value: 0 },
-                uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+                uTime: { value: 0 }
             },
             vertexShader: `
                 varying vec2 vUv;
@@ -93,235 +89,198 @@ class MorphCanvas {
                 uniform float uProgress;
                 uniform float uIntensity;
                 uniform float uTime;
-                uniform vec2 uResolution;
-                
                 varying vec2 vUv;
-                
-                // Simplex-like noise (optimized)
+
                 float hash(vec2 p) {
                     return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
                 }
-                
+
                 float noise(vec2 p) {
                     vec2 i = floor(p);
                     vec2 f = fract(p);
-                    f = f * f * (3.0 - 2.0 * f); // smoothstep
-                    
+                    f = f * f * (3.0 - 2.0 * f);
                     float a = hash(i);
                     float b = hash(i + vec2(1.0, 0.0));
                     float c = hash(i + vec2(0.0, 1.0));
                     float d = hash(i + vec2(1.0, 1.0));
-                    
                     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
                 }
-                
+
                 float fbm(vec2 p) {
-                    float value = 0.0;
-                    float amplitude = 0.5;
+                    float v = 0.0, a = 0.5;
                     for (int i = 0; i < 4; i++) {
-                        value += amplitude * noise(p);
+                        v += a * noise(p);
                         p *= 2.0;
-                        amplitude *= 0.5;
+                        a *= 0.5;
                     }
-                    return value;
+                    return v;
                 }
-                
+
                 void main() {
                     vec2 uv = vUv;
-                    
-                    // Procedural displacement
                     float n = fbm(uv * 6.0 + uTime * 0.2) * 2.0 - 1.0;
-                    
-                    // Displacement peaks at 50% progress (sin curve)
                     float dispStrength = sin(uProgress * 3.14159) * uIntensity;
                     float disp = n * dispStrength;
-                    
-                    // Displaced UVs
-                    vec2 uv1 = uv + disp * (1.0 - uProgress);
-                    vec2 uv2 = uv - disp * uProgress;
-                    
-                    // Clamp to prevent edge artifacts
-                    uv1 = clamp(uv1, 0.0, 1.0);
-                    uv2 = clamp(uv2, 0.0, 1.0);
-                    
-                    vec4 color1 = texture2D(uTexture1, uv1);
-                    vec4 color2 = texture2D(uTexture2, uv2);
-                    
-                    // Smooth blend
-                    float blend = smoothstep(0.0, 1.0, uProgress);
-                    gl_FragColor = mix(color1, color2, blend);
+
+                    vec2 uv1 = clamp(uv + disp * (1.0 - uProgress), 0.0, 1.0);
+                    vec2 uv2 = clamp(uv - disp * uProgress, 0.0, 1.0);
+
+                    vec4 c1 = texture2D(uTexture1, uv1);
+                    vec4 c2 = texture2D(uTexture2, uv2);
+
+                    gl_FragColor = mix(c1, c2, smoothstep(0.0, 1.0, uProgress));
                 }
             `,
             transparent: true
         });
 
-        // Plane geometry
         this.geometry = new THREE.PlaneGeometry(2, 2);
         this.mesh = new THREE.Mesh(this.geometry, this.material);
         this.scene.add(this.mesh);
 
-        // Resize handler
-        window.addEventListener('resize', () => this._onResize());
-
-        // Animation time
         this.clock = new THREE.Clock();
+        window.addEventListener('resize', () => this._onResize());
     }
 
     _onResize() {
         if (!this.enabled) return;
-
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.material.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
     }
 
-    /**
-     * Load texture with caching
-     */
+    _startRenderLoop() {
+        const render = () => {
+            this.rafId = requestAnimationFrame(render);
+            if (this.activeMorphs.size === 0) return;
+
+            this.renderer.clear();
+            const time = this.clock.getElapsedTime();
+
+            for (const [element, morph] of this.activeMorphs) {
+                const rect = element.getBoundingClientRect();
+                if (rect.width === 0 || rect.height === 0) continue;
+
+                // WebGL Y is flipped
+                const y = window.innerHeight - rect.bottom;
+
+                this.renderer.setScissor(rect.x, y, rect.width, rect.height);
+                this.renderer.setViewport(rect.x, y, rect.width, rect.height);
+                this.renderer.setScissorTest(true);
+
+                this.material.uniforms.uTexture1.value = morph.tex1;
+                this.material.uniforms.uTexture2.value = morph.tex2;
+                this.material.uniforms.uProgress.value = morph.progress;
+                this.material.uniforms.uTime.value = time;
+
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            this.renderer.setScissorTest(false);
+        };
+        render();
+    }
+
     async _loadTexture(url) {
-        if (this.textureCache.has(url)) {
-            return this.textureCache.get(url);
-        }
+        if (this.textureCache.has(url)) return this.textureCache.get(url);
 
         return new Promise((resolve, reject) => {
-            const loader = new THREE.TextureLoader();
-            loader.load(url,
-                (texture) => {
-                    texture.minFilter = THREE.LinearFilter;
-                    texture.magFilter = THREE.LinearFilter;
-                    this.textureCache.set(url, texture);
-                    resolve(texture);
-                },
-                undefined,
-                reject
-            );
+            new THREE.TextureLoader().load(url, (tex) => {
+                tex.minFilter = THREE.LinearFilter;
+                tex.magFilter = THREE.LinearFilter;
+                this.textureCache.set(url, tex);
+                resolve(tex);
+            }, undefined, reject);
         });
     }
 
     /**
-     * Dispose texture from cache
+     * Morph a specific DOM element
+     * @param {HTMLElement} element - .fragment div
+     * @param {string} sourceUrl - current image URL
+     * @param {string} targetUrl - new image URL
+     * @param {object} options - { duration, intensity, onComplete }
      */
-    _disposeTexture(url) {
-        if (this.textureCache.has(url)) {
-            const texture = this.textureCache.get(url);
-            texture.dispose();
-            this.textureCache.delete(url);
-        }
-    }
-
-    /**
-     * Check if morph can be triggered
-     */
-    canMorph() {
+    async morphElement(element, sourceUrl, targetUrl, options = {}) {
         if (!this.enabled) return false;
-        if (this.activeMorphs >= this.config.maxConcurrent) return false;
-        if (Date.now() - this.lastMorphTime < this.config.cooldown) return false;
-        return true;
-    }
+        if (this.activeMorphs.size >= this.config.maxConcurrent) return false;
+        if (this.activeMorphs.has(element)) return false;
 
-    /**
-     * Main morph method
-     * @param {string} sourceUrl - URL of source image
-     * @param {string} targetUrl - URL of target image
-     * @param {number} duration - Duration in ms (optional)
-     * @param {number} intensity - Displacement intensity (optional)
-     */
-    async morph(sourceUrl, targetUrl, duration, intensity) {
-        if (!this.canMorph()) {
-            console.log('[MorphCanvas] Morph blocked (cooldown or max concurrent)');
-            return false;
-        }
-
-        this.activeMorphs++;
-        this.lastMorphTime = Date.now();
-
-        const morphDuration = duration || this.config.duration;
-        const morphIntensity = intensity || this.config.intensity;
-
-        console.log(`[MorphCanvas] Morph started: ${sourceUrl.split('/').pop()} → ${targetUrl.split('/').pop()}`);
+        const duration = options.duration || this.config.duration;
+        const intensity = options.intensity || this.config.intensity;
+        const img = element.querySelector('img');
 
         try {
-            // Load textures
             const [tex1, tex2] = await Promise.all([
                 this._loadTexture(sourceUrl),
                 this._loadTexture(targetUrl)
             ]);
 
-            // Setup uniforms
-            this.material.uniforms.uTexture1.value = tex1;
-            this.material.uniforms.uTexture2.value = tex2;
-            this.material.uniforms.uProgress.value = 0;
-            this.material.uniforms.uIntensity.value = morphIntensity;
+            // Hide DOM image
+            if (img) img.style.opacity = '0';
 
-            // Show canvas
-            this.renderer.domElement.style.opacity = '1';
+            const morph = { tex1, tex2, progress: 0, sourceUrl, targetUrl };
+            this.activeMorphs.set(element, morph);
 
-            // Animate with GSAP
+            console.log(`[LocalizedMorph] Started: ${element.className}`);
+
+            // GSAP animation
             await new Promise((resolve) => {
-                gsap.to(this.material.uniforms.uProgress, {
-                    value: 1,
-                    duration: morphDuration / 1000,
+                gsap.to(morph, {
+                    progress: 1,
+                    duration: duration / 1000,
                     ease: 'power2.inOut',
-                    onUpdate: () => {
-                        this.material.uniforms.uTime.value = this.clock.getElapsedTime();
-                        this.renderer.render(this.scene, this.camera);
-                    },
                     onComplete: resolve
                 });
             });
 
-            // Hide canvas
-            this.renderer.domElement.style.opacity = '0';
+            // Cleanup
+            this.activeMorphs.delete(element);
 
-            // Cleanup after fade
-            setTimeout(() => {
-                // Dispose old texture (source), keep target for potential reuse
-                this._disposeTexture(sourceUrl);
-            }, 300);
+            // Show new image
+            if (img) {
+                img.src = targetUrl;
+                img.style.opacity = '1';
+            }
 
-            console.log('[MorphCanvas] Morph completed');
+            // Dispose source texture (keep target for reuse)
+            if (this.textureCache.has(sourceUrl)) {
+                this.textureCache.get(sourceUrl).dispose();
+                this.textureCache.delete(sourceUrl);
+            }
 
-        } catch (error) {
-            console.error('[MorphCanvas] Morph failed:', error);
-        } finally {
-            this.activeMorphs--;
+            if (options.onComplete) options.onComplete();
+            console.log(`[LocalizedMorph] Completed`);
+            return true;
+
+        } catch (err) {
+            console.error('[LocalizedMorph] Failed:', err);
+            this.activeMorphs.delete(element);
+            if (img) img.style.opacity = '1';
+            return false;
         }
-
-        return true;
     }
 
-    /**
-     * Get memory usage info
-     */
-    getMemoryInfo() {
-        if (!this.enabled) return null;
-        return {
-            textures: this.renderer.info.memory.textures,
-            geometries: this.renderer.info.memory.geometries,
-            cachedTextures: this.textureCache.size
-        };
+    toggle() {
+        this.enabled = !this.enabled;
+        this.renderer.domElement.style.display = this.enabled ? 'block' : 'none';
+        console.log(`[LocalizedMorph] ${this.enabled ? 'ENABLED' : 'DISABLED'}`);
     }
 
-    /**
-     * Dispose all resources
-     */
+    canMorph() {
+        return this.enabled && this.activeMorphs.size < this.config.maxConcurrent;
+    }
+
     dispose() {
-        if (!this.enabled) return;
-
-        // Dispose all cached textures
-        this.textureCache.forEach((texture, url) => {
-            texture.dispose();
-        });
+        if (this.rafId) cancelAnimationFrame(this.rafId);
+        this.textureCache.forEach(t => t.dispose());
         this.textureCache.clear();
-
-        // Dispose Three.js resources
         this.geometry.dispose();
         this.material.dispose();
         this.renderer.dispose();
         this.renderer.domElement.remove();
-
-        console.log('[MorphCanvas] Disposed');
     }
 }
 
 // Global instance
-window.morphCanvas = new MorphCanvas();
+window.localizedMorph = new LocalizedMorphRenderer();
+// Backward compat alias
+window.morphCanvas = window.localizedMorph;
