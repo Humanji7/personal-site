@@ -13,9 +13,9 @@ class LocalizedMorphRenderer {
         }
 
         this.config = {
-            duration: 1500,
-            intensity: 0.5,
-            maxConcurrent: 5
+            duration: 1200,      // Faster = more aggressive
+            intensity: 0.65,     // +30% displacement strength
+            maxConcurrent: 8     // +60% capacity for chaos
         };
 
         // Map: element → { tex1, tex2, progress, gsapTween, startTime }

@@ -1,0 +1,11 @@
+{
+  "enabledMcpjsonServers": [
+    "playwright",
+    "zen",
+    "context7",
+    "sequential-thinking",
+    "github",
+    "n8n-mcp"
+  ],
+  "enableAllProjectMcpServers": true
+}

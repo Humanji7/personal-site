@@ -5,7 +5,8 @@
 
 import {
     CONFIG, MAX_FRAGMENT_REPETITIONS, FRAGMENT_BASE, LAYER_MAP,
-    LAYER_THRESHOLDS, DISPLACEMENT_INTENSITY, DISPLACEMENT_DECAY
+    LAYER_THRESHOLDS, DISPLACEMENT_INTENSITY, DISPLACEMENT_DECAY,
+    TEMPORAL_DISPLACEMENT
 } from './config.js';
 import { AppState, getCycleTime, setLayer, updateDepth, resetFragmentUsage } from './state.js';
 import { decomposeFragment, assembleFragment, triggerWindSweep } from './particles.js';
@@ -225,22 +226,64 @@ export function spawnFragment() {
 }
 
 /**
- * Spawn initial state for Temporal Displacement
+ * Spawn initial state for Temporal Displacement (v18.1)
  */
 export function spawnInitialState() {
-    const initialCount = 2 + Math.floor(Math.random() * 2);
-    for (let i = 0; i < initialCount; i++) {
+    if (!TEMPORAL_DISPLACEMENT.enabled) {
+        // Fallback to minimal spawn
+        spawnFragment();
+        spawnFragment();
+        return;
+    }
+
+    const { initialFragmentCount, initialLayer, initialMorphCount } = TEMPORAL_DISPLACEMENT;
+
+    // Force initial layer for hook effect
+    setLayer(initialLayer);
+
+    // Spawn fragments
+    for (let i = 0; i < initialFragmentCount; i++) {
         spawnFragment();
     }
 
-    // One fragment already fading out
+    // One fragment already mid-animation (fading)
     const fragments = stream.querySelectorAll('.fragment');
     if (fragments.length > 0) {
-        const fadingFrag = fragments[0];
-        fadingFrag.style.animationDelay = '-' + (CONFIG.fragmentLifetime.min * 0.7) + 's';
+        fragments[0].style.animationDelay = `-${CONFIG.fragmentLifetime.min * 0.7}s`;
     }
 
-    console.log(`[v18] Initial state spawned: ${initialCount} fragments`);
+    // Initial morph burst for disorientation
+    if (window.localizedMorph?.enabled && fragments.length >= 2) {
+        triggerInitialMorphs(fragments, initialMorphCount);
+    }
+
+    console.log(`[v18.1] Temporal Displacement: ${initialFragmentCount} frags, ${initialMorphCount} morphs`);
+}
+
+/**
+ * Trigger initial morphs for disorientation effect
+ */
+function triggerInitialMorphs(fragments, count) {
+    const morphTargets = Array.from(fragments).slice(0, count);
+    const layers = Object.keys(LAYER_MAP);
+
+    morphTargets.forEach((frag, i) => {
+        setTimeout(() => {
+            const fromLayer = layers[Math.floor(Math.random() * layers.length)];
+            const toLayer = layers[Math.floor(Math.random() * layers.length)];
+
+            const fromId = LAYER_MAP[fromLayer][Math.floor(Math.random() * LAYER_MAP[fromLayer].length)];
+            const toId = LAYER_MAP[toLayer][Math.floor(Math.random() * LAYER_MAP[toLayer].length)];
+
+            const sourceUrl = `${FRAGMENT_BASE}/${fromLayer}/fragment-${fromId}.png`;
+            const targetUrl = `${FRAGMENT_BASE}/${toLayer}/fragment-${toId}.png`;
+
+            window.localizedMorph.morphElement(frag, sourceUrl, targetUrl, {
+                duration: 800 + i * 200,  // Staggered timing
+                intensity: 0.7
+            });
+        }, 100 + i * 300);  // Staggered start
+    });
 }
 
 /**
@@ -249,3 +292,4 @@ export function spawnInitialState() {
 export function getStream() {
     return stream;
 }
+

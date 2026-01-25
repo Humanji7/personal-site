@@ -3,7 +3,7 @@
  * Orchestrates all modules and initializes the experience
  */
 
-import { CONFIG } from './config.js';
+import { CONFIG, TEMPORAL_DISPLACEMENT } from './config.js';
 import { AppState, updateMousePosition, recordScroll } from './state.js';
 import { initMembrane } from './membrane.js';
 import { initParticles } from './particles.js';
@@ -34,10 +34,13 @@ function init() {
     // Temporal Displacement: spawn initial state
     spawnInitialState();
 
-    // Start main tick loop
-    setTimeout(tick, CONFIG.timing.INITIAL_DELAY);
+    // Start main tick loop with SHOCK PAUSE
+    const shockPause = TEMPORAL_DISPLACEMENT.enabled
+        ? TEMPORAL_DISPLACEMENT.shockPauseDuration
+        : CONFIG.timing.INITIAL_DELAY;
+    setTimeout(tick, shockPause);
 
-    console.log('[KLYAP v18] Modular system initialized');
+    console.log('[KLYAP v18.1] Temporal Displacement initialized');
 }
 
 /**

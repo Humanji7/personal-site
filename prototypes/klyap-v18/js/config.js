@@ -106,6 +106,15 @@ export const PARTICLE_CONFIG = {
     WIND_SWEEP_CHANCE: 0.05
 };
 
+// ====== TEMPORAL DISPLACEMENT (v18.1) ======
+export const TEMPORAL_DISPLACEMENT = {
+    enabled: true,
+    initialFragmentCount: 4,         // 40-60% от пиковой активности
+    initialLayer: 'intimate',         // Hook layer — "почти знакомое"
+    initialMorphCount: 2,             // Морфов при старте
+    shockPauseDuration: 1500          // Пауза после первого удара (ms)
+};
+
 // ====== LAYER PARTICLE COLORS ======
 export const LAYER_PARTICLE_COLORS = {
     noise: ['hsla(0, 0%, 20%, 0.8)', 'hsla(0, 0%, 30%, 0.7)', 'hsla(280, 10%, 15%, 0.9)'],
@@ -118,6 +127,6 @@ export const LAYER_PARTICLE_COLORS = {
 
 // ====== TEXT PHRASES ======
 export const TEXT_PHRASES = [
-    'распирает', 'глубже', 'ещё', 'не останавливайся',
-    'внутрь', 'растворяет', 'тяжело', 'сладко'
+    '...продолжается', 'распирает', 'глубже', 'ещё', 'не останавливайся',
+    'внутрь', 'растворяет', 'тяжело', 'сладко', 'снова'
 ];
