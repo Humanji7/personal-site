@@ -1,0 +1,1733 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KLYAP v18 — WebGL Morphing</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=Mystery+Quest&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: hsl(280, 35%, 2%);
+            cursor: none;
+        }
+
+        /* ====== MEMBRANE CANVAS ====== */
+        #membrane-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+
+        /* ====== ATMOSPHERIC LAYERS ====== */
+
+        /* Breathing Vignette — SLOWER */
+        #vignette {
+            position: fixed;
+            inset: -40%;
+            pointer-events: none;
+            z-index: 100;
+            background: radial-gradient(ellipse 50% 50% at 50% 50%,
+                    transparent 10%,
+                    hsla(280, 45%, 3%, 0.5) 35%,
+                    hsla(280, 50%, 2%, 0.85) 55%,
+                    hsl(280, 55%, 1%) 75%);
+            animation: vignetteBreathe 10s ease-in-out infinite;
+            transition: transform 3s ease-out;
+        }
+
+        @keyframes vignetteBreathe {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.9;
+            }
+
+            50% {
+                transform: scale(0.88);
+                opacity: 1;
+            }
+        }
+
+        #vignette.intense {
+            transform: scale(0.75) !important;
+        }
+
+        /* Scanlines */
+        #scanlines {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 101;
+            background: repeating-linear-gradient(0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 0, 0, 0.04) 2px,
+                    rgba(0, 0, 0, 0.04) 4px);
+            animation: scanlineFlicker 0.2s infinite;
+        }
+
+        @keyframes scanlineFlicker {
+
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 0.45;
+            }
+        }
+
+        /* Noise overlay */
+        #noise {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 102;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            mix-blend-mode: overlay;
+            animation: noisePulse 5s ease-in-out infinite;
+        }
+
+        @keyframes noisePulse {
+
+            0%,
+            100% {
+                opacity: 0.03;
+            }
+
+            50% {
+                opacity: 0.08;
+            }
+        }
+
+        /* ====== CURSOR ====== */
+        .cursor-glow {
+            position: fixed;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 200;
+            background: radial-gradient(circle,
+                    hsla(290, 50%, 40%, 0.15) 0%,
+                    hsla(285, 45%, 25%, 0.08) 40%,
+                    transparent 70%);
+            transform: translate(-50%, -50%);
+            mix-blend-mode: screen;
+            transition: width 0.5s, height 0.5s;
+        }
+
+        .cursor-glow.active {
+            width: 150px;
+            height: 150px;
+        }
+
+        /* ====== FRAGMENT STREAM ====== */
+        #stream {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        .fragment {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) scale(0.3);
+            opacity: 0;
+            filter: blur(20px);
+            pointer-events: none;
+            will-change: transform, opacity, filter;
+            animation: fragment-emerge var(--anim-duration, 4s) ease-out forwards;
+        }
+
+        .fragment img {
+            max-width: 450px;
+            max-height: 450px;
+            object-fit: contain;
+        }
+
+        /* ====== LAYER EFFECTS ====== */
+        .fragment.layer-intimate {
+            filter: sepia(0.8) contrast(1.2) brightness(0.9);
+        }
+
+        .fragment.layer-mirror {
+            filter: hue-rotate(180deg) saturate(2) brightness(1.3);
+            animation: glitchPulse 0.5s infinite;
+        }
+
+        .fragment.layer-visceral {
+            filter: hue-rotate(-30deg) saturate(3) contrast(1.4);
+            box-shadow: 0 0 60px 20px rgba(180, 30, 30, 0.5);
+        }
+
+        .fragment.layer-noise {
+            filter: grayscale(1) contrast(2) brightness(0.7);
+            opacity: 0.5;
+        }
+
+        .fragment.layer-vivid {
+            filter: saturate(2.5) brightness(1.3) hue-rotate(20deg);
+            box-shadow: 0 0 40px 10px rgba(255, 0, 255, 0.3);
+        }
+
+        .fragment.layer-flesh {
+            filter: sepia(0.25) saturate(1.4) contrast(1.15);
+            box-shadow: 0 0 30px 8px rgba(180, 100, 100, 0.25);
+        }
+
+
+        @keyframes glitchPulse {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+            25% {
+                transform: translate(-51%, -49%) scale(1.01);
+            }
+
+            75% {
+                transform: translate(-49%, -51%) scale(0.99);
+            }
+        }
+
+        @keyframes fragment-emerge {
+            0% {
+                transform: translate(-50%, -50%) scale(0.3);
+                opacity: 0;
+                filter: blur(20px);
+            }
+
+            20% {
+                opacity: 0.8;
+                filter: blur(8px);
+            }
+
+            40% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+                filter: blur(0);
+            }
+
+            100% {
+                transform: translate(var(--drift-x), var(--drift-y)) scale(1.05);
+                opacity: 0;
+                filter: blur(8px);
+            }
+        }
+
+        /* ====== META MESSAGES — UPGRADED ====== */
+        .meta-message {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            color: hsla(290, 30%, 50%, 0);
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: 400;
+            letter-spacing: 0.1em;
+            text-transform: lowercase;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 1s ease-out, color 1s ease-out;
+            text-shadow: 0 0 40px hsla(290, 40%, 30%, 0.5);
+        }
+
+        .meta-message.visible {
+            opacity: 1;
+            color: hsla(290, 30%, 55%, 0.7);
+            animation: textBreathe 6s ease-in-out infinite;
+        }
+
+        @keyframes textBreathe {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.7;
+            }
+
+            50% {
+                transform: translate(-50%, -50%) scale(1.03);
+                opacity: 1;
+            }
+        }
+
+        /* ====== TREMOR (GENTLER) ====== */
+        @keyframes contentTremor {
+
+            0%,
+            100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            25% {
+                transform: translate(-2px, 1px) rotate(-0.15deg);
+            }
+
+            50% {
+                transform: translate(2px, -1px) rotate(0.1deg);
+            }
+
+            75% {
+                transform: translate(-1px, -1px) rotate(-0.1deg);
+            }
+        }
+
+        @keyframes intenseTremor {
+
+            0%,
+            100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            20% {
+                transform: translate(-4px, 2px) rotate(-0.4deg);
+            }
+
+            40% {
+                transform: translate(3px, -3px) rotate(0.3deg);
+            }
+
+            60% {
+                transform: translate(-3px, 2px) rotate(-0.3deg);
+            }
+
+            80% {
+                transform: translate(4px, -2px) rotate(0.4deg);
+            }
+        }
+
+        #stream.tremor {
+            animation: contentTremor 0.8s ease-in-out infinite;
+        }
+
+        #stream.intense-tremor {
+            animation: intenseTremor 0.4s ease-in-out infinite;
+        }
+
+        /* ====== LAYER FLASH ====== */
+        #layer-flash {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 90;
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+        }
+
+        #layer-flash.intimate {
+            background: radial-gradient(circle, rgba(255, 200, 100, 0.4), transparent 70%);
+        }
+
+        #layer-flash.mirror {
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.5), transparent 70%);
+        }
+
+        #layer-flash.visceral {
+            background: radial-gradient(circle, rgba(200, 30, 30, 0.5), transparent 70%);
+        }
+
+        #layer-flash.noise {
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.3), transparent 70%);
+        }
+
+        #layer-flash.vivid {
+            background: radial-gradient(circle, rgba(255, 0, 255, 0.5), transparent 70%);
+        }
+
+        #layer-flash.flesh {
+            background: radial-gradient(circle, rgba(200, 130, 130, 0.4), transparent 70%);
+        }
+
+
+        #layer-flash.active {
+            opacity: 1;
+        }
+
+        /* ====== DISPLACEMENT ====== */
+        #stream.displacement-active {
+            filter: url(#displacement-filter);
+        }
+
+        /* ====== PARTICLE CANVAS ====== */
+        #particle-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 15;
+            pointer-events: none;
+        }
+
+        /* ====== DEBUG ====== */
+        #debug {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: hsla(290, 50%, 60%, 0.4);
+            font-family: monospace;
+            font-size: 11px;
+            z-index: 300;
+            line-height: 1.5;
+        }
+
+        /* ====== TEXT-BLOCK (центральное слово) ====== */
+        .text-block {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            color: hsl(285, 20%, 50%);
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 6vw, 4rem);
+            line-height: 1.4;
+            text-align: center;
+            text-shadow: 0 0 40px hsla(290, 40%, 20%, 0.6);
+            opacity: 0;
+            transition: opacity 4s ease-out, transform 3s ease-out;
+            letter-spacing: 0.25em;
+            pointer-events: none;
+            z-index: 45;
+        }
+
+        .text-block.visible {
+            opacity: 0.75;
+        }
+
+        .text-block.pulse {
+            animation: textIntensify 4s ease-in-out infinite;
+        }
+
+        @keyframes textIntensify {
+
+            0%,
+            100% {
+                opacity: 0.65;
+                filter: blur(0);
+            }
+
+            30% {
+                opacity: 0.9;
+            }
+
+            50% {
+                filter: blur(1px);
+            }
+
+            55% {
+                filter: blur(0);
+            }
+        }
+
+        /* ====== BUBBLE CONTAINER ====== */
+        .bubble-container {
+            position: fixed;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 55;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: none;
+        }
+
+        /* ====== PROVOCATION BUBBLES (живые баблы) ====== */
+        .provocation-bubble {
+            background: hsla(290, 30%, 12%, 0.85);
+            border: 1px solid hsla(295, 40%, 25%, 0.4);
+            border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+            padding: 14px 20px;
+            color: hsla(290, 35%, 70%, 0.95);
+            font-family: 'Mystery Quest', cursive;
+            font-size: clamp(0.9rem, 2.2vw, 1.2rem);
+            font-weight: 400;
+            letter-spacing: 0.08em;
+            max-width: 220px;
+            opacity: 0;
+            transform: translateX(-40px) scale(0.9);
+            transition: opacity 2s ease-out, transform 0.3s ease-out;
+            pointer-events: none;
+            cursor: pointer;
+            box-shadow:
+                0 0 25px hsla(290, 50%, 25%, 0.4),
+                0 0 50px hsla(295, 45%, 18%, 0.25),
+                inset 0 0 18px hsla(300, 40%, 30%, 0.25);
+            animation: blobMorph 8s ease-in-out infinite, bubbleBreath 4s ease-in-out infinite;
+            animation-play-state: paused;
+            will-change: transform, border-radius;
+        }
+
+        .provocation-bubble:nth-child(1) {
+            animation-delay: 0s, 0s;
+        }
+
+        .provocation-bubble:nth-child(2) {
+            animation-delay: 1.6s, 0.8s;
+        }
+
+        .provocation-bubble:nth-child(3) {
+            animation-delay: 3.2s, 1.6s;
+        }
+
+        .provocation-bubble:nth-child(4) {
+            animation-delay: 4.8s, 2.4s;
+        }
+
+        .provocation-bubble:nth-child(5) {
+            animation-delay: 6.4s, 3.2s;
+        }
+
+        .provocation-bubble.visible {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+            pointer-events: auto;
+            animation-play-state: running;
+        }
+
+        .provocation-bubble .whisper {
+            display: block;
+            font-size: 0.7em;
+            color: hsla(300, 40%, 55%, 0);
+            margin-top: 6px;
+            font-style: italic;
+            transition: color 0.8s ease-out;
+        }
+
+        .provocation-bubble.whisper-visible .whisper {
+            color: hsla(300, 40%, 55%, 0.8);
+        }
+
+        .provocation-bubble:hover {
+            background: hsla(295, 35%, 18%, 0.9);
+            border-color: hsla(300, 45%, 35%, 0.6);
+            color: hsla(290, 30%, 75%, 1);
+            box-shadow:
+                0 0 40px hsla(295, 55%, 30%, 0.5),
+                0 0 70px hsla(300, 50%, 22%, 0.35),
+                inset 0 0 25px hsla(305, 45%, 35%, 0.3);
+        }
+
+        @keyframes blobMorph {
+
+            0%,
+            100% {
+                border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+            }
+
+            25% {
+                border-radius: 58% 42% 55% 45% / 55% 60% 40% 45%;
+            }
+
+            50% {
+                border-radius: 50% 50% 45% 55% / 40% 50% 50% 60%;
+            }
+
+            75% {
+                border-radius: 45% 55% 60% 40% / 50% 45% 55% 50%;
+            }
+        }
+
+        @keyframes bubbleBreath {
+
+            0%,
+            100% {
+                transform: translateX(0) scale(1);
+                box-shadow:
+                    0 0 25px hsla(290, 50%, 25%, 0.4),
+                    0 0 50px hsla(295, 45%, 18%, 0.25),
+                    inset 0 0 18px hsla(300, 40%, 30%, 0.25);
+            }
+
+            50% {
+                transform: translateX(3px) scale(1.02);
+                box-shadow:
+                    0 0 35px hsla(295, 55%, 28%, 0.5),
+                    0 0 65px hsla(300, 50%, 22%, 0.35),
+                    inset 0 0 22px hsla(305, 45%, 35%, 0.3);
+            }
+        }
+
+        /* ====== SCROLL INDICATOR (v17) ====== */
+        .scroll-indicator {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 150;
+            opacity: 0;
+            transition: opacity 1.5s ease-out;
+            pointer-events: none;
+        }
+
+        .scroll-indicator.visible {
+            opacity: 1;
+        }
+
+        .scroll-indicator svg {
+            width: 40px;
+            height: 40px;
+            animation: scrollBounce 2s ease-in-out infinite;
+        }
+
+        .scroll-indicator path {
+            fill: none;
+            stroke: hsla(290, 40%, 60%, 0.7);
+            stroke-width: 2;
+        }
+
+        @keyframes scrollBounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(8px);
+            }
+        }
+
+        /* ====== TEAR ANIMATION (v17 Phase 3) ====== */
+        #klyap-container {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            will-change: transform, clip-path;
+        }
+
+        /* Tear crack overlay */
+        #tear-crack {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg,
+                    transparent 0%,
+                    hsla(290, 60%, 50%, 0.8) 20%,
+                    hsla(290, 80%, 70%, 1) 50%,
+                    hsla(290, 60%, 50%, 0.8) 80%,
+                    transparent 100%);
+            transform: translateX(-50%) scaleY(0);
+            transform-origin: center center;
+            z-index: 200;
+            box-shadow: 0 0 30px 10px hsla(290, 70%, 50%, 0.6);
+            pointer-events: none;
+        }
+
+        /* Portfolio section (revealed after tear) */
+        #portfolio-section {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, hsl(280, 25%, 8%) 0%, hsl(260, 30%, 5%) 100%);
+            opacity: 0;
+            transform: scale(0.95);
+        }
+
+        #portfolio-section h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(3rem, 8vw, 6rem);
+            color: hsla(290, 40%, 70%, 0.9);
+            letter-spacing: 0.15em;
+            text-transform: lowercase;
+            margin-bottom: 1rem;
+        }
+
+        #portfolio-section p {
+            font-family: 'Mystery Quest', cursive;
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            color: hsla(290, 30%, 55%, 0.7);
+            letter-spacing: 0.1em;
+        }
+
+        /* Frozen state during tear */
+        .klyap-frozen #stream .fragment {
+            animation-play-state: paused !important;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Portfolio Section (behind KLYAP) -->
+    <section id="portfolio-section">
+        <h1>portfolio</h1>
+        <p>добро пожаловать внутрь</p>
+    </section>
+
+    <!-- Tear Crack Effect -->
+    <div id="tear-crack"></div>
+
+    <!-- KLYAP Container -->
+    <div id="klyap-container">
+        <canvas id="membrane-canvas"></canvas>
+        <canvas id="particle-canvas"></canvas>
+        <!-- SVG Displacement Filter -->
+        <svg style="position:absolute;width:0;height:0">
+            <defs>
+                <filter id="displacement-filter" x="-20%" y="-20%" width="140%" height="140%">
+                    <feTurbulence type="turbulence" baseFrequency="0.01" numOctaves="3" result="noise" seed="1" />
+                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R"
+                        yChannelSelector="G" id="displace-map" />
+                </filter>
+            </defs>
+        </svg>
+        <div id="vignette"></div>
+        <div id="scanlines"></div>
+        <div id="noise"></div>
+        <div id="layer-flash"></div>
+        <div class="cursor-glow" id="cursor"></div>
+        <div id="stream"></div>
+        <div class="meta-message" id="meta"></div>
+
+        <!-- Text-block (центральное слово) -->
+        <div class="text-block" id="text-block">распирает</div>
+
+        <!-- Provocation bubbles (живые баблы) -->
+        <div class="bubble-container" id="bubble-container">
+            <div class="provocation-bubble" data-bubble="0" data-whisper="...расскажу...">мягко внутри<span
+                    class="whisper"></span></div>
+            <div class="provocation-bubble" data-bubble="1" data-whisper="...не бойся...">не сжимайся<span
+                    class="whisper"></span></div>
+            <div class="provocation-bubble" data-bubble="2" data-whisper="...помню всех...">ты не первый здесь<span
+                    class="whisper"></span></div>
+            <div class="provocation-bubble" data-bubble="3" data-whisper="...просто будь...">ничего не нужно
+                делать<span class="whisper"></span></div>
+            <div class="provocation-bubble" data-bubble="4" data-whisper="...всё заберу...">выдохни. я впитаю<span
+                    class="whisper"></span></div>
+        </div>
+
+        <div id="debug"></div>
+
+        <!-- Scroll Indicator (v17) -->
+        <div class="scroll-indicator" id="scroll-indicator">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 5v14M5 12l7 7 7-7" />
+            </svg>
+        </div>
+    </div>
+
+
+    <!-- GSAP (v17) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+    <!-- Three.js (v18: for WebGL morphing) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Morph Canvas Module (v18) -->
+    <script src="morph-canvas.js"></script>
+
+    <script>
+        // ====== CONFIGURATION — v17 40s CYCLE ======
+        const CYCLE_DURATION = 40000; // 40 seconds
+        const MAX_FRAGMENT_REPETITIONS = 3;
+
+        const CONFIG = {
+            fragmentCount: 43,
+            maxActiveFragments: 12,  // v17: reduced for performance
+
+            // TIME-BASED PHASES (v17)
+            phases: {
+                sparse: { start: 0, end: 15000, interval: 1500, variance: 400 },
+                hook: { start: 15000, end: 30000, interval: 600, variance: 150 },
+                overwhelm: { start: 30000, end: 38000, interval: 250, variance: 50 },
+                fade: { start: 38000, end: 40000, interval: 3000, variance: 0 }
+            },
+
+            fragmentLifetime: { min: 3, max: 5 },
+            burstChance: 0.08,
+            burstCount: [4, 8],
+            voidChance: 0.015,
+            voidDuration: [800, 1500],
+            exhaustionThreshold: 1500,
+            exhaustionPenalty: 2.0,
+            exhaustionDecay: 0.995,
+
+            metaMessages: [
+                { time: 5000, text: "ты здесь" },
+                { time: 18000, text: "время замедляется" },
+                { time: 28000, text: "кто смотрит?" },
+                { time: 35000, text: "можно остановиться" }
+            ]
+        };
+
+        // Fragment usage tracking (v17: max 3 repetitions)
+        const fragmentUsage = {};
+        function resetFragmentUsage() {
+            Object.keys(fragmentUsage).forEach(k => delete fragmentUsage[k]);
+        }
+
+        // ====== MEMBRANE CONFIG ======
+        const MEMBRANE_CONFIG = {
+            blobCount: 5,
+            baseOpacity: 0.6,
+            saturation: 40,
+            lightness: 15,
+            breathSpeed: 0.25,
+            cursorInfluence: 0.08
+        };
+
+        // ====== MEMBRANE STATE ======
+        const membraneCanvas = document.getElementById('membrane-canvas');
+        const membraneCtx = membraneCanvas.getContext('2d');
+        let membraneWidth, membraneHeight;
+        let membraneAnimTime = 0;
+        const blobs = [];
+
+        // ====== MEMBRANE RESIZE ======
+        function resizeMembrane() {
+            membraneWidth = window.innerWidth;
+            membraneHeight = window.innerHeight;
+            membraneCanvas.width = membraneWidth;
+            membraneCanvas.height = membraneHeight;
+            initBlobs();
+        }
+        window.addEventListener('resize', resizeMembrane);
+
+        // ====== INIT BLOBS ======
+        function initBlobs() {
+            blobs.length = 0;
+            for (let i = 0; i < MEMBRANE_CONFIG.blobCount; i++) {
+                blobs.push({
+                    x: Math.random() * membraneWidth,
+                    y: Math.random() * membraneHeight,
+                    baseRadius: 150 + Math.random() * 250,
+                    phase: Math.random() * Math.PI * 2,
+                    speed: MEMBRANE_CONFIG.breathSpeed + Math.random() * 0.15,
+                    driftX: (Math.random() - 0.5) * 0.3,
+                    driftY: (Math.random() - 0.5) * 0.3,
+                    hue: 280 + (Math.random() - 0.5) * 30,
+                    saturation: MEMBRANE_CONFIG.saturation + Math.random() * 15,
+                    lightness: MEMBRANE_CONFIG.lightness + Math.random() * 10
+                });
+            }
+        }
+
+        // ====== DRAW MEMBRANE ======
+        function drawMembrane() {
+            membraneAnimTime += 0.016;
+
+            // Clear canvas for new frame
+            membraneCtx.clearRect(0, 0, membraneWidth, membraneHeight);
+
+            for (const blob of blobs) {
+                blob.x += blob.driftX;
+                blob.y += blob.driftY;
+
+                if (blob.x < -200 || blob.x > membraneWidth + 200) blob.driftX *= -1;
+                if (blob.y < -200 || blob.y > membraneHeight + 200) blob.driftY *= -1;
+
+                const breathFactor = 1 + Math.sin(membraneAnimTime * blob.speed + blob.phase) * 0.35;
+                const radius = blob.baseRadius * breathFactor;
+
+                const dx = mouseX - blob.x;
+                const dy = mouseY - blob.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const influence = Math.max(0, 1 - dist / 400) * MEMBRANE_CONFIG.cursorInfluence;
+                blob.x += dx * influence;
+                blob.y += dy * influence;
+
+                const gradient = membraneCtx.createRadialGradient(
+                    blob.x, blob.y, 0,
+                    blob.x, blob.y, radius
+                );
+                gradient.addColorStop(0, `hsla(${blob.hue}, ${blob.saturation}%, ${blob.lightness}%, ${MEMBRANE_CONFIG.baseOpacity})`);
+                gradient.addColorStop(0.4, `hsla(${blob.hue}, ${blob.saturation - 10}%, ${blob.lightness - 5}%, ${MEMBRANE_CONFIG.baseOpacity * 0.6})`);
+                gradient.addColorStop(0.7, `hsla(${blob.hue}, ${blob.saturation - 15}%, ${blob.lightness - 8}%, ${MEMBRANE_CONFIG.baseOpacity * 0.25})`);
+                gradient.addColorStop(1, 'transparent');
+
+                membraneCtx.fillStyle = gradient;
+                membraneCtx.beginPath();
+
+                const segments = 60;
+                for (let i = 0; i <= segments; i++) {
+                    const angle = (i / segments) * Math.PI * 2;
+                    const noiseVal = Math.sin(angle * 3 + membraneAnimTime + blob.phase) * 0.15 +
+                        Math.sin(angle * 5 + membraneAnimTime * 0.7) * 0.1;
+                    const r = radius * (1 + noiseVal);
+                    const x = blob.x + Math.cos(angle) * r;
+                    const y = blob.y + Math.sin(angle) * r;
+
+                    if (i === 0) membraneCtx.moveTo(x, y);
+                    else membraneCtx.lineTo(x, y);
+                }
+                membraneCtx.closePath();
+                membraneCtx.fill();
+            }
+
+            requestAnimationFrame(drawMembrane);
+        }
+
+        // ====== LAYER SYSTEM ======
+        const FRAGMENT_BASE = '/assets/klyap-v16/fragments';
+
+        const LAYER_MAP = {
+            intimate: ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010'],  // 7 v14 + 3 v16
+            mirror: ['001', '002', '003', '004', '005', '006', '007', '008', '009'],           // 6 v14 + 3 v16
+            visceral: ['001', '002', '003', '004', '005', '006', '007', '008', '009'],         // 6 v14 + 3 v16
+            noise: ['001', '002', '003', '004', '005', '006'],                                 // 4 v14 + 2 v16
+            vivid: ['001', '002', '003', '004', '005'],                                        // 5 v16 (new layer)
+            flesh: ['001', '002', '003', '004']                                                // 4 v16 (new layer)
+        };
+        const LAYER_THRESHOLDS = [
+            { depth: 0, layer: 'noise' },
+            { depth: 12, layer: 'intimate' },
+            { depth: 25, layer: 'vivid' },
+            { depth: 40, layer: 'mirror' },
+            { depth: 55, layer: 'flesh' },
+            { depth: 70, layer: 'visceral' },
+            { depth: 85, layer: 'noise' }
+        ];
+
+        // Displacement intensity — SOFTENED
+        const DISPLACEMENT_INTENSITY = {
+            'noise→intimate': 30,
+            'intimate→vivid': 45,
+            'vivid→mirror': 55,
+            'mirror→flesh': 50,
+            'flesh→visceral': 70,
+            'visceral→noise': 40,
+            'default': 35
+        };
+
+        // Displacement decay — SLOWER
+        const DISPLACEMENT_DECAY = 0.92;  // v15: was 0.85
+
+        // ====== STATE ======
+        const state = {
+            fragmentsSpawned: 0,
+            activeFragments: 0,
+            depth: 0,
+            scrollDelta: 0,
+            exhaustionLevel: 0,
+            lastScrollTime: 0,
+            isVoid: false,
+            lastMetaIndex: -1,
+            startTime: Date.now(),
+            currentLayer: 'noise',
+            previousLayer: null,
+            tearTriggered: false,  // v17 Phase 3: only tear once
+            tearComplete: false
+        };
+
+        // ====== PRELOAD FRAGMENTS ======
+        // Preload all layer-based fragments from v16
+        Object.entries(LAYER_MAP).forEach(([layer, fragments]) => {
+            fragments.forEach(id => {
+                new Image().src = `${FRAGMENT_BASE}/${layer}/fragment-${id}.png`;
+            });
+        });
+
+        // ====== DOM ======
+        const stream = document.getElementById('stream');
+        const cursor = document.getElementById('cursor');
+        const vignette = document.getElementById('vignette');
+        const metaEl = document.getElementById('meta');
+        const debugEl = document.getElementById('debug');
+
+        // ====== CURSOR ======
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursor.style.left = mouseX + 'px';
+            cursor.style.top = mouseY + 'px';
+        });
+
+        // ====== SCROLL DETECTION ======
+        document.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = Math.abs(e.deltaY);
+            state.scrollDelta += delta;
+            state.lastScrollTime = Date.now();
+
+            // Accumulate exhaustion (slower buildup)
+            if (state.scrollDelta > CONFIG.exhaustionThreshold) {
+                state.exhaustionLevel = Math.min(1, state.exhaustionLevel + 0.03);
+            }
+
+            cursor.classList.add('active');
+            setTimeout(() => cursor.classList.remove('active'), 300);
+        }, { passive: false });
+
+        // ====== GET CURRENT PHASE (v17: TIME-BASED) ======
+        function getCycleTime() {
+            return (Date.now() - state.startTime) % CYCLE_DURATION;
+        }
+
+        function getCurrentPhase() {
+            const elapsed = getCycleTime();
+            if (elapsed < CONFIG.phases.sparse.end) return CONFIG.phases.sparse;
+            if (elapsed < CONFIG.phases.hook.end) return CONFIG.phases.hook;
+            if (elapsed < CONFIG.phases.overwhelm.end) return CONFIG.phases.overwhelm;
+            return CONFIG.phases.fade;
+        }
+
+        function getPhaseName() {
+            const phase = getCurrentPhase();
+            if (phase === CONFIG.phases.sparse) return 'SPARSE';
+            if (phase === CONFIG.phases.hook) return 'HOOK';
+            if (phase === CONFIG.phases.overwhelm) return 'OVERWHELM';
+            return 'FADE';
+        }
+
+        // ====== GET CURRENT LAYER ======
+        function getCurrentLayer() {
+            for (let i = LAYER_THRESHOLDS.length - 1; i >= 0; i--) {
+                if (state.depth >= LAYER_THRESHOLDS[i].depth) {
+                    return LAYER_THRESHOLDS[i].layer;
+                }
+            }
+            return 'noise';
+        }
+
+        // ====== CALCULATE SPAWN INTERVAL ======
+        function getSpawnInterval() {
+            const phase = getCurrentPhase();
+            let interval = phase.interval + (Math.random() - 0.5) * phase.variance;
+
+            // Scroll boost (gentler)
+            const scrollBoost = Math.min(state.scrollDelta / 400, 1.5);
+            interval /= (1 + scrollBoost * 0.3);
+
+            // Exhaustion penalty
+            if (state.exhaustionLevel > 0.3) {
+                interval *= (1 + state.exhaustionLevel * CONFIG.exhaustionPenalty);
+            }
+
+            // Decay scroll delta
+            const timeSinceScroll = Date.now() - state.lastScrollTime;
+            if (timeSinceScroll > 150) {
+                state.scrollDelta *= 0.9;
+            }
+
+            // Slow decay of exhaustion
+            state.exhaustionLevel *= CONFIG.exhaustionDecay;
+
+            return Math.max(interval, 100);  // v15: minimum 100ms (was 30)
+        }
+
+        // ====== SPAWN FRAGMENT ======
+        function spawnFragment() {
+            if (state.activeFragments >= CONFIG.maxActiveFragments) return;
+
+            // Update layer
+            const newLayer = getCurrentLayer();
+            if (newLayer !== state.currentLayer) {
+                state.previousLayer = state.currentLayer;
+                state.currentLayer = newLayer;
+                triggerLayerFlash(newLayer);
+                triggerDisplacement(state.previousLayer, newLayer);
+                // Wind sweep on layer transition
+                if (typeof triggerWindSweep === 'function') triggerWindSweep();
+
+                // ====== v18: WebGL MORPH на смену layer ======
+                if (window.morphCanvas && window.morphCanvas.canMorph()) {
+                    const prevFrags = LAYER_MAP[state.previousLayer];
+                    const newFrags = LAYER_MAP[newLayer];
+                    const sourceId = prevFrags[Math.floor(Math.random() * prevFrags.length)];
+                    const targetId = newFrags[Math.floor(Math.random() * newFrags.length)];
+                    const sourceUrl = `${FRAGMENT_BASE}/${state.previousLayer}/fragment-${sourceId}.png`;
+                    const targetUrl = `${FRAGMENT_BASE}/${newLayer}/fragment-${targetId}.png`;
+                    window.morphCanvas.morph(sourceUrl, targetUrl);
+                    console.log(`[v18] Morph: ${state.previousLayer} → ${newLayer}`);
+                }
+            }
+
+            const fragment = document.createElement('div');
+            fragment.className = `fragment layer-${state.currentLayer}`;
+
+            // Random drift — gentler
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 200 + Math.random() * 400;
+            fragment.style.setProperty('--drift-x', Math.cos(angle) * distance + 'px');
+            fragment.style.setProperty('--drift-y', Math.sin(angle) * distance + 'px');
+
+            // Position — still full screen but less chaotic
+            const offsetX = (Math.random() - 0.5) * window.innerWidth * 0.75;
+            const offsetY = (Math.random() - 0.5) * window.innerHeight * 0.75;
+            fragment.style.left = `calc(50% + ${offsetX}px)`;
+            fragment.style.top = `calc(50% + ${offsetY}px)`;
+            fragment.style.rotate = (Math.random() * 40 - 20) + 'deg';
+            fragment.style.zIndex = Math.floor(Math.random() * 50);
+
+            // Animation duration — LONGER (3-5s)
+            const { min, max } = CONFIG.fragmentLifetime;
+            const animDuration = min + Math.random() * (max - min);
+            fragment.style.setProperty('--anim-duration', animDuration + 's');
+
+            // Pick image from CURRENT LAYER (v17: with repetition limit)
+            const layerFragments = LAYER_MAP[state.currentLayer];
+            const availableFragments = layerFragments.filter(id => {
+                const key = `${state.currentLayer}/${id}`;
+                return (fragmentUsage[key] || 0) < MAX_FRAGMENT_REPETITIONS;
+            });
+
+            if (availableFragments.length === 0) return; // All exhausted this cycle
+
+            const fragmentId = availableFragments[Math.floor(Math.random() * availableFragments.length)];
+            const usageKey = `${state.currentLayer}/${fragmentId}`;
+            fragmentUsage[usageKey] = (fragmentUsage[usageKey] || 0) + 1;
+
+            const img = document.createElement('img');
+            img.src = `${FRAGMENT_BASE}/${state.currentLayer}/fragment-${fragmentId}.png`;
+            img.alt = '';
+            const scale = 0.6 + Math.random() * 0.6;
+            img.style.transform = `scale(${scale})`;
+
+            fragment.appendChild(img);
+            stream.appendChild(fragment);
+
+            state.activeFragments++;
+            state.fragmentsSpawned++;
+
+            // Update depth (slower progression)
+            state.depth = Math.min(100, state.fragmentsSpawned * 1.2);
+
+            // Remove after animation — trigger particle decomposition
+            setTimeout(() => {
+                decomposeFragment(fragment);
+                fragment.remove();
+                state.activeFragments--;
+            }, animDuration * 1000);
+
+            // Particle assembly effect (30% chance, after fragment is visible)
+            if (Math.random() < 0.3 && typeof assembleFragment === 'function') {
+                setTimeout(() => assembleFragment(fragment), 300);
+            }
+        }
+
+        // ====== CHECK META MESSAGES (v17: time-based) ======
+        const scrollIndicator = document.getElementById('scroll-indicator');
+        let lastShownMetaIndex = -1;
+
+        function checkMeta() {
+            const elapsed = getCycleTime();
+
+            // Check time-based meta messages
+            for (let i = CONFIG.metaMessages.length - 1; i >= 0; i--) {
+                const msg = CONFIG.metaMessages[i];
+                if (elapsed >= msg.time && lastShownMetaIndex < i) {
+                    lastShownMetaIndex = i;
+                    showMeta(msg.text);
+                    break;
+                }
+            }
+
+            // Show scroll indicator in FADE phase
+            if (elapsed >= CONFIG.phases.fade.start) {
+                scrollIndicator.classList.add('visible');
+            } else {
+                scrollIndicator.classList.remove('visible');
+            }
+
+            // ====== TEAR CHECK (v17 Phase 3) ======
+            // Trigger tear when cycle resets (elapsed wraps back to ~0)
+            if (elapsed < 1000 && !state.tearTriggered && state.fragmentsSpawned > 10) {
+                triggerTear();
+            }
+
+            // Cycle reset
+            if (elapsed < 1000 && lastShownMetaIndex > 0) {
+                lastShownMetaIndex = -1;
+                resetFragmentUsage();
+                console.log('[v17] Cycle reset');
+            }
+
+            // Tremor based on cycle time
+            if (elapsed >= 20000) {
+                stream.classList.add('tremor');
+            } else {
+                stream.classList.remove('tremor');
+            }
+            if (elapsed >= 32000) {
+                stream.classList.remove('tremor');
+                stream.classList.add('intense-tremor');
+            } else if (elapsed < 32000) {
+                stream.classList.remove('intense-tremor');
+            }
+
+            // Intense vignette
+            if (elapsed >= 25000) {
+                vignette.classList.add('intense');
+            } else {
+                vignette.classList.remove('intense');
+            }
+        }
+
+        // ====== LAYER FLASH ======
+        const layerFlash = document.getElementById('layer-flash');
+        function triggerLayerFlash(layer) {
+            layerFlash.className = layer + ' active';
+            setTimeout(() => {
+                layerFlash.classList.remove('active');
+            }, 600);  // v15: longer flash
+            console.log(`Layer: ${layer}`);
+        }
+
+        // ====== DISPLACEMENT EFFECT — SOFTENED ======
+        function triggerDisplacement(fromLayer, toLayer) {
+            const key = `${fromLayer}→${toLayer}`;
+            const intensity = DISPLACEMENT_INTENSITY[key] || DISPLACEMENT_INTENSITY.default;
+
+            const displaceMap = document.getElementById('displace-map');
+            displaceMap.setAttribute('scale', intensity);
+            stream.classList.add('displacement-active');
+
+            // Animate scale down with SLOWER decay
+            let currentScale = intensity;
+            const decay = () => {
+                currentScale *= DISPLACEMENT_DECAY;
+                if (currentScale < 2) {
+                    stream.classList.remove('displacement-active');
+                    displaceMap.setAttribute('scale', 0);
+                    return;
+                }
+                displaceMap.setAttribute('scale', currentScale);
+                requestAnimationFrame(decay);
+            };
+            requestAnimationFrame(decay);
+        }
+
+        function showMeta(text) {
+            metaEl.textContent = text;
+            metaEl.classList.add('visible');
+            setTimeout(() => {
+                metaEl.classList.remove('visible');
+            }, 4000);  // v15: longer display (was 2500)
+        }
+
+        // ====== MAIN LOOP ======
+        function scheduleNext() {
+            // VOID check
+            if (!state.isVoid && Math.random() < CONFIG.voidChance && state.depth > 25) {
+                state.isVoid = true;
+                const voidTime = CONFIG.voidDuration[0] +
+                    Math.random() * (CONFIG.voidDuration[1] - CONFIG.voidDuration[0]);
+                setTimeout(() => {
+                    state.isVoid = false;
+                    tick();
+                }, voidTime);
+                return;
+            }
+
+            // BURST check — less frequent
+            if (Math.random() < CONFIG.burstChance && state.depth > 20) {
+                const count = CONFIG.burstCount[0] +
+                    Math.floor(Math.random() * (CONFIG.burstCount[1] - CONFIG.burstCount[0] + 1));
+                for (let i = 0; i < count; i++) {
+                    setTimeout(() => spawnFragment(), i * 150);  // v15: slower burst
+                }
+                setTimeout(tick, getSpawnInterval() * 1.8);
+                return;
+            }
+
+            // Normal spawn
+            setTimeout(tick, getSpawnInterval());
+        }
+
+        function tick() {
+            if (!state.isVoid) {
+                spawnFragment();
+                checkMeta();
+            }
+            updateDebug();
+            scheduleNext();
+        }
+
+        // ====== DEBUG (v17: time-based) ======
+        function updateDebug() {
+            const elapsed = getCycleTime();
+            const elapsedSec = (elapsed / 1000).toFixed(1);
+            const cycleNum = Math.floor((Date.now() - state.startTime) / CYCLE_DURATION) + 1;
+            const phaseName = getPhaseName();
+
+            debugEl.innerHTML = `
+                v17 40s CYCLE | cycle: ${cycleNum} | time: ${elapsedSec}s<br>
+                phase: ${phaseName} | layer: ${state.currentLayer.toUpperCase()}<br>
+                frags: ${state.fragmentsSpawned} | active: ${state.activeFragments}${state.isVoid ? ' | VOID' : ''}
+            `;
+        }
+
+        // ====== PARTICLE SYSTEM ======
+        const particleCanvas = document.getElementById('particle-canvas');
+        const particleCtx = particleCanvas.getContext('2d');
+        let particleWidth, particleHeight;
+        const particles = [];
+        const MAX_PARTICLES = 300;
+        const PARTICLES_PER_FRAGMENT = { min: 15, max: 25 };
+        const ASSEMBLY_PARTICLES = { min: 20, max: 35 };
+
+        // Wind sweep state
+        const wind = { x: 0, y: 0, decay: 0.95 };
+        const WIND_SWEEP_CHANCE = 0.05; // 5% per second
+        let lastWindCheck = 0;
+
+        // Layer colors for particles (bruised/organic palette)
+        const LAYER_PARTICLE_COLORS = {
+            noise: ['hsla(0, 0%, 20%, 0.8)', 'hsla(0, 0%, 30%, 0.7)', 'hsla(280, 10%, 15%, 0.9)'],
+            intimate: ['hsla(35, 40%, 35%, 0.8)', 'hsla(25, 50%, 25%, 0.9)', 'hsla(40, 30%, 20%, 0.7)'],
+            vivid: ['hsla(300, 60%, 40%, 0.8)', 'hsla(320, 50%, 30%, 0.9)', 'hsla(280, 70%, 35%, 0.7)'],
+            mirror: ['hsla(180, 50%, 35%, 0.8)', 'hsla(200, 40%, 25%, 0.9)', 'hsla(160, 60%, 30%, 0.7)'],
+            flesh: ['hsla(10, 40%, 40%, 0.8)', 'hsla(350, 35%, 30%, 0.9)', 'hsla(20, 50%, 35%, 0.7)'],
+            visceral: ['hsla(0, 60%, 30%, 0.85)', 'hsla(350, 70%, 25%, 0.9)', 'hsla(10, 50%, 20%, 0.8)']
+        };
+
+        // Particle class with viscosity physics (optimized)
+        class Particle {
+            constructor(x, y, layer, isAssembly = false, targetX = 0, targetY = 0) {
+                this.x = x;
+                this.y = y;
+                this.isAssembly = isAssembly;
+                this.targetX = targetX;
+                this.targetY = targetY;
+
+                if (isAssembly) {
+                    // Assembly: move TOWARD target
+                    this.vx = 0;
+                    this.vy = 0;
+                    this.easing = 0.02 + Math.random() * 0.03;
+                    this.delay = Math.floor(Math.random() * 20); // staggered start
+                } else {
+                    // Decompose: burst outward
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 1 + Math.random() * 3;
+                    this.vx = Math.cos(angle) * speed + (Math.random() - 0.5) * 2;
+                    this.vy = Math.sin(angle) * speed * 0.5 - Math.random() * 1.5;
+                }
+
+                // Pick color from layer palette
+                const colors = LAYER_PARTICLE_COLORS[layer] || LAYER_PARTICLE_COLORS.noise;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+
+                this.alpha = isAssembly ? 0.3 : (0.7 + Math.random() * 0.3);
+                this.targetAlpha = isAssembly ? 0.9 : 0;
+                this.size = 2 + Math.random() * 6;
+                this.decay = isAssembly ? -0.008 : (0.005 + Math.random() * 0.01); // faster decay
+                this.gravity = 0.06 + Math.random() * 0.1;
+                this.viscosity = 0.90 + Math.random() * 0.07;
+                this.stickChance = !isAssembly && Math.random() < 0.12;
+                this.stickTime = this.stickChance ? 20 + Math.random() * 40 : 0;
+                this.wobble = Math.random() * Math.PI * 2;
+                this.wobbleSpeed = 0.1 + Math.random() * 0.15;
+                this.alive = true;
+            }
+
+            update() {
+                if (this.isAssembly) {
+                    // Assembly mode: converge to target
+                    if (this.delay > 0) {
+                        this.delay--;
+                        return true;
+                    }
+                    const dx = this.targetX - this.x;
+                    const dy = this.targetY - this.y;
+                    this.x += dx * this.easing;
+                    this.y += dy * this.easing;
+                    this.alpha += 0.015;
+                    if (this.alpha > this.targetAlpha) this.alpha = this.targetAlpha;
+
+                    // Arrived at target?
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 5) {
+                        this.alpha -= 0.05;
+                        if (this.alpha <= 0) this.alive = false;
+                    }
+                    return this.alive;
+                }
+
+                // Decompose mode
+                if (this.stickTime > 0) {
+                    this.stickTime--;
+                    this.alpha -= this.decay * 0.3;
+                    return this.alpha > 0;
+                }
+
+                // Apply wind
+                this.vx += wind.x * 0.1;
+                this.vy += wind.y * 0.05;
+
+                // Organic wobble
+                this.wobble += this.wobbleSpeed;
+                this.vx += Math.sin(this.wobble) * 0.04;
+
+                // Viscous physics
+                this.vy += this.gravity;
+                this.vx *= this.viscosity;
+                this.vy *= this.viscosity;
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Decay
+                this.alpha -= this.decay;
+                this.size *= 0.998;
+
+                this.alive = this.alpha > 0.01 && this.y < particleHeight + 50;
+                return this.alive;
+            }
+        }
+
+        // Resize particle canvas
+        function resizeParticleCanvas() {
+            particleWidth = window.innerWidth;
+            particleHeight = window.innerHeight;
+            particleCanvas.width = particleWidth;
+            particleCanvas.height = particleHeight;
+        }
+        window.addEventListener('resize', resizeParticleCanvas);
+        resizeParticleCanvas();
+
+        // Decompose fragment into particles
+        function decomposeFragment(fragment) {
+            if (particles.length >= MAX_PARTICLES) return;
+
+            const rect = fragment.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            const layerMatch = fragment.className.match(/layer-(\w+)/);
+            const layer = layerMatch ? layerMatch[1] : 'noise';
+
+            const count = PARTICLES_PER_FRAGMENT.min +
+                Math.floor(Math.random() * (PARTICLES_PER_FRAGMENT.max - PARTICLES_PER_FRAGMENT.min));
+
+            for (let i = 0; i < count; i++) {
+                const x = centerX + (Math.random() - 0.5) * rect.width * 0.8;
+                const y = centerY + (Math.random() - 0.5) * rect.height * 0.8;
+                particles.push(new Particle(x, y, layer, false));
+            }
+        }
+
+        // Assemble particles INTO a new fragment
+        function assembleFragment(fragment) {
+            if (particles.length >= MAX_PARTICLES) return;
+
+            const rect = fragment.getBoundingClientRect();
+            const targetX = rect.left + rect.width / 2;
+            const targetY = rect.top + rect.height / 2;
+
+            const layerMatch = fragment.className.match(/layer-(\w+)/);
+            const layer = layerMatch ? layerMatch[1] : 'noise';
+
+            const count = ASSEMBLY_PARTICLES.min +
+                Math.floor(Math.random() * (ASSEMBLY_PARTICLES.max - ASSEMBLY_PARTICLES.min));
+
+            for (let i = 0; i < count; i++) {
+                // Start from random edge positions
+                let x, y;
+                const edge = Math.floor(Math.random() * 4);
+                switch (edge) {
+                    case 0: x = Math.random() * particleWidth; y = -50; break; // top
+                    case 1: x = Math.random() * particleWidth; y = particleHeight + 50; break; // bottom
+                    case 2: x = -50; y = Math.random() * particleHeight; break; // left
+                    case 3: x = particleWidth + 50; y = Math.random() * particleHeight; break; // right
+                }
+                particles.push(new Particle(x, y, layer, true, targetX, targetY));
+            }
+        }
+
+        // Trigger wind sweep
+        function triggerWindSweep() {
+            const angle = Math.random() * Math.PI * 2;
+            const strength = 4 + Math.random() * 6;
+            wind.x = Math.cos(angle) * strength;
+            wind.y = Math.sin(angle) * strength * 0.4; // less vertical
+        }
+
+        // Particle render loop (optimized: no save/restore, no shadows, swap-and-pop)
+        function drawParticles() {
+            particleCtx.clearRect(0, 0, particleWidth, particleHeight);
+
+            // Update wind
+            wind.x *= wind.decay;
+            wind.y *= wind.decay;
+
+            // Check for wind sweep trigger
+            const now = Date.now();
+            if (now - lastWindCheck > 1000) {
+                lastWindCheck = now;
+                const phase = getCurrentPhase();
+                if (phase !== CONFIG.phases.sparse && Math.random() < WIND_SWEEP_CHANCE) {
+                    triggerWindSweep();
+                }
+            }
+
+            // Batch render all particles (no ctx.save/restore per particle)
+            let i = particles.length;
+            while (i--) {
+                const p = particles[i];
+                if (!p.update()) {
+                    // Swap-and-pop removal (faster than splice)
+                    particles[i] = particles[particles.length - 1];
+                    particles.pop();
+                } else {
+                    // Simple circle drawing (no shadowBlur)
+                    particleCtx.globalAlpha = p.alpha;
+                    particleCtx.fillStyle = p.color;
+                    particleCtx.beginPath();
+                    particleCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    particleCtx.fill();
+                }
+            }
+
+            requestAnimationFrame(drawParticles);
+        }
+        drawParticles();
+
+        // ====== INIT MEMBRANE ======
+        resizeMembrane();
+        drawMembrane();
+
+        // ====== TEXT-BLOCK SYSTEM ======
+        const textBlock = document.getElementById('text-block');
+        const TEXT_PHRASES = [
+            'распирает', 'глубже', 'ещё', 'не останавливайся',
+            'внутрь', 'растворяет', 'тяжело', 'сладко'
+        ];
+        let currentPhraseIndex = 0;
+
+        function showTextBlock() {
+            textBlock.classList.add('visible');
+            setTimeout(() => textBlock.classList.add('pulse'), 2000);
+        }
+
+        function rotateTextBlock() {
+            textBlock.classList.remove('visible', 'pulse');
+            setTimeout(() => {
+                currentPhraseIndex = (currentPhraseIndex + 1) % TEXT_PHRASES.length;
+                textBlock.textContent = TEXT_PHRASES[currentPhraseIndex];
+                textBlock.classList.add('visible');
+                setTimeout(() => textBlock.classList.add('pulse'), 1500);
+            }, 1000);
+        }
+
+        // Show text after 3s, rotate every 30s
+        setTimeout(showTextBlock, 3000);
+        setInterval(rotateTextBlock, 30000);
+
+        // ====== BUBBLE SYSTEM ======
+        const provocationBubbles = document.querySelectorAll('.provocation-bubble');
+
+        const BUBBLE_CONFIG = {
+            IDLE_THRESHOLD_FOR_TRIGGER: 5,
+            MAX_BUBBLES: 5,
+            PROXIMITY_RADIUS: 150,
+            PROXIMITY_PULL: 0.1,
+            WHISPER_DELAY: 1500
+        };
+
+        const bubbleState = {
+            shownCount: 0,
+            wasIdle: false,
+            prevMoveCount: 0,
+            hoverTimers: new Map(),
+            mouseMoveCount: 0,
+            lastMouseMove: Date.now()
+        };
+
+        // Track mouse movement
+        document.addEventListener('mousemove', () => {
+            bubbleState.mouseMoveCount++;
+            bubbleState.lastMouseMove = Date.now();
+        });
+
+        function showNextBubble() {
+            if (bubbleState.shownCount >= BUBBLE_CONFIG.MAX_BUBBLES) return;
+            const bubble = provocationBubbles[bubbleState.shownCount];
+            if (bubble) {
+                bubble.classList.add('visible');
+                bubbleState.shownCount++;
+                console.log(`[KLYAP] Bubble ${bubbleState.shownCount} awakened`);
+            }
+        }
+
+        // Auto-show first bubble after 5s, then every 10s
+        setTimeout(showNextBubble, 5000);
+        setInterval(() => {
+            if (bubbleState.shownCount < BUBBLE_CONFIG.MAX_BUBBLES) {
+                showNextBubble();
+            }
+        }, 10000);
+
+        // Proximity reaction — bubbles feel cursor
+        function updateBubbleProximity(mx, my) {
+            provocationBubbles.forEach(bubble => {
+                if (!bubble.classList.contains('visible')) return;
+                const rect = bubble.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                const dx = mx - cx;
+                const dy = my - cy;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < BUBBLE_CONFIG.PROXIMITY_RADIUS) {
+                    const pull = (1 - dist / BUBBLE_CONFIG.PROXIMITY_RADIUS) * BUBBLE_CONFIG.PROXIMITY_PULL;
+                    bubble.style.transform = `translateX(${dx * pull}px) translateY(${dy * pull}px) scale(1.02)`;
+                } else {
+                    bubble.style.transform = '';
+                }
+            });
+        }
+
+        // Whisper preview on long hover
+        provocationBubbles.forEach(bubble => {
+            const whisperEl = bubble.querySelector('.whisper');
+            const whisperText = bubble.dataset.whisper;
+            if (!whisperEl || !whisperText) return;
+
+            bubble.addEventListener('mouseenter', () => {
+                const timer = setTimeout(() => {
+                    whisperEl.textContent = whisperText;
+                    bubble.classList.add('whisper-visible');
+                }, BUBBLE_CONFIG.WHISPER_DELAY);
+                bubbleState.hoverTimers.set(bubble, timer);
+            });
+
+            bubble.addEventListener('mouseleave', () => {
+                const timer = bubbleState.hoverTimers.get(bubble);
+                if (timer) clearTimeout(timer);
+                bubble.classList.remove('whisper-visible');
+                whisperEl.textContent = '';
+            });
+        });
+
+        // Bubble trigger loop
+        function updateBubbles() {
+            const idleDuration = (Date.now() - bubbleState.lastMouseMove) / 1000;
+            const isIdle = idleDuration >= BUBBLE_CONFIG.IDLE_THRESHOLD_FOR_TRIGGER;
+
+            if (isIdle) {
+                bubbleState.wasIdle = true;
+            }
+
+            // First movement after idle → show bubble
+            if (bubbleState.wasIdle && bubbleState.mouseMoveCount > bubbleState.prevMoveCount) {
+                showNextBubble();
+                bubbleState.wasIdle = false;
+            }
+
+            bubbleState.prevMoveCount = bubbleState.mouseMoveCount;
+
+            // Also show on deep idle (every 8s)
+            const idleBasedCount = Math.floor(idleDuration / 8);
+            while (bubbleState.shownCount < idleBasedCount && bubbleState.shownCount < BUBBLE_CONFIG.MAX_BUBBLES) {
+                showNextBubble();
+            }
+
+            // Proximity check
+            updateBubbleProximity(mouseX, mouseY);
+        }
+
+        setInterval(updateBubbles, 500);
+
+        // ====== INIT — SLOWER START ======
+        setTimeout(tick, 1200);
+
+        // ====== TEAR TIMING CHECK (dedicated 100ms interval) ======
+        let lastCycleNum = 1;
+        setInterval(() => {
+            const elapsed = getCycleTime();
+            const currentCycle = Math.floor((Date.now() - state.startTime) / CYCLE_DURATION) + 1;
+
+            // Detect cycle transition (cycle 1 → cycle 2)
+            if (currentCycle > lastCycleNum && !state.tearTriggered && state.fragmentsSpawned > 5) {
+                console.log('[v17] Cycle ' + lastCycleNum + ' complete, triggering tear!');
+                triggerTear();
+            }
+            lastCycleNum = currentCycle;
+        }, 100);
+
+        // ====== TEAR ANIMATION (v17 Phase 3) ======
+        function triggerTear() {
+            if (state.tearTriggered) return;
+            state.tearTriggered = true;
+            console.log('[v17] Tear triggered!');
+
+            // Freeze KLYAP animations
+            document.body.classList.add('klyap-frozen');
+
+            // GSAP Timeline for tear effect
+            const tl = gsap.timeline({
+                onComplete: () => {
+                    state.tearComplete = true;
+                    console.log('[v17] Tear complete — Portfolio revealed');
+                }
+            });
+
+            // Phase 1: Tear crack appears and grows vertically
+            tl.to('#tear-crack', {
+                scaleY: 1,
+                duration: 0.6,
+                ease: 'power2.out'
+            });
+
+            // Phase 2: Crack widens and KLYAP starts to split
+            tl.to('#tear-crack', {
+                width: '60vw',
+                boxShadow: '0 0 80px 40px hsla(290, 70%, 50%, 0.8)',
+                duration: 0.8,
+                ease: 'power3.inOut'
+            }, 0.4);
+
+            // Phase 3: KLYAP container clips away from center
+            tl.to('#klyap-container', {
+                clipPath: 'inset(0 50% 0 50%)',
+                opacity: 0.3,
+                filter: 'blur(8px)',
+                duration: 1.2,
+                ease: 'power3.inOut'
+            }, 0.5);
+
+            // Phase 4: Fade in portfolio section
+            tl.to('#portfolio-section', {
+                opacity: 1,
+                scale: 1,
+                duration: 1,
+                ease: 'power2.out'
+            }, 0.8);
+
+            // Phase 5: Hide tear crack and KLYAP
+            tl.to('#tear-crack', {
+                opacity: 0,
+                duration: 0.5,
+                ease: 'power2.in'
+            }, 1.8);
+
+            tl.to('#klyap-container', {
+                opacity: 0,
+                duration: 0.3,
+                ease: 'power2.in'
+            }, 2);
+        }
+    </script>
+</body>
+
+</html>
