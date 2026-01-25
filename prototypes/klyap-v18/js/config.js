@@ -115,6 +115,19 @@ export const TEMPORAL_DISPLACEMENT = {
     shockPauseDuration: 1500          // Пауза после первого удара (ms)
 };
 
+// ====== MORPH VARIANTS (v18.2) ======
+export const MORPH_VARIANTS = {
+    subtle: { intensity: 0.3, duration: 1500 },  // Мягкое перетекание
+    aggressive: { intensity: 0.8, duration: 800 },   // Резкий разрыв
+    'slow-burn': { intensity: 0.5, duration: 2500 },  // Медленная трансформация
+    glitch: { intensity: 1.0, duration: 400 }    // Мгновенный сбой
+};
+
+export const PERIODIC_MORPH = {
+    enabled: true,
+    frequency: 3   // Каждый N-й фрагмент
+};
+
 // ====== LAYER PARTICLE COLORS ======
 export const LAYER_PARTICLE_COLORS = {
     noise: ['hsla(0, 0%, 20%, 0.8)', 'hsla(0, 0%, 30%, 0.7)', 'hsla(280, 10%, 15%, 0.9)'],

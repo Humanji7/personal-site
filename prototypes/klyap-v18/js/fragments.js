@@ -6,7 +6,7 @@
 import {
     CONFIG, MAX_FRAGMENT_REPETITIONS, FRAGMENT_BASE, LAYER_MAP,
     LAYER_THRESHOLDS, DISPLACEMENT_INTENSITY, DISPLACEMENT_DECAY,
-    TEMPORAL_DISPLACEMENT
+    TEMPORAL_DISPLACEMENT, MORPH_VARIANTS, PERIODIC_MORPH
 } from './config.js';
 import { AppState, getCycleTime, setLayer, updateDepth, resetFragmentUsage } from './state.js';
 import { decomposeFragment, assembleFragment, triggerWindSweep } from './particles.js';
@@ -132,6 +132,15 @@ function triggerDisplacement(fromLayer, toLayer) {
 }
 
 /**
+ * Get random morph variant for periodic morphing (v18.2)
+ */
+function getRandomMorphVariant() {
+    const variants = Object.keys(MORPH_VARIANTS);
+    const key = variants[Math.floor(Math.random() * variants.length)];
+    return { name: key, ...MORPH_VARIANTS[key] };
+}
+
+/**
  * Spawn a single fragment
  */
 export function spawnFragment() {
@@ -211,6 +220,30 @@ export function spawnFragment() {
     AppState.fragment.active++;
     AppState.fragment.spawned++;
     updateDepth();
+
+    // ====== PERIODIC MORPH (v18.2) ======
+    if (PERIODIC_MORPH.enabled &&
+        AppState.fragment.spawned % PERIODIC_MORPH.frequency === 0 &&
+        window.localizedMorph?.canMorph()) {
+
+        const variant = getRandomMorphVariant();
+        const layers = Object.keys(LAYER_MAP);
+        const fromLayer = layers[Math.floor(Math.random() * layers.length)];
+        const toLayer = layers[Math.floor(Math.random() * layers.length)];
+
+        const fromId = LAYER_MAP[fromLayer][Math.floor(Math.random() * LAYER_MAP[fromLayer].length)];
+        const toId = LAYER_MAP[toLayer][Math.floor(Math.random() * LAYER_MAP[toLayer].length)];
+
+        const sourceUrl = `${FRAGMENT_BASE}/${fromLayer}/fragment-${fromId}.png`;
+        const targetUrl = `${FRAGMENT_BASE}/${toLayer}/fragment-${toId}.png`;
+
+        window.localizedMorph.morphElement(fragment, sourceUrl, targetUrl, {
+            duration: variant.duration,
+            intensity: variant.intensity
+        });
+
+        console.log(`[v18.2] Periodic morph: ${variant.name} (intensity: ${variant.intensity}, duration: ${variant.duration}ms)`);
+    }
 
     // Remove after animation
     setTimeout(() => {
