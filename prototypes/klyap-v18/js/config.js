@@ -5,7 +5,7 @@
 
 // ====== TIMING ======
 export const CYCLE_DURATION = 40000; // 40 seconds
-export const MAX_FRAGMENT_REPETITIONS = 3;
+export const MAX_FRAGMENT_REPETITIONS = 2;
 
 // ====== MAIN CONFIG ======
 export const CONFIG = {
