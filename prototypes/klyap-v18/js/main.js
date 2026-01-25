@@ -10,6 +10,9 @@ import { initParticles } from './particles.js';
 import { initFragments, spawnFragment, spawnInitialState, getSpawnInterval } from './fragments.js';
 import { initBubbles } from './bubbles.js';
 import { initCycle, checkMeta, updateDebug } from './cycle.js';
+import { initFilmstrip, updateFilmstrip } from './filmstrip.js';
+import { initGhostText, initScratches, updateGhostTextVisibility, initTactile, initGhostCursors, updateGhostCursors } from './effects.js';
+import { initDataOverlay, updateMouseCoordsDisplay } from './data-overlay.js';
 
 // DOM elements
 let cursor, stream;
@@ -27,6 +30,12 @@ function init() {
     initParticles();
     initBubbles();
     initCycle();
+    initFilmstrip();
+    initGhostText();
+    initScratches();
+    initTactile();
+    initGhostCursors();
+    initDataOverlay();
 
     // Event listeners
     setupEventListeners();
@@ -52,6 +61,9 @@ function setupEventListeners() {
         updateMousePosition(e.clientX, e.clientY);
         cursor.style.left = e.clientX + 'px';
         cursor.style.top = e.clientY + 'px';
+        updateGhostTextVisibility();
+        updateGhostCursors(e.clientX, e.clientY);
+        updateMouseCoordsDisplay(e.clientX, e.clientY);
     });
 
     // Scroll detection
@@ -110,6 +122,7 @@ function tick() {
         checkMeta();
     }
     updateDebug();
+    updateFilmstrip();
     scheduleNext();
 }
 

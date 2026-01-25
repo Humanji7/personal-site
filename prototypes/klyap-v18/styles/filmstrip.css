@@ -1,0 +1,121 @@
+/* KLYAP v18.6 — Filmstrip Styles */
+
+#filmstrip {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 80px;
+    height: 100vh;
+    z-index: 150;
+    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.9) 20%, rgba(0, 0, 0, 0.95));
+    opacity: 0;
+    transform: translateX(100%);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+#filmstrip.active {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Sprocket Holes */
+#filmstrip::before,
+#filmstrip::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 8px;
+    height: 100%;
+    background: repeating-linear-gradient(180deg,
+            transparent,
+            transparent 12px,
+            rgba(20, 20, 20, 1) 12px,
+            rgba(20, 20, 20, 1) 18px,
+            transparent 18px,
+            transparent 30px);
+    z-index: 2;
+}
+
+#filmstrip::before {
+    left: 2px;
+}
+
+#filmstrip::after {
+    right: 2px;
+}
+
+/* Content Container */
+.filmstrip-content {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    will-change: transform;
+}
+
+/* Individual Frames */
+.film-frame {
+    width: 100%;
+    height: 50px;
+    background: rgba(30, 30, 30, 0.9);
+    border: 1px solid rgba(60, 60, 60, 0.5);
+}
+
+.film-frame.frame-noise {
+    background: repeating-linear-gradient(0deg,
+            rgba(80, 80, 80, 0.5),
+            rgba(40, 40, 40, 0.5) 2px,
+            rgba(60, 60, 60, 0.5) 2px,
+            rgba(20, 20, 20, 0.5) 4px);
+    animation: filmNoise 0.1s infinite;
+}
+
+.film-frame.frame-glitch {
+    animation: filmGlitch 0.2s infinite;
+}
+
+.film-frame.frame-dark {
+    background: linear-gradient(135deg,
+            rgba(10, 10, 10, 0.95),
+            rgba(30, 20, 30, 0.9));
+}
+
+/* Animations */
+@keyframes filmNoise {
+
+    0%,
+    100% {
+        opacity: 0.8;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+@keyframes filmGlitch {
+    0% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-2px);
+    }
+
+    50% {
+        transform: translateX(1px);
+    }
+
+    75% {
+        transform: translateX(-1px);
+    }
+
+    100% {
+        transform: translateX(0);
+    }
+}

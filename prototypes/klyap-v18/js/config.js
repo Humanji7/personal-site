@@ -156,3 +156,61 @@ export const TEXT_PHRASES = [
     '...продолжается', 'распирает', 'глубже', 'ещё', 'не останавливайся',
     'внутрь', 'растворяет', 'тяжело', 'сладко', 'снова'
 ];
+
+// ====== ECHO FRAGMENTS (v18.6) ======
+export const ECHO_CONFIG = {
+    frequency: 3,          // Каждый N-й спавн
+    copies: 2,             // Количество копий
+    opacity: 0.3,
+    delays: [100, 200],    // ms задержки
+    offsets: [15, -15],    // px смещение
+    lifespan: 400          // ms до fade out
+};
+
+// ====== Z-AXIS INVASION (v18.6) ======
+export const Z_INVASION_CONFIG = {
+    frequency: 7,          // Каждый N-й спавн
+    scales: [1, 3, 1.2],   // scale keyframes
+    duration: 600,
+    easing: 'elastic.out(1, 0.5)'
+};
+
+// ====== FILMSTRIP (v18.6) ======
+export const FILMSTRIP_CONFIG = {
+    startTime: 8000,       // 8s
+    endTime: 13000,        // 13s
+    width: 80,             // px
+    initialSpeed: 100,     // px/s
+    acceleration: 1.5      // exponential factor
+};
+
+// ====== GHOST TEXT (v18.6) ======
+export const GHOST_TEXT_CONFIG = {
+    phrases: ['...ещё', 'глубже', 'не смотри', 'продолжай', 'здесь', 'теплее'],
+    fadeTime: 800,         // ms after mouse stops
+    maxOpacity: 0.6,
+    maxActive: 3
+};
+
+// ====== TACTILE EFFECTS (v18.6) ======
+export const TACTILE_CONFIG = {
+    vibrationRange: 3,           // px
+    focusBlurPeriod: 8000,       // ms (8s cycle)
+    focusBlurMax: 1.5,           // px
+    chromaticOffset: 2,          // px RGB split
+    chromaticDuration: 300       // ms
+};
+
+// ====== AUTISTIC DATA (v18.6) ======
+export const AUTISTIC_DATA_CONFIG = {
+    enabled: true,
+    updateInterval: 16           // ~60fps
+};
+
+// ====== IDIOTIC ELEMENTS (v18.6) ======
+export const IDIOTIC_CONFIG = {
+    cursorWaitChance: 0.02,      // 2% on spawn
+    cursorWaitDuration: [500, 1500],
+    ghostCursorDelays: [50, 100, 150],
+    ghostCursorOpacity: 0.2
+};

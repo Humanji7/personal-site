@@ -6,10 +6,12 @@
 import {
     CONFIG, MAX_FRAGMENT_REPETITIONS, FRAGMENT_BASE, LAYER_MAP,
     LAYER_THRESHOLDS, DISPLACEMENT_INTENSITY, DISPLACEMENT_DECAY,
-    TEMPORAL_DISPLACEMENT, MORPH_VARIANTS, MORPH_WEIGHTS, PERIODIC_MORPH
+    TEMPORAL_DISPLACEMENT, MORPH_VARIANTS, MORPH_WEIGHTS, PERIODIC_MORPH,
+    ECHO_CONFIG, Z_INVASION_CONFIG
 } from './config.js';
 import { AppState, getCycleTime, setLayer, updateDepth, resetFragmentUsage } from './state.js';
 import { decomposeFragment, assembleFragment, triggerWindSweep } from './particles.js';
+import { triggerVibration, triggerChromaticAberration, triggerRandomCursorWait } from './effects.js';
 
 // DOM elements
 let stream, layerFlash, displaceMap;
@@ -158,6 +160,8 @@ export function spawnFragment() {
         triggerLayerFlash(newLayer);
         triggerDisplacement(AppState.layer.previous, newLayer);
         triggerWindSweep();
+        triggerVibration();
+        triggerChromaticAberration();
 
         // WebGL morph on layer change
         if (window.localizedMorph?.canMorph() && AppState.layer.previous) {
@@ -225,6 +229,9 @@ export function spawnFragment() {
     AppState.fragment.spawned++;
     updateDepth();
 
+    // Random cursor wait (v18.6 idiotic effect)
+    triggerRandomCursorWait();
+
     // ====== PERIODIC MORPH (v18.2) ======
     if (PERIODIC_MORPH.enabled &&
         AppState.fragment.spawned % PERIODIC_MORPH.frequency === 0 &&
@@ -250,6 +257,16 @@ export function spawnFragment() {
         });
 
         console.log(`[v18.2] Periodic morph: ${variant.name} (intensity: ${variant.intensity}, duration: ${variant.duration}ms)`);
+    }
+
+    // ====== ECHO FRAGMENTS (v18.6) ======
+    if (AppState.fragment.spawned % ECHO_CONFIG.frequency === 0) {
+        createEchoFragments(fragment);
+    }
+
+    // ====== Z-AXIS INVASION (v18.6) ======
+    if (AppState.fragment.spawned % Z_INVASION_CONFIG.frequency === 0) {
+        triggerZInvasion(fragment);
     }
 
     // Remove after animation
@@ -327,9 +344,76 @@ function triggerInitialMorphs(fragments, count) {
 }
 
 /**
+ * Create echo fragments — ghost copies with delay (v18.6)
+ */
+function createEchoFragments(originalFragment) {
+    const rect = originalFragment.getBoundingClientRect();
+    const originalStyles = window.getComputedStyle(originalFragment);
+
+    ECHO_CONFIG.delays.forEach((delay, i) => {
+        setTimeout(() => {
+            const echo = originalFragment.cloneNode(true);
+            echo.className = 'fragment echo-fragment';
+            echo.style.left = originalStyles.left;
+            echo.style.top = originalStyles.top;
+            echo.style.rotate = originalStyles.rotate;
+            echo.style.zIndex = parseInt(originalStyles.zIndex) - 1;
+            echo.style.opacity = ECHO_CONFIG.opacity;
+            echo.style.pointerEvents = 'none';
+
+            // Offset
+            const offset = ECHO_CONFIG.offsets[i] || 0;
+            echo.style.transform = `translate(${offset}px, ${offset}px)`;
+
+            stream.appendChild(echo);
+
+            // Fade out
+            setTimeout(() => {
+                echo.classList.add('echo-fade');
+                setTimeout(() => echo.remove(), 400);
+            }, ECHO_CONFIG.lifespan);
+        }, delay);
+    });
+
+    console.log(`[v18.6] Echo fragments created`);
+}
+
+/**
+ * Trigger z-axis invasion — elastic scale explosion (v18.6)
+ */
+function triggerZInvasion(fragment) {
+    if (typeof gsap === 'undefined') return;
+
+    fragment.classList.add('z-invaded');
+
+    // Get original scale from img
+    const img = fragment.querySelector('img');
+    const originalTransform = img?.style.transform || '';
+
+    gsap.timeline()
+        .to(fragment, {
+            scale: Z_INVASION_CONFIG.scales[1],
+            boxShadow: '0 0 60px 20px rgba(255, 100, 255, 0.6)',
+            duration: Z_INVASION_CONFIG.duration / 2000,
+            ease: 'power2.out'
+        })
+        .to(fragment, {
+            scale: Z_INVASION_CONFIG.scales[2],
+            boxShadow: '0 0 20px 5px rgba(255, 100, 255, 0.2)',
+            duration: Z_INVASION_CONFIG.duration / 2000,
+            ease: Z_INVASION_CONFIG.easing,
+            onComplete: () => {
+                fragment.classList.remove('z-invaded');
+                fragment.style.boxShadow = '';
+            }
+        });
+
+    console.log(`[v18.6] Z-axis invasion triggered`);
+}
+
+/**
  * Get stream element for external use
  */
 export function getStream() {
     return stream;
 }
-
