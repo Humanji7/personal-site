@@ -1,0 +1,185 @@
+/* KLYAP v18 — Fragment Styles */
+
+/* ====== FRAGMENT STREAM ====== */
+#stream {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    z-index: 10;
+}
+
+.fragment {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0;
+    filter: blur(20px);
+    pointer-events: none;
+    will-change: transform, opacity, filter;
+    animation: fragment-emerge var(--anim-duration, 4s) ease-out forwards;
+}
+
+.fragment img {
+    max-width: 450px;
+    max-height: 450px;
+    object-fit: contain;
+}
+
+/* ====== LAYER EFFECTS ====== */
+.fragment.layer-intimate {
+    filter: sepia(0.8) contrast(1.2) brightness(0.9);
+}
+
+.fragment.layer-mirror {
+    filter: hue-rotate(180deg) saturate(2) brightness(1.3);
+    animation: glitchPulse 0.5s infinite;
+}
+
+.fragment.layer-visceral {
+    filter: hue-rotate(-30deg) saturate(3) contrast(1.4);
+    box-shadow: 0 0 60px 20px rgba(180, 30, 30, 0.5);
+}
+
+.fragment.layer-noise {
+    filter: grayscale(1) contrast(2) brightness(0.7);
+    opacity: 0.5;
+}
+
+.fragment.layer-vivid {
+    filter: saturate(2.5) brightness(1.3) hue-rotate(20deg);
+    box-shadow: 0 0 40px 10px rgba(255, 0, 255, 0.3);
+}
+
+.fragment.layer-flesh {
+    filter: sepia(0.25) saturate(1.4) contrast(1.15);
+    box-shadow: 0 0 30px 8px rgba(180, 100, 100, 0.25);
+}
+
+@keyframes glitchPulse {
+
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    25% {
+        transform: translate(-51%, -49%) scale(1.01);
+    }
+
+    75% {
+        transform: translate(-49%, -51%) scale(0.99);
+    }
+}
+
+@keyframes fragment-emerge {
+    0% {
+        transform: translate(-50%, -50%) scale(0.3);
+        opacity: 0;
+        filter: blur(20px);
+    }
+
+    20% {
+        opacity: 0.8;
+        filter: blur(8px);
+    }
+
+    40% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+        filter: blur(0);
+    }
+
+    100% {
+        transform: translate(var(--drift-x), var(--drift-y)) scale(1.05);
+        opacity: 0;
+        filter: blur(8px);
+    }
+}
+
+/* ====== META MESSAGES ====== */
+.meta-message {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: hsla(290, 30%, 50%, 0);
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 4rem);
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    text-transform: lowercase;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 1s ease-out, color 1s ease-out;
+    text-shadow: 0 0 40px hsla(290, 40%, 30%, 0.5);
+}
+
+.meta-message.visible {
+    opacity: 1;
+    color: hsla(290, 30%, 55%, 0.7);
+    animation: textBreathe 6s ease-in-out infinite;
+}
+
+@keyframes textBreathe {
+
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.7;
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.03);
+        opacity: 1;
+    }
+}
+
+/* ====== TEXT-BLOCK (центральное слово) ====== */
+.text-block {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: hsl(285, 20%, 50%);
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 6vw, 4rem);
+    line-height: 1.4;
+    text-align: center;
+    text-shadow: 0 0 40px hsla(290, 40%, 20%, 0.6);
+    opacity: 0;
+    transition: opacity 4s ease-out, transform 3s ease-out;
+    letter-spacing: 0.25em;
+    pointer-events: none;
+    z-index: 45;
+}
+
+.text-block.visible {
+    opacity: 0.75;
+}
+
+.text-block.pulse {
+    animation: textIntensify 4s ease-in-out infinite;
+}
+
+@keyframes textIntensify {
+
+    0%,
+    100% {
+        opacity: 0.65;
+        filter: blur(0);
+    }
+
+    30% {
+        opacity: 0.9;
+    }
+
+    50% {
+        filter: blur(1px);
+    }
+
+    55% {
+        filter: blur(0);
+    }
+}

@@ -1,0 +1,134 @@
+/* KLYAP v18 — Provocation Bubbles */
+
+/* ====== BUBBLE CONTAINER ====== */
+.bubble-container {
+    position: fixed;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 55;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+}
+
+/* ====== PROVOCATION BUBBLES ====== */
+.provocation-bubble {
+    background: hsla(290, 30%, 12%, 0.85);
+    border: 1px solid hsla(295, 40%, 25%, 0.4);
+    border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+    padding: 14px 20px;
+    color: hsla(290, 35%, 70%, 0.95);
+    font-family: 'Mystery Quest', cursive;
+    font-size: clamp(0.9rem, 2.2vw, 1.2rem);
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    max-width: 220px;
+    opacity: 0;
+    transform: translateX(-40px) scale(0.9);
+    transition: opacity 2s ease-out, transform 0.3s ease-out;
+    pointer-events: none;
+    cursor: pointer;
+    box-shadow:
+        0 0 25px hsla(290, 50%, 25%, 0.4),
+        0 0 50px hsla(295, 45%, 18%, 0.25),
+        inset 0 0 18px hsla(300, 40%, 30%, 0.25);
+    animation: blobMorph 8s ease-in-out infinite, bubbleBreath 4s ease-in-out infinite;
+    animation-play-state: paused;
+    will-change: transform, border-radius;
+}
+
+/* Staggered animation delays */
+.provocation-bubble:nth-child(1) {
+    animation-delay: 0s, 0s;
+}
+
+.provocation-bubble:nth-child(2) {
+    animation-delay: 1.6s, 0.8s;
+}
+
+.provocation-bubble:nth-child(3) {
+    animation-delay: 3.2s, 1.6s;
+}
+
+.provocation-bubble:nth-child(4) {
+    animation-delay: 4.8s, 2.4s;
+}
+
+.provocation-bubble:nth-child(5) {
+    animation-delay: 6.4s, 3.2s;
+}
+
+.provocation-bubble.visible {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    pointer-events: auto;
+    animation-play-state: running;
+}
+
+/* Whisper text */
+.provocation-bubble .whisper {
+    display: block;
+    font-size: 0.7em;
+    color: hsla(300, 40%, 55%, 0);
+    margin-top: 6px;
+    font-style: italic;
+    transition: color 0.8s ease-out;
+}
+
+.provocation-bubble.whisper-visible .whisper {
+    color: hsla(300, 40%, 55%, 0.8);
+}
+
+/* Hover state */
+.provocation-bubble:hover {
+    background: hsla(295, 35%, 18%, 0.9);
+    border-color: hsla(300, 45%, 35%, 0.6);
+    color: hsla(290, 30%, 75%, 1);
+    box-shadow:
+        0 0 40px hsla(295, 55%, 30%, 0.5),
+        0 0 70px hsla(300, 50%, 22%, 0.35),
+        inset 0 0 25px hsla(305, 45%, 35%, 0.3);
+}
+
+/* ====== ANIMATIONS ====== */
+@keyframes blobMorph {
+
+    0%,
+    100% {
+        border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+    }
+
+    25% {
+        border-radius: 58% 42% 55% 45% / 55% 60% 40% 45%;
+    }
+
+    50% {
+        border-radius: 50% 50% 45% 55% / 40% 50% 50% 60%;
+    }
+
+    75% {
+        border-radius: 45% 55% 60% 40% / 50% 45% 55% 50%;
+    }
+}
+
+@keyframes bubbleBreath {
+
+    0%,
+    100% {
+        transform: translateX(0) scale(1);
+        box-shadow:
+            0 0 25px hsla(290, 50%, 25%, 0.4),
+            0 0 50px hsla(295, 45%, 18%, 0.25),
+            inset 0 0 18px hsla(300, 40%, 30%, 0.25);
+    }
+
+    50% {
+        transform: translateX(3px) scale(1.02);
+        box-shadow:
+            0 0 35px hsla(295, 55%, 28%, 0.5),
+            0 0 65px hsla(300, 50%, 22%, 0.35),
+            inset 0 0 22px hsla(305, 45%, 35%, 0.3);
+    }
+}
