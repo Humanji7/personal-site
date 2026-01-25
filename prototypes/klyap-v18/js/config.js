@@ -214,3 +214,29 @@ export const IDIOTIC_CONFIG = {
     ghostCursorDelays: [50, 100, 150],
     ghostCursorOpacity: 0.2
 };
+
+// ====== RANSOM NOTE TYPOGRAPHY (v18.7) ======
+export const RANSOM_CONFIG = {
+    enabled: true,
+    chance: 0.3,                      // 30% появлений = ransom style
+    fonts: [
+        'Georgia, serif',
+        'Arial, sans-serif',
+        'Courier New, monospace',
+        'Comic Sans MS, cursive',
+        'Times New Roman, serif'
+    ],
+    rotation: { min: -15, max: 15 },  // degrees
+    scale: { min: 0.8, max: 1.4 },
+    hueShift: { min: -20, max: 20 },  // degrees
+    staggerDelay: 60,                 // ms between letters
+    backgrounds: [
+        '#f5f5dc',   // beige
+        '#fff8dc',   // cornsilk
+        '#fffaf0',   // floral white
+        '#f5deb3',   // wheat
+        '#faebd7'    // antique white
+    ],
+    missChance: 0.15,                 // 15% letters overshoot
+    tornEdgeChance: 0.2               // 20% get clip-path
+};

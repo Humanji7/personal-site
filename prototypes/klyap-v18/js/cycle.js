@@ -6,6 +6,7 @@
 import { CONFIG, CYCLE_DURATION, TEXT_PHRASES } from './config.js';
 import { AppState, getCycleTime, resetFragmentUsage } from './state.js';
 import { getStream, getPhaseName } from './fragments.js';
+import { shouldUseRansom, applyRansomStyle, animateRansomAppear } from './text-effects.js';
 
 // DOM elements
 let vignette, metaEl, debugEl, scrollIndicator, textBlock;
@@ -121,11 +122,21 @@ function showTextBlock() {
  * Rotate text block phrase
  */
 function rotateTextBlock() {
-    textBlock.classList.remove('visible', 'pulse');
+    textBlock.classList.remove('visible', 'pulse', 'ransom-mode');
     setTimeout(() => {
         currentPhraseIndex = (currentPhraseIndex + 1) % TEXT_PHRASES.length;
-        textBlock.textContent = TEXT_PHRASES[currentPhraseIndex];
-        textBlock.classList.add('visible');
+        const phrase = TEXT_PHRASES[currentPhraseIndex];
+
+        if (shouldUseRansom()) {
+            console.log('[v18.7] Ransom style for:', phrase);
+            applyRansomStyle(textBlock, phrase);
+            textBlock.classList.add('visible');
+            animateRansomAppear(textBlock);
+        } else {
+            textBlock.textContent = phrase;
+            textBlock.classList.add('visible');
+        }
+
         setTimeout(() => textBlock.classList.add('pulse'), 1500);
     }, 1000);
 }
