@@ -241,7 +241,7 @@ export const RANSOM_CONFIG = {
     bloodSpeckChance: 0.05,
     overlapChance: 0.10,
 
-    staggerDelay: 55,                      // More readable stagger
+    staggerDelay: 50,                      // 3 frames @60fps — musical rhythm
 
     // Контрастные фоны
     backgrounds: [

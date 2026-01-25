@@ -63,7 +63,15 @@ export function applyRansomStyle(element, text) {
         const rotation = randomInRange(rc.rotation.min, rc.rotation.max);
         const scale = randomInRange(rc.scale.min, rc.scale.max);
         const font = randomPick(rc.fonts);
-        const hue = 280 + randomInRange(rc.hueShift.min, rc.hueShift.max);
+
+        // Warm/cold color split (Phase 2 prep)
+        const warmHue = 25 + Math.random() * 20;   // 25-45 (newspaper aged)
+        const coldHue = 270 + Math.random() * 30;  // 270-300 (violet ink)
+        const hue = Math.random() < 0.6 ? warmHue : coldHue;
+
+        // Typography weight randomization
+        const weights = [300, 400, 500, 600, 700, 800, 900];
+        const weight = randomPick(weights);
 
         // Inverted check (black background, white text)
         const isInverted = Math.random() < rc.invertedChance;
@@ -75,11 +83,13 @@ export function applyRansomStyle(element, text) {
 
         span.style.cssText = `
             font-family: ${font};
+            font-weight: ${weight};
             background: ${bg};
             color: ${isInverted ? '#fff' : `hsl(${hue}, 35%, 18%)`};
             transform: rotate(${rotation}deg) scale(${scale});
             --shadow-offset-x: ${shadowX}px;
             --shadow-offset-y: ${shadowY}px;
+            --base-rotation: ${rotation}deg;
         `;
 
         if (isInverted) span.classList.add('inverted');
@@ -122,23 +132,29 @@ export function animateRansomAppear(container) {
     const letters = container.querySelectorAll('.ransom-letter');
     if (!letters.length) return;
 
-    // Pre-calculate random rotations for performance
+    // Pre-calculate random values for organic variation
     const rotations = Array.from(letters).map(() => randomInRange(-20, 20));
 
+    // Add animating class for will-change optimization
+    letters.forEach(l => l.classList.add('animating'));
+
     gsap.from(letters, {
-        y: -80,              // More dramatic "падёж"
+        y: () => -120 - Math.random() * 80,  // -120 to -200 (varied heights)
         autoAlpha: 0,
-        scale: 0.2,          // Smaller start for impact
+        scale: () => 0.1 + Math.random() * 0.2,  // 0.1 to 0.3 (varied scales)
         rotation: (i) => rotations[i],
-        duration: 0.55,      // Slightly longer for weight
-        ease: 'back.out(2.8)', // More pronounced overshoot
+        duration: 0.55,
+        ease: 'power2.out',  // Natural deceleration, not bouncy
         stagger: {
-            each: RANSOM_CONFIG.staggerDelay / 1000,
+            each: RANSOM_CONFIG.staggerDelay / 1000,  // 50ms = 3 frames @60fps
             from: 'start'
         },
         onComplete: () => {
             // Reset will-change to prevent GPU memory leak
-            letters.forEach(l => l.style.willChange = 'auto');
+            letters.forEach(l => {
+                l.classList.remove('animating');
+                l.style.willChange = 'auto';
+            });
         }
     });
 }
