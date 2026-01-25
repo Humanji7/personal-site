@@ -215,28 +215,43 @@ export const IDIOTIC_CONFIG = {
     ghostCursorOpacity: 0.2
 };
 
-// ====== RANSOM NOTE TYPOGRAPHY (v18.7) ======
+// ====== RANSOM NOTE TYPOGRAPHY (v18.7.1 — UPGRADED) ======
 export const RANSOM_CONFIG = {
     enabled: true,
-    chance: 0.3,                      // 30% появлений = ransom style
+    chance: 0.20,                     // 20% — реже, но impact больше
+
     fonts: [
         'Georgia, serif',
-        'Arial, sans-serif',
+        'Impact, sans-serif',              // TABLOID HEADER
+        'Arial Black, sans-serif',         // Bold sans
         'Courier New, monospace',
-        'Comic Sans MS, cursive',
-        'Times New Roman, serif'
+        'Times New Roman, serif',
+        '"Palatino Linotype", serif',
+        '"Trebuchet MS", sans-serif',
+        'Verdana, sans-serif'
     ],
-    rotation: { min: -15, max: 15 },  // degrees
-    scale: { min: 0.8, max: 1.4 },
-    hueShift: { min: -20, max: 20 },  // degrees
-    staggerDelay: 60,                 // ms between letters
+
+    rotation: { min: -25, max: 25 },       // Более агрессивный
+    scale: { min: 0.7, max: 1.8 },         // Шире
+    hueShift: { min: -30, max: 30 },       // degrees
+
+    // Вариации приклеенности
+    tapeChance: 0.12,                      // 12% имеют "скотч"
+    invertedChance: 0.08,                  // 8% инвертированные (белый на чёрном)
+    bloodSpeckChance: 0.05,                // 5% с красным пятном
+    overlapChance: 0.10,                   // 10% налезают на соседнюю
+
+    staggerDelay: 45,                      // Быстрее
+
+    // Контрастные фоны
     backgrounds: [
-        '#f5f5dc',   // beige
-        '#fff8dc',   // cornsilk
-        '#fffaf0',   // floral white
-        '#f5deb3',   // wheat
-        '#faebd7'    // antique white
+        '#f5f5dc',   // beige (newspaper)
+        '#ffffff',   // pure white (magazine)
+        '#d4d4aa',   // old paper yellow
+        '#e8e0d0',   // aged parchment
+        '#c0c0c0',   // grey (tabloid)
     ],
-    missChance: 0.15,                 // 15% letters overshoot
-    tornEdgeChance: 0.2               // 20% get clip-path
+
+    missChance: 0.15,
+    tornEdgeChance: 0.35                   // 35% — больше неровности
 };

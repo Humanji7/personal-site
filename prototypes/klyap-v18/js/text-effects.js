@@ -1,18 +1,20 @@
 /**
- * KLYAP v18.7 — Text Effects
- * Ransom Note Typography for central text
+ * KLYAP v18.7.1 — Text Effects (UPGRADED)
+ * Ransom Note Typography with enhanced visceral details
  * 
- * Best practices applied:
- * - Using gsap.from() for efficiency
- * - Animating only transform properties (x, y, rotation, scale)
- * - Single stagger animation instead of per-letter tweens
- * - will-change: transform on letters
+ * Additions:
+ * - Inverted letters (white on black)
+ * - Tape overlay effect
+ * - Blood specks
+ * - Overlapping letters
+ * - Multiple torn edge variants
+ * - Variable shadow depths
  */
 
 import { RANSOM_CONFIG } from './config.js';
 
 /**
- * Check if ransom style should be used (30% chance)
+ * Check if ransom style should be used
  */
 export function shouldUseRansom() {
     return RANSOM_CONFIG.enabled && Math.random() < RANSOM_CONFIG.chance;
@@ -34,21 +36,21 @@ function randomPick(arr) {
 
 /**
  * Apply ransom note style to text element
- * Creates letter spans with randomized styling
+ * Creates letter spans with randomized styling and visceral effects
  */
 export function applyRansomStyle(element, text) {
-    // Clear previous content
     element.innerHTML = '';
     element.classList.add('ransom-mode');
 
     const fragment = document.createDocumentFragment();
     const chars = text.split('');
+    const rc = RANSOM_CONFIG;
 
-    chars.forEach((char) => {
+    chars.forEach((char, i) => {
         if (char === ' ') {
             const space = document.createElement('span');
             space.className = 'ransom-space';
-            space.textContent = '\u00A0'; // non-breaking space
+            space.textContent = '\u00A0';
             fragment.appendChild(space);
             return;
         }
@@ -57,24 +59,53 @@ export function applyRansomStyle(element, text) {
         span.className = 'ransom-letter';
         span.textContent = char;
 
-        // Apply randomized styles directly
-        const rotation = randomInRange(RANSOM_CONFIG.rotation.min, RANSOM_CONFIG.rotation.max);
-        const scale = randomInRange(RANSOM_CONFIG.scale.min, RANSOM_CONFIG.scale.max);
-        const bg = randomPick(RANSOM_CONFIG.backgrounds);
-        const font = randomPick(RANSOM_CONFIG.fonts);
-        const hue = 280 + randomInRange(RANSOM_CONFIG.hueShift.min, RANSOM_CONFIG.hueShift.max);
+        // Base random values
+        const rotation = randomInRange(rc.rotation.min, rc.rotation.max);
+        const scale = randomInRange(rc.scale.min, rc.scale.max);
+        const font = randomPick(rc.fonts);
+        const hue = 280 + randomInRange(rc.hueShift.min, rc.hueShift.max);
 
-        // Set final transform state (after animation)
+        // Inverted check (black background, white text)
+        const isInverted = Math.random() < rc.invertedChance;
+        const bg = isInverted ? '#1a1a1a' : randomPick(rc.backgrounds);
+
+        // Shadow variation for depth
+        const shadowX = randomInRange(0.5, 2.5);
+        const shadowY = randomInRange(1, 4);
+
         span.style.cssText = `
             font-family: ${font};
             background: ${bg};
-            color: hsl(${hue}, 35%, 18%);
+            color: ${isInverted ? '#fff' : `hsl(${hue}, 35%, 18%)`};
             transform: rotate(${rotation}deg) scale(${scale});
+            --shadow-offset-x: ${shadowX}px;
+            --shadow-offset-y: ${shadowY}px;
         `;
 
-        // Torn edge variant
-        if (Math.random() < RANSOM_CONFIG.tornEdgeChance) {
-            span.classList.add('torn-edge');
+        if (isInverted) span.classList.add('inverted');
+
+        // Tape effect (scotch tape overlay)
+        if (Math.random() < rc.tapeChance) {
+            span.classList.add('taped');
+            span.style.setProperty('--tape-angle', `${randomInRange(120, 160)}deg`);
+        }
+
+        // Blood speck
+        if (Math.random() < rc.bloodSpeckChance) {
+            span.classList.add('bloody');
+            span.style.setProperty('--blood-x', `${randomInRange(60, 100)}%`);
+            span.style.setProperty('--blood-y', `${randomInRange(-3, 3)}px`);
+        }
+
+        // Overlapping letter (negative margin)
+        if (Math.random() < rc.overlapChance && i > 0) {
+            span.classList.add('overlap-right');
+        }
+
+        // Torn edges (5 random variants)
+        if (Math.random() < rc.tornEdgeChance) {
+            const tornVariant = Math.floor(Math.random() * 5) + 1;
+            span.classList.add(`torn-${tornVariant}`);
         }
 
         fragment.appendChild(span);
@@ -91,20 +122,20 @@ export function animateRansomAppear(container) {
     const letters = container.querySelectorAll('.ransom-letter');
     if (!letters.length) return;
 
-    // Use gsap.from() - more efficient for entrance animations
-    // Animate FROM offscreen TO current position (set in CSS)
+    // Pre-calculate random rotations for performance
+    const rotations = Array.from(letters).map(() => randomInRange(-20, 20));
+
     gsap.from(letters, {
-        y: -25,
-        opacity: 0,
+        y: -30,
+        autoAlpha: 0,  // Better than opacity for GSAP
         scale: 0.3,
-        rotation: '+=random(-20, 20)',
-        duration: 0.35,
-        ease: 'back.out(2)',
+        rotation: (i) => rotations[i],  // Pre-calculated
+        duration: 0.4,
+        ease: 'back.out(2.2)',
         stagger: {
             each: RANSOM_CONFIG.staggerDelay / 1000,
             from: 'start'
-        },
-        clearProps: 'opacity' // Clean up after animation
+        }
     });
 }
 
