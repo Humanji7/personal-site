@@ -282,5 +282,3 @@ class LocalizedMorphRenderer {
 
 // Global instance
 window.localizedMorph = new LocalizedMorphRenderer();
-// Backward compat alias
-window.morphCanvas = window.localizedMorph;
