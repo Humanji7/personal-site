@@ -16,21 +16,21 @@ const CONFIG = {
     pulseAmplitude: 0.15,
 
     // Cursor response
-    cursorInfluence: 0.35,
-    cursorSmoothing: 0.08,
-    velocityDecay: 0.92,
+    cursorInfluence: 0.5,
+    cursorSmoothing: 0.9,
+    velocityDecay: 0.85,
 
     // Echo trails
     maxTrails: 120,
     trailLifespan: 3000, // ms
 
-    // Color palette (psychedelic, warm)
+    // Color palette (organic, warm dreamscape)
     colors: {
-        primary: new THREE.Color(0x6366f1),   // Indigo
-        secondary: new THREE.Color(0xec4899), // Pink
-        tertiary: new THREE.Color(0x8b5cf6),  // Violet
-        accent: new THREE.Color(0xf97316),    // Orange
-        deep: new THREE.Color(0x0f0f1a),      // Deep void
+        primary: new THREE.Color(0x0d9488),   // Deep teal
+        secondary: new THREE.Color(0xf97068), // Warm coral
+        tertiary: new THREE.Color(0xa78bfa),  // Soft violet
+        accent: new THREE.Color(0xfbbf24),    // Golden amber
+        deep: new THREE.Color(0x0a0a12),      // Deep void
     },
 
     // Timing thresholds
@@ -127,16 +127,25 @@ const fragmentShader = `
         return 130.0 * dot(m, g);
     }
     
-    // Fractal brownian motion
-    float fbm(vec2 st) {
+    // Enhanced FBM with configurable octaves
+    float fbm(vec2 st, int octaves) {
         float value = 0.0;
         float amplitude = 0.5;
-        for (int i = 0; i < 5; i++) {
-            value += amplitude * snoise(st);
-            st *= 2.0;
+        float frequency = 1.0;
+        for (int i = 0; i < 4; i++) {
+            if (i >= octaves) break;
+            value += amplitude * snoise(st * frequency);
+            frequency *= 2.0;
             amplitude *= 0.5;
         }
         return value;
+    }
+    
+    // Domain warping for organic flow
+    vec2 warp(vec2 p, float t) {
+        float n1 = fbm(p + t * 0.1, 4);
+        float n2 = fbm(p + vec2(5.2, 1.3) + t * 0.08, 4);
+        return p + vec2(n1, n2) * 0.4;
     }
     
     void main() {
@@ -145,66 +154,79 @@ const fragmentShader = `
         float aspect = uResolution.x / uResolution.y;
         centeredUv.x *= aspect;
         
-        // Time-based flow
-        float t = uTime * 0.15;
-        float breathScale = 1.0 + uBreath * 0.08;
+        // Time-based flow (slightly faster)
+        float t = uTime * 0.2;
+        float breathScale = 1.0 + uBreath * 0.1;
         
         // Mouse influence with smooth falloff
         vec2 toMouse = (uMouse - uv) * 2.0;
         float mouseDist = length(toMouse);
-        float mouseInfluence = smoothstep(0.8, 0.0, mouseDist) * 0.4;
+        float mouseInfluence = smoothstep(0.6, 0.0, mouseDist) * 0.5;
         
         // Velocity creates ripples
-        float velocityEffect = uVelocityMagnitude * 0.3;
+        float velocityEffect = uVelocityMagnitude * 0.4;
         vec2 velocityDir = normalize(uVelocity + 0.001);
         
-        // Wave layers with organic movement
-        vec2 wave1 = centeredUv * 2.0 * breathScale;
-        wave1 += vec2(sin(t * 0.7), cos(t * 0.5)) * 0.3;
+        // Domain warping base
+        vec2 warpedUv = warp(centeredUv * 1.5, t);
+        
+        // Wave layers with organic movement + warping
+        vec2 wave1 = warpedUv * 2.2 * breathScale;
+        wave1 += vec2(sin(t * 0.7), cos(t * 0.5)) * 0.35;
         wave1 += toMouse * mouseInfluence;
-        float n1 = fbm(wave1 + t * 0.2);
+        float n1 = fbm(wave1 + t * 0.25, 4);
         
-        vec2 wave2 = centeredUv * 3.5 * breathScale;
-        wave2 -= vec2(cos(t * 0.6), sin(t * 0.8)) * 0.25;
+        vec2 wave2 = warpedUv * 3.8 * breathScale;
+        wave2 -= vec2(cos(t * 0.6), sin(t * 0.8)) * 0.3;
         wave2 += velocityDir * velocityEffect;
-        float n2 = fbm(wave2 - t * 0.15);
+        float n2 = fbm(wave2 - t * 0.18, 4);
         
-        vec2 wave3 = centeredUv * 1.5 * breathScale;
-        wave3 += vec2(sin(t * 0.4 + n1), cos(t * 0.3 + n2)) * 0.4;
-        float n3 = fbm(wave3 + t * 0.1);
+        vec2 wave3 = warpedUv * 1.8 * breathScale;
+        wave3 += vec2(sin(t * 0.4 + n1), cos(t * 0.3 + n2)) * 0.5;
+        float n3 = fbm(wave3 + t * 0.12, 4);
+        
+        // Fine detail layer
+        float detail = fbm(centeredUv * 6.0 + t * 0.3, 3) * 0.12;
         
         // Combine noise layers
-        float noise = n1 * 0.5 + n2 * 0.3 + n3 * 0.2;
+        float noise = n1 * 0.45 + n2 * 0.3 + n3 * 0.25 + detail;
         noise = noise * 0.5 + 0.5; // Normalize to 0-1
         
         // Color blending based on noise and position
-        float colorMix1 = smoothstep(0.3, 0.7, noise + sin(t * 0.5) * 0.1);
-        float colorMix2 = smoothstep(0.4, 0.8, noise + cos(t * 0.4) * 0.15);
-        float colorMix3 = smoothstep(0.2, 0.6, noise * n3);
+        float colorMix1 = smoothstep(0.25, 0.65, noise + sin(t * 0.5) * 0.12);
+        float colorMix2 = smoothstep(0.35, 0.75, noise + cos(t * 0.4) * 0.18);
+        float colorMix3 = smoothstep(0.15, 0.55, noise * n3 + sin(t * 0.3) * 0.1);
         
         vec3 color = mix(uColor1, uColor2, colorMix1);
-        color = mix(color, uColor3, colorMix2 * 0.7);
-        color = mix(color, uColor4, colorMix3 * 0.3 * (1.0 + velocityEffect));
+        color = mix(color, uColor3, colorMix2 * 0.65);
+        color = mix(color, uColor4, colorMix3 * 0.35 * (1.0 + velocityEffect));
+        
+        // Add subtle iridescence
+        float iridescence = sin(noise * 6.28 + t) * 0.08;
+        color += vec3(iridescence * 0.3, iridescence * 0.15, iridescence * 0.4);
         
         // Breathing pulse on overall intensity
-        float breathPulse = 0.7 + uBreath * 0.3;
+        float breathPulse = 0.75 + uBreath * 0.25;
         color *= breathPulse;
         
-        // Cursor glow
-        float cursorGlow = smoothstep(0.35, 0.0, mouseDist) * 0.35;
-        cursorGlow *= (1.0 + velocityEffect * 0.5);
-        color += vec3(1.0) * cursorGlow;
+        // Cursor glow - warmer
+        float cursorGlow = smoothstep(0.4, 0.0, mouseDist) * 0.4;
+        cursorGlow *= (1.0 + velocityEffect * 0.6);
+        color += vec3(1.0, 0.95, 0.9) * cursorGlow;
         
         // Trail intensity adds shimmer
-        color += vec3(0.15, 0.1, 0.2) * uTrailIntensity * 0.5;
+        color += vec3(0.12, 0.15, 0.25) * uTrailIntensity * 0.6;
         
-        // Vignette
-        float vignette = 1.0 - smoothstep(0.3, 1.2, length(centeredUv));
+        // Softer vignette
+        float vignette = 1.0 - smoothstep(0.4, 1.4, length(centeredUv));
         color *= vignette;
         
-        // Depth - darker at edges
-        float depth = 1.0 - length(centeredUv) * 0.4;
+        // Subtle depth gradient
+        float depth = 1.0 - length(centeredUv) * 0.3;
         color *= depth;
+        
+        // Gamma correction for smoother colors
+        color = pow(color, vec3(0.95));
         
         gl_FragColor = vec4(color, 1.0);
     }
