@@ -17,7 +17,7 @@ const CONFIG = {
 
     // Cursor response
     cursorInfluence: 0.5,
-    cursorSmoothing: 0.9,
+    waveSmoothing: 0.08,  // slow follow for organic waves
     velocityDecay: 0.85,
 
     // Echo trails
@@ -85,6 +85,7 @@ const fragmentShader = `
     uniform float uTime;
     uniform float uBreath;
     uniform vec2 uMouse;
+    uniform vec2 uMouseRaw;
     uniform vec2 uVelocity;
     uniform float uVelocityMagnitude;
     uniform vec3 uColor1;
@@ -154,35 +155,52 @@ const fragmentShader = `
         float aspect = uResolution.x / uResolution.y;
         centeredUv.x *= aspect;
         
-        // Time-based flow (slightly faster)
+        // Time-based flow
         float t = uTime * 0.2;
         float breathScale = 1.0 + uBreath * 0.1;
         
-        // Mouse influence with smooth falloff
-        vec2 toMouse = (uMouse - uv) * 2.0;
-        float mouseDist = length(toMouse);
-        float mouseInfluence = smoothstep(0.6, 0.0, mouseDist) * 0.5;
+        // ============================================
+        // GRAVITY WELL - cursor is center of attraction
+        // ============================================
+        vec2 toMouseRaw = uMouseRaw - uv;
+        float mouseDistRaw = length(toMouseRaw);
+        vec2 mouseDir = normalize(toMouseRaw + 0.0001);
         
-        // Velocity creates ripples
-        float velocityEffect = uVelocityMagnitude * 0.4;
-        vec2 velocityDir = normalize(uVelocity + 0.001);
+        // Attraction strength - stronger near cursor
+        float attraction = smoothstep(0.7, 0.0, mouseDistRaw);
         
-        // Domain warping base
-        vec2 warpedUv = warp(centeredUv * 1.5, t);
+        // Warp UV toward cursor - creates "pulled" effect
+        float warpStrength = attraction * 0.08;
+        vec2 gravityWarpedUv = centeredUv + mouseDir * warpStrength;
         
-        // Wave layers with organic movement + warping
+        // Velocity creates wake/trail behind movement
+        float velocityEffect = uVelocityMagnitude * 0.5;
+        vec2 velocityDir = normalize(uVelocity + 0.0001);
+        
+        // Wake effect - distortion trails behind fast movement
+        vec2 wake = velocityDir * velocityEffect * 0.15;
+        gravityWarpedUv -= wake;
+        
+        // ============================================
+        // Domain warping with gravity influence
+        // ============================================
+        vec2 warpedUv = warp(gravityWarpedUv * 1.5, t);
+        
+        // Wave layers - all influenced by gravity field
         vec2 wave1 = warpedUv * 2.2 * breathScale;
         wave1 += vec2(sin(t * 0.7), cos(t * 0.5)) * 0.35;
-        wave1 += toMouse * mouseInfluence;
+        wave1 += mouseDir * attraction * 0.3; // Pull toward cursor
         float n1 = fbm(wave1 + t * 0.25, 4);
         
         vec2 wave2 = warpedUv * 3.8 * breathScale;
         wave2 -= vec2(cos(t * 0.6), sin(t * 0.8)) * 0.3;
-        wave2 += velocityDir * velocityEffect;
+        wave2 += mouseDir * attraction * 0.2;
+        wave2 -= wake * 0.5; // Wake affects deeper layer
         float n2 = fbm(wave2 - t * 0.18, 4);
         
         vec2 wave3 = warpedUv * 1.8 * breathScale;
         wave3 += vec2(sin(t * 0.4 + n1), cos(t * 0.3 + n2)) * 0.5;
+        wave3 += mouseDir * attraction * 0.15;
         float n3 = fbm(wave3 + t * 0.12, 4);
         
         // Fine detail layer
@@ -190,42 +208,46 @@ const fragmentShader = `
         
         // Combine noise layers
         float noise = n1 * 0.45 + n2 * 0.3 + n3 * 0.25 + detail;
-        noise = noise * 0.5 + 0.5; // Normalize to 0-1
+        noise = noise * 0.5 + 0.5;
         
-        // Color blending based on noise and position
+        // Color blending - attraction intensifies accent color
         float colorMix1 = smoothstep(0.25, 0.65, noise + sin(t * 0.5) * 0.12);
         float colorMix2 = smoothstep(0.35, 0.75, noise + cos(t * 0.4) * 0.18);
         float colorMix3 = smoothstep(0.15, 0.55, noise * n3 + sin(t * 0.3) * 0.1);
         
         vec3 color = mix(uColor1, uColor2, colorMix1);
         color = mix(color, uColor3, colorMix2 * 0.65);
-        color = mix(color, uColor4, colorMix3 * 0.35 * (1.0 + velocityEffect));
+        color = mix(color, uColor4, colorMix3 * 0.35 * (1.0 + velocityEffect + attraction * 0.3));
         
-        // Add subtle iridescence
-        float iridescence = sin(noise * 6.28 + t) * 0.08;
+        // Iridescence intensified near cursor
+        float iridescence = sin(noise * 6.28 + t) * (0.08 + attraction * 0.05);
         color += vec3(iridescence * 0.3, iridescence * 0.15, iridescence * 0.4);
         
-        // Breathing pulse on overall intensity
+        // Breathing pulse
         float breathPulse = 0.75 + uBreath * 0.25;
         color *= breathPulse;
         
-        // Cursor glow - warmer
-        float cursorGlow = smoothstep(0.4, 0.0, mouseDist) * 0.4;
-        cursorGlow *= (1.0 + velocityEffect * 0.6);
-        color += vec3(1.0, 0.95, 0.9) * cursorGlow;
+        // ============================================
+        // GLOW - instant, part of gravity field
+        // ============================================
+        float cursorGlow = smoothstep(0.35, 0.0, mouseDistRaw) * 0.45;
+        cursorGlow *= (1.0 + velocityEffect * 0.4);
+        // Glow color slightly warmer when moving fast
+        vec3 glowColor = mix(vec3(1.0, 0.95, 0.9), vec3(1.0, 0.85, 0.7), velocityEffect);
+        color += glowColor * cursorGlow;
         
-        // Trail intensity adds shimmer
+        // Trail intensity shimmer
         color += vec3(0.12, 0.15, 0.25) * uTrailIntensity * 0.6;
         
-        // Softer vignette
-        float vignette = 1.0 - smoothstep(0.4, 1.4, length(centeredUv));
+        // Softer vignette - slightly lifted near cursor
+        float vignette = 1.0 - smoothstep(0.4 + attraction * 0.1, 1.4, length(centeredUv));
         color *= vignette;
         
-        // Subtle depth gradient
+        // Depth gradient
         float depth = 1.0 - length(centeredUv) * 0.3;
         color *= depth;
         
-        // Gamma correction for smoother colors
+        // Gamma correction
         color = pow(color, vec3(0.95));
         
         gl_FragColor = vec4(color, 1.0);
@@ -261,6 +283,7 @@ function init() {
         uTime: { value: 0 },
         uBreath: { value: 0 },
         uMouse: { value: new THREE.Vector2(0.5, 0.5) },
+        uMouseRaw: { value: new THREE.Vector2(0.5, 0.5) },
         uVelocity: { value: new THREE.Vector2(0, 0) },
         uVelocityMagnitude: { value: 0 },
         uColor1: { value: CONFIG.colors.primary },
@@ -392,9 +415,12 @@ function animate() {
     state.breathPhase += CONFIG.basePulseSpeed;
     uniforms.uBreath.value = Math.sin(state.breathPhase) * CONFIG.pulseAmplitude;
 
-    // Smooth cursor following
-    state.smoothMouse.x += (state.mouse.x - state.smoothMouse.x) * CONFIG.cursorSmoothing;
-    state.smoothMouse.y += (state.mouse.y - state.smoothMouse.y) * CONFIG.cursorSmoothing;
+    // RAW cursor (instant 1:1 for glow)
+    uniforms.uMouseRaw.value.set(state.mouse.x, state.mouse.y);
+
+    // SMOOTH cursor (organic wave flow)
+    state.smoothMouse.x += (state.mouse.x - state.smoothMouse.x) * CONFIG.waveSmoothing;
+    state.smoothMouse.y += (state.mouse.y - state.smoothMouse.y) * CONFIG.waveSmoothing;
     uniforms.uMouse.value.set(state.smoothMouse.x, state.smoothMouse.y);
 
     // Decay velocity
