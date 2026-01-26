@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Void — Живое Пространство</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div id="void-container">
+        <canvas id="void-canvas"></canvas>
+
+        <!-- Void Text Layer -->
+        <div id="void-text-layer">
+            <div class="void-message main-message">
+                Двигайся медленно.<br>
+                <span class="subtle">Здесь время другое.</span>
+            </div>
+            <div class="void-message micro-text" id="micro-text"></div>
+        </div>
+    </div>
+
+    <!-- Three.js -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js"
+        }
+    }
+    </script>
+    <script type="module" src="void.js"></script>
+</body>
+
+</html>
