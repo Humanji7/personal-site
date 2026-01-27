@@ -25,9 +25,9 @@
         </div>
     </div>
 
-    <!-- EMERGENCE: Next block after tunnel -->
+    <!-- EMERGENCE: Fallback (hidden when WebGL text active) -->
     <section id="emergence"
-        style="position: relative; z-index: 10; min-height: 100vh; background: #0a0a0f; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 4rem 2rem;">
+        style="position: relative; z-index: 10; min-height: 100vh; background: #0a0a0f; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 4rem 2rem; visibility: hidden;">
         <div class="emergence-content"
             style="max-width: 800px; text-align: center; opacity: 0; transform: translateY(40px); transition: opacity 1.2s ease-out, transform 1.2s ease-out;">
             <p
@@ -45,7 +45,8 @@
     <script type="importmap">
     {
         "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js"
+            "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+            "troika-three-text": "https://esm.sh/troika-three-text@0.52.3?external=three"
         }
     }
     </script>

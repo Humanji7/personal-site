@@ -6,6 +6,7 @@
  */
 
 import * as THREE from 'three';
+import { Text } from 'troika-three-text';
 
 // ============================================================
 // CONFIGURATION
@@ -42,6 +43,12 @@ const CONFIG = {
     voidScrollHeight: 150,  // vh - high zone for void (was 300)
     tunnelWarpPower: 2.5,    // экспонента сжатия UV (1=линейно, 3=агрессивно)
     tunnelCoreGlow: 1.5,     // яркость центра на scroll=1
+
+    // Emergence text (troika only supports .ttf, .otf, .woff - NOT woff2)
+    emergenceFont: 'https://cdn.jsdelivr.net/gh/JetBrains/JetBrainsMono@2.304/fonts/ttf/JetBrainsMono-Regular.ttf',
+    emergenceText: 'О. Ты дошёл.',
+    emergenceFontSize: 0.08,
+    emergenceThreshold: 0.85,  // scroll progress to start fade-in
 };
 
 // ============================================================
@@ -308,7 +315,7 @@ const fragmentShader = `
 // ============================================================
 // THREE.JS SETUP
 // ============================================================
-let scene, camera, renderer, mesh, uniforms;
+let scene, camera, renderer, mesh, uniforms, emergenceText;
 
 function init() {
     const canvas = document.getElementById('void-canvas');
@@ -358,7 +365,24 @@ function init() {
     // Fullscreen quad
     const geometry = new THREE.PlaneGeometry(2, 2);
     mesh = new THREE.Mesh(geometry, material);
+
+    // ============================================================
+    // EMERGENCE TEXT (SDF via troika-three-text)
+    // ============================================================
+    emergenceText = new Text();
+    emergenceText.text = CONFIG.emergenceText;
+    emergenceText.font = CONFIG.emergenceFont;
+    emergenceText.fontSize = CONFIG.emergenceFontSize;
+    emergenceText.anchorX = 'center';
+    emergenceText.anchorY = 'middle';
+    emergenceText.textAlign = 'center';
+    emergenceText.color = 0xffffff;
+    emergenceText.fillOpacity = 0;
+    emergenceText.letterSpacing = 0.05;
+    emergenceText.position.z = 0.1;  // slightly in front of void plane
+    emergenceText.sync();
     scene.add(mesh);
+    scene.add(emergenceText);
 
     // Event listeners
     window.addEventListener('resize', onResize);
@@ -378,20 +402,21 @@ function init() {
         const progress = voidZoneHeight > 0 ? Math.min(window.scrollY / voidZoneHeight, 1) : 0;
         state.scrollProgress = progress;
 
-        // At 100% scroll: disable pointer-events so emergence can be interacted with
-        // Void stays visible (black hole) behind emergence
-        if (progress >= 0.95) {
-            voidContainer.style.pointerEvents = 'none';
+        // Get text layer for hiding
+        const voidTextLayer = document.getElementById('void-text-layer');
 
-            // Reveal emergence content
-            const emergenceContent = document.querySelector('.emergence-content');
-            if (emergenceContent && !emergenceContent.classList.contains('visible')) {
-                emergenceContent.style.opacity = '1';
-                emergenceContent.style.transform = 'translateY(0)';
-                emergenceContent.classList.add('visible');
+        // At 85%+ scroll: fade out HTML text, WebGL emergence text takes over
+        if (progress >= 0.85) {
+            voidContainer.style.pointerEvents = 'none';
+            if (voidTextLayer) {
+                voidTextLayer.style.opacity = '0';
+                voidTextLayer.style.transition = 'opacity 0.5s ease-out';
             }
         } else {
             voidContainer.style.pointerEvents = 'auto';
+            if (voidTextLayer) {
+                voidTextLayer.style.opacity = '1';
+            }
         }
     }, { passive: true });
 
@@ -525,6 +550,13 @@ function animate() {
     state.trails = validTrails;
     uniforms.uTrailIntensity.value = Math.min(trailIntensity, 1);
     uniforms.uScrollProgress.value = state.scrollProgress;
+
+    // ============================================================
+    // EMERGENCE TEXT FADE-IN
+    // ============================================================
+    const emergenceProgress = Math.max(0, (state.scrollProgress - CONFIG.emergenceThreshold) / (1.0 - CONFIG.emergenceThreshold));
+    const smoothEmergence = emergenceProgress * emergenceProgress * (3 - 2 * emergenceProgress); // smoothstep
+    emergenceText.fillOpacity = smoothEmergence;
 
     // Pause detection
     const timeSinceMove = now - state.lastMoveTime;
