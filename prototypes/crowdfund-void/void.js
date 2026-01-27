@@ -264,16 +264,35 @@ const fragmentShader = `
         color += vec3(0.12, 0.15, 0.25) * uTrailIntensity * 0.6;
         
         // ============================================
-        // TUNNEL CORE GLOW (bright center on deep scroll)
+        // TUNNEL CORE GLOW → BLACKOUT (bright to black hole)
+        // Phase 1 (scroll 0-0.7): bright core
+        // Phase 2 (scroll 0.7-1.0): core inverts to BLACK HOLE
         // ============================================
-        float coreBrightness = smoothstep(0.25, 0.0, gravityDist) * uScrollProgress * uTunnelCoreGlow;
+        float coreShape = smoothstep(0.25, 0.0, gravityDist);
+        
+        // Brightness phases
+        float brightPhase = smoothstep(0.0, 0.5, uScrollProgress);  // ramp up 0-50%
+        float blackoutPhase = smoothstep(0.7, 1.0, uScrollProgress); // ramp down 70-100%
+        
+        // Core brightness: peaks at ~50-70%, then inverts to black
+        float coreBrightness = coreShape * brightPhase * (1.0 - blackoutPhase) * uTunnelCoreGlow;
         color += vec3(1.0, 0.98, 0.95) * coreBrightness;
+        
+        // BLACK HOLE: subtract light from core at high scroll
+        float blackHoleIntensity = coreShape * blackoutPhase * 2.0;
+        color -= color * blackHoleIntensity;  // core becomes pure black
         
         // ============================================
         // TUNNEL VIGNETTE (dark edges intensify with scroll)
         // ============================================
         float tunnelVignette = 1.0 - length(centeredUv) * (0.3 + uScrollProgress * 0.7);
         color *= clamp(tunnelVignette, 0.0, 1.0);
+        
+        // ============================================
+        // GLOBAL BLACKOUT (entire scene darkens at scroll=1)
+        // ============================================
+        float globalBlackout = smoothstep(0.85, 1.0, uScrollProgress);
+        color *= 1.0 - globalBlackout * 0.8;  // darken everything
         
         // Depth gradient
         float depth = 1.0 - length(centeredUv) * 0.3;
@@ -352,29 +371,27 @@ function init() {
     const voidContainer = document.getElementById('void-container');
     const voidZoneHeight = voidZone ? voidZone.offsetHeight - window.innerHeight : window.innerHeight;
 
-    // Add CSS transition to void-container for smooth fade
-    voidContainer.style.transition = 'opacity 0.5s ease-out';
+    // NO CSS FADE - shader handles blackout transition
+    // Void stays visible but turns into black hole
 
     window.addEventListener('scroll', () => {
         const progress = voidZoneHeight > 0 ? Math.min(window.scrollY / voidZoneHeight, 1) : 0;
         state.scrollProgress = progress;
 
-        // Fade out void-container as we exit (last 20% of scroll)
-        if (progress > 0.8) {
-            const fadeProgress = (progress - 0.8) / 0.2; // 0-1 in last 20%
-            voidContainer.style.opacity = 1 - fadeProgress;
+        // At 100% scroll: disable pointer-events so emergence can be interacted with
+        // Void stays visible (black hole) behind emergence
+        if (progress >= 0.95) {
+            voidContainer.style.pointerEvents = 'none';
 
-            // Trigger emergence reveal at 100%
-            if (progress >= 0.95) {
-                const emergenceContent = document.querySelector('.emergence-content');
-                if (emergenceContent && !emergenceContent.classList.contains('visible')) {
-                    emergenceContent.style.opacity = '1';
-                    emergenceContent.style.transform = 'translateY(0)';
-                    emergenceContent.classList.add('visible');
-                }
+            // Reveal emergence content
+            const emergenceContent = document.querySelector('.emergence-content');
+            if (emergenceContent && !emergenceContent.classList.contains('visible')) {
+                emergenceContent.style.opacity = '1';
+                emergenceContent.style.transform = 'translateY(0)';
+                emergenceContent.classList.add('visible');
             }
         } else {
-            voidContainer.style.opacity = 1;
+            voidContainer.style.pointerEvents = 'auto';
         }
     }, { passive: true });
 
