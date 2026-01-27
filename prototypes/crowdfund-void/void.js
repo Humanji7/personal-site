@@ -36,6 +36,12 @@ const CONFIG = {
     // Timing thresholds
     pauseThreshold: 1500,    // ms without movement = pause
     rapidThreshold: 0.025,   // velocity threshold for rapid movement
+
+    // Scroll tunnel
+    tunnelSpeed: 0.15,  // глубина втягивания при scroll=1
+    voidScrollHeight: 150,  // vh - high zone for void (was 300)
+    tunnelWarpPower: 2.5,    // экспонента сжатия UV (1=линейно, 3=агрессивно)
+    tunnelCoreGlow: 1.5,     // яркость центра на scroll=1
 };
 
 // ============================================================
@@ -53,6 +59,7 @@ const state = {
     hasEntered: false,
     isPausing: false,
     microTextTimeout: null,
+    scrollProgress: 0,  // 0-1
 };
 
 // ============================================================
@@ -94,6 +101,9 @@ const fragmentShader = `
     uniform vec3 uColor4;
     uniform vec2 uResolution;
     uniform float uTrailIntensity;
+    uniform float uScrollProgress;
+    uniform float uTunnelWarpPower;
+    uniform float uTunnelCoreGlow;
     
     varying vec2 vUv;
     
@@ -160,18 +170,32 @@ const fragmentShader = `
         float breathScale = 1.0 + uBreath * 0.1;
         
         // ============================================
-        // GRAVITY WELL - cursor is center of attraction
+        // GRAVITY WELL - cursor → center via scroll
         // ============================================
-        vec2 toMouseRaw = uMouseRaw - uv;
-        float mouseDistRaw = length(toMouseRaw);
-        vec2 mouseDir = normalize(toMouseRaw + 0.0001);
+        // Gravity target: lerp from cursor to center based on scroll
+        vec2 screenCenter = vec2(0.5, 0.5);
+        vec2 gravityTarget = mix(uMouseRaw, screenCenter, uScrollProgress);
         
-        // Attraction strength - stronger near cursor
-        float attraction = smoothstep(0.7, 0.0, mouseDistRaw);
+        vec2 toGravity = gravityTarget - uv;
+        float gravityDist = length(toGravity);
+        vec2 gravityDir = normalize(toGravity + 0.0001);
         
-        // Warp UV toward cursor - creates "pulled" effect
-        float warpStrength = attraction * 0.08;
-        vec2 gravityWarpedUv = centeredUv + mouseDir * warpStrength;
+        // Attraction: stronger near center, intensifies with scroll
+        float baseAttraction = smoothstep(0.7, 0.0, gravityDist);
+        float tunnelBoost = uScrollProgress * 0.5;
+        float attraction = baseAttraction + tunnelBoost;
+        
+        // ============================================
+        // EXPONENTIAL UV SINGULARITY (Hyperspace Tunnel)
+        // ============================================
+        float warpPower = 1.0 + uScrollProgress * uTunnelWarpPower;
+        float dist = length(centeredUv);
+        float warpedDist = pow(dist + 0.0001, warpPower); // exponential collapse
+        vec2 gravityWarpedUv = normalize(centeredUv + 0.0001) * warpedDist;
+        
+        // Preserve cursor pull at low scroll (fade out as we dive)
+        float cursorPull = (1.0 - uScrollProgress) * attraction * 0.08;
+        gravityWarpedUv += gravityDir * cursorPull;
         
         // Velocity creates wake/trail behind movement
         float velocityEffect = uVelocityMagnitude * 0.5;
@@ -189,18 +213,18 @@ const fragmentShader = `
         // Wave layers - all influenced by gravity field
         vec2 wave1 = warpedUv * 2.2 * breathScale;
         wave1 += vec2(sin(t * 0.7), cos(t * 0.5)) * 0.35;
-        wave1 += mouseDir * attraction * 0.3; // Pull toward cursor
+        wave1 += gravityDir * attraction * 0.3; // Pull toward gravity center
         float n1 = fbm(wave1 + t * 0.25, 4);
         
         vec2 wave2 = warpedUv * 3.8 * breathScale;
         wave2 -= vec2(cos(t * 0.6), sin(t * 0.8)) * 0.3;
-        wave2 += mouseDir * attraction * 0.2;
+        wave2 += gravityDir * attraction * 0.2;
         wave2 -= wake * 0.5; // Wake affects deeper layer
         float n2 = fbm(wave2 - t * 0.18, 4);
         
         vec2 wave3 = warpedUv * 1.8 * breathScale;
         wave3 += vec2(sin(t * 0.4 + n1), cos(t * 0.3 + n2)) * 0.5;
-        wave3 += mouseDir * attraction * 0.15;
+        wave3 += gravityDir * attraction * 0.15;
         float n3 = fbm(wave3 + t * 0.12, 4);
         
         // Fine detail layer
@@ -230,7 +254,7 @@ const fragmentShader = `
         // ============================================
         // GLOW - instant, part of gravity field
         // ============================================
-        float cursorGlow = smoothstep(0.35, 0.0, mouseDistRaw) * 0.45;
+        float cursorGlow = smoothstep(0.35, 0.0, gravityDist) * 0.45;
         cursorGlow *= (1.0 + velocityEffect * 0.4);
         // Glow color slightly warmer when moving fast
         vec3 glowColor = mix(vec3(1.0, 0.95, 0.9), vec3(1.0, 0.85, 0.7), velocityEffect);
@@ -239,9 +263,17 @@ const fragmentShader = `
         // Trail intensity shimmer
         color += vec3(0.12, 0.15, 0.25) * uTrailIntensity * 0.6;
         
-        // Softer vignette - slightly lifted near cursor
-        float vignette = 1.0 - smoothstep(0.4 + attraction * 0.1, 1.4, length(centeredUv));
-        color *= vignette;
+        // ============================================
+        // TUNNEL CORE GLOW (bright center on deep scroll)
+        // ============================================
+        float coreBrightness = smoothstep(0.25, 0.0, gravityDist) * uScrollProgress * uTunnelCoreGlow;
+        color += vec3(1.0, 0.98, 0.95) * coreBrightness;
+        
+        // ============================================
+        // TUNNEL VIGNETTE (dark edges intensify with scroll)
+        // ============================================
+        float tunnelVignette = 1.0 - length(centeredUv) * (0.3 + uScrollProgress * 0.7);
+        color *= clamp(tunnelVignette, 0.0, 1.0);
         
         // Depth gradient
         float depth = 1.0 - length(centeredUv) * 0.3;
@@ -292,6 +324,9 @@ function init() {
         uColor4: { value: CONFIG.colors.accent },
         uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
         uTrailIntensity: { value: 0 },
+        uScrollProgress: { value: 0 },
+        uTunnelWarpPower: { value: CONFIG.tunnelWarpPower },
+        uTunnelCoreGlow: { value: CONFIG.tunnelCoreGlow },
     };
 
     // Shader material
@@ -311,6 +346,37 @@ function init() {
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseenter', onMouseEnter);
     window.addEventListener('mouseleave', onMouseLeave);
+
+    // Scroll tracking - progress based on void-zone height only
+    const voidZone = document.getElementById('void-zone');
+    const voidContainer = document.getElementById('void-container');
+    const voidZoneHeight = voidZone ? voidZone.offsetHeight - window.innerHeight : window.innerHeight;
+
+    // Add CSS transition to void-container for smooth fade
+    voidContainer.style.transition = 'opacity 0.5s ease-out';
+
+    window.addEventListener('scroll', () => {
+        const progress = voidZoneHeight > 0 ? Math.min(window.scrollY / voidZoneHeight, 1) : 0;
+        state.scrollProgress = progress;
+
+        // Fade out void-container as we exit (last 20% of scroll)
+        if (progress > 0.8) {
+            const fadeProgress = (progress - 0.8) / 0.2; // 0-1 in last 20%
+            voidContainer.style.opacity = 1 - fadeProgress;
+
+            // Trigger emergence reveal at 100%
+            if (progress >= 0.95) {
+                const emergenceContent = document.querySelector('.emergence-content');
+                if (emergenceContent && !emergenceContent.classList.contains('visible')) {
+                    emergenceContent.style.opacity = '1';
+                    emergenceContent.style.transform = 'translateY(0)';
+                    emergenceContent.classList.add('visible');
+                }
+            }
+        } else {
+            voidContainer.style.opacity = 1;
+        }
+    }, { passive: true });
 
     // Show main text after delay
     setTimeout(() => {
@@ -441,6 +507,7 @@ function animate() {
     }
     state.trails = validTrails;
     uniforms.uTrailIntensity.value = Math.min(trailIntensity, 1);
+    uniforms.uScrollProgress.value = state.scrollProgress;
 
     // Pause detection
     const timeSinceMove = now - state.lastMoveTime;

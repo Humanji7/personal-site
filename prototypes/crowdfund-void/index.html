@@ -5,11 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Void — Живое Пространство</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=2">
 </head>
 
-<body>
-    <div id="void-container">
+<body style="margin: 0;">
+    <!-- VOID: Fast tunnel (100vh scroll zone) -->
+    <div id="void-zone" style="height: 150vh;"></div>
+
+    <div id="void-container" style="position: fixed; inset: 0; z-index: 1;">
         <canvas id="void-canvas"></canvas>
 
         <!-- Void Text Layer -->
@@ -22,6 +25,22 @@
         </div>
     </div>
 
+    <!-- EMERGENCE: Next block after tunnel -->
+    <section id="emergence"
+        style="position: relative; z-index: 10; min-height: 100vh; background: #0a0a0f; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 4rem 2rem;">
+        <div class="emergence-content"
+            style="max-width: 800px; text-align: center; opacity: 0; transform: translateY(40px); transition: opacity 1.2s ease-out, transform 1.2s ease-out;">
+            <p
+                style="font-size: clamp(1.2rem, 3vw, 2rem); font-weight: 300; color: rgba(255,255,255,0.9); line-height: 1.6; letter-spacing: 0.02em;">
+                О. Ты дошёл.
+            </p>
+            <p
+                style="font-size: clamp(0.9rem, 2vw, 1.2rem); color: rgba(255,255,255,0.5); margin-top: 2rem; font-weight: 300;">
+                Это место, где я строю вслух.
+            </p>
+        </div>
+    </section>
+
     <!-- Three.js -->
     <script type="importmap">
     {
@@ -30,6 +49,8 @@
         }
     }
     </script>
+
+
     <script type="module" src="void.js"></script>
 </body>
 
