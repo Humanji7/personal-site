@@ -5,12 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Void — Живое Пространство</title>
-    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="styles.css?v=8">
 </head>
 
 <body style="margin: 0;">
     <!-- VOID: Fast tunnel (100vh scroll zone) -->
     <div id="void-zone" style="height: 150vh;"></div>
+    <div id="post-void-zone" style="height: 600vh;"></div>
 
     <div id="void-container" style="position: fixed; inset: 0; z-index: 1;">
         <canvas id="void-canvas"></canvas>
@@ -24,6 +25,9 @@
             <div class="void-message micro-text" id="micro-text"></div>
         </div>
     </div>
+
+    <!-- UI overlay (DOM, accessible) -->
+    <div id="ui-root" style="position: fixed; inset: 0; z-index: 5; pointer-events: none;"></div>
 
     <!-- EMERGENCE: Fallback (hidden when WebGL text active) -->
     <section id="emergence"
@@ -46,13 +50,14 @@
     {
         "imports": {
             "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/",
             "troika-three-text": "https://esm.sh/troika-three-text@0.52.3?external=three"
         }
     }
     </script>
 
 
-    <script type="module" src="void.js"></script>
+    <script type="module" src="main.js?v=8"></script>
 </body>
 
 </html>

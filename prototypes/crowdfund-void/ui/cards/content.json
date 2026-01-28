@@ -1,0 +1,39 @@
+[
+  {
+    "id": "t-001",
+    "type": "thought",
+    "title": "Соло — это честно",
+    "size": "text",
+    "locked": false,
+    "stage": { "x": -0.35, "y": 0.18, "z": 0.25 },
+    "href": "#"
+  },
+  {
+    "id": "p-001",
+    "type": "photo",
+    "title": "Золото в шуме",
+    "size": "m",
+    "locked": true,
+    "stage": { "x": 0.42, "y": 0.12, "z": 0.55 },
+    "preview": { "image": "" }
+  },
+  {
+    "id": "a-001",
+    "type": "artifact",
+    "title": "Артефакт: След",
+    "size": "s",
+    "locked": true,
+    "stage": { "x": 0.12, "y": -0.24, "z": 0.78 },
+    "href": "#"
+  },
+  {
+    "id": "pr-001",
+    "type": "project",
+    "title": "Swarm Demo",
+    "size": "l",
+    "locked": false,
+    "stage": { "x": -0.08, "y": -0.38, "z": 0.42 },
+    "href": "#"
+  }
+]
+
