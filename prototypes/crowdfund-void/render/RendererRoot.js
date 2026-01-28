@@ -35,6 +35,11 @@ export class RendererRoot {
   // Render-graph support: clear screen before frame
   beginFrame() {
     this.renderer.setRenderTarget(null);
+    // Guard against any pass leaving a reduced viewport/scissor behind.
+    const w = this.renderer.domElement.width;
+    const h = this.renderer.domElement.height;
+    this.renderer.setScissorTest(false);
+    this.renderer.setViewport(0, 0, w, h);
     this.renderer.clear(true, true, true);
   }
 

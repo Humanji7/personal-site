@@ -35,6 +35,7 @@ function getQuery() {
     tier: p.get('tier'),
     api: p.get('api') === '1',
     intensity: p.get('intensity'),
+    motion: p.get('motion') === '1',
     // PostFX pipeline controls (Milestone 0)
     fx: p.get('fx') !== '0', // default enabled, fx=0 disables
     exposure: parseFloat(p.get('exposure')) || 1.2,
@@ -60,6 +61,10 @@ async function boot() {
   const rendererRoot = new RendererRoot({ canvas });
 
   const caps = getDeviceCaps(rendererRoot.renderer);
+  // Allow opting into motion even if OS has prefers-reduced-motion enabled.
+  const motionOverride =
+    query.motion || localStorage.getItem('pv-motion') === 'on' || false;
+  if (motionOverride) caps.reducedMotion = false;
   const quality = new QualityManager({ caps, initialTier: query.tier });
   quality.initFromCaps();
 
@@ -131,6 +136,22 @@ async function boot() {
     renderIntensityLabel();
   });
   document.getElementById('ui-root')?.appendChild(intensityBtn);
+
+  if (!motionOverride && caps.reducedMotion) {
+    const motionBtn = document.createElement('button');
+    motionBtn.type = 'button';
+    motionBtn.className = 'pv-intensity-toggle';
+    motionBtn.style.top = '52px';
+    motionBtn.style.pointerEvents = 'auto';
+    motionBtn.textContent = 'Motion: Off (click to enable)';
+    motionBtn.addEventListener('click', () => {
+      localStorage.setItem('pv-motion', 'on');
+      const sp = new URLSearchParams(location.search);
+      sp.set('motion', '1');
+      location.search = sp.toString();
+    });
+    document.getElementById('ui-root')?.appendChild(motionBtn);
+  }
 
   // TODO: Fill with real LemonSqueezy checkout URLs per tier.
   // Minimal integration is "open hosted checkout in new tab" until embed+backend lands.
