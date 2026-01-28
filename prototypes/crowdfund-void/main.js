@@ -94,10 +94,13 @@ async function boot() {
       width: viewport.w,
       height: viewport.h,
     });
+    // PostFX must be sized in drawing-buffer pixels to avoid blocky scaling artifacts.
+    const pxW = renderTargets.rtComposite.width;
+    const pxH = renderTargets.rtComposite.height;
     postfx = new PostFXPipeline({
       renderer: rendererRoot.renderer,
-      width: viewport.w,
-      height: viewport.h,
+      width: pxW,
+      height: pxH,
       config: {
         exposure: query.exposure,
         bloom: query.bloom,
@@ -278,7 +281,9 @@ async function boot() {
       cards.resize({ viewport });
       // PostFX pipeline resize
       renderTargets?.resize(viewport.w, viewport.h);
-      postfx?.resize(viewport.w, viewport.h);
+      if (renderTargets && postfx) {
+        postfx.resize(renderTargets.rtComposite.width, renderTargets.rtComposite.height);
+      }
     },
     { passive: true },
   );
