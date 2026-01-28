@@ -407,8 +407,15 @@ export class VoidLayer {
     }
   }
 
-  render(renderer) {
+  render(renderer, opts = {}) {
+    const { target = null } = opts;
+    if (target) {
+      renderer.setRenderTarget(target);
+    }
     renderer.render(this.scene, this.camera);
+    if (target) {
+      renderer.setRenderTarget(null);
+    }
   }
 
   destroy() {

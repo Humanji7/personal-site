@@ -34,6 +34,7 @@ void main() {
 `;
 
 // Composite: prev * decay + curr. Adds a subtle warm shimmer in negative space.
+// Output is LINEAR — no tonemap here (tonemap happens in final PostFX pass).
 const COMPOSITE_FRAG = `
 precision highp float;
 varying vec2 vUv;
@@ -45,7 +46,6 @@ uniform float uPresence;
 uniform float uTime;
 uniform float uIntensity;
 uniform float uCurrGain;
-uniform float uExposure;
 
 float hash21(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -78,23 +78,26 @@ void main() {
   vec3 warm = vec3(1.0, 0.86, 0.62);
   col += warm * shimmer * (0.35 + 0.65 * n);
 
-  // Soft tone-map to prevent blowouts from additive particles + accumulation.
-  col *= uExposure;
-  col = col / (vec3(1.0) + col); // Reinhard
-
+  // Store LINEAR — tonemap/gamma handled in PostFX pipeline.
   gl_FragColor = vec4(col, 1.0);
 }
 `;
 
+// Blit pass: can output linear (fx=1) or display-space (fx=0).
 const BLIT_FRAG = `
 precision highp float;
 varying vec2 vUv;
 uniform sampler2D uTex;
 uniform float uOpacity;
+uniform float uLinear; // 1.0 = linear output, 0.0 = apply gamma + tonemap
+
 void main() {
   vec3 col = texture2D(uTex, vUv).rgb;
-  // Output in display space.
-  col = pow(max(col, 0.0), vec3(1.0 / 2.2));
+  if (uLinear < 0.5) {
+    // Legacy fx=0 path: soft Reinhard + gamma for display.
+    col = col / (vec3(1.0) + col);
+    col = pow(max(col, 0.0), vec3(1.0 / 2.2));
+  }
   gl_FragColor = vec4(col, uOpacity);
 }
 `;
@@ -129,7 +132,6 @@ export class TrailAccumulationPass {
         uTime: { value: 0 },
         uIntensity: { value: 1 },
         uCurrGain: { value: 0.75 },
-        uExposure: { value: 1.1 },
       },
     });
 
@@ -143,6 +145,7 @@ export class TrailAccumulationPass {
       uniforms: {
         uTex: { value: null },
         uOpacity: { value: 0 },
+        uLinear: { value: 0 }, // 0 = fx=0 path (gamma+tonemap), 1 = fx=1 path (linear)
       },
     });
 
@@ -197,6 +200,7 @@ export class TrailAccumulationPass {
     intensity01,
     currGain,
     exposure,
+    outputTarget = null, // null = screen (fx=0), RT = write linear (fx=1)
   }) {
     const renderer = this._renderer;
     const prev = renderer.getRenderTarget();
@@ -206,7 +210,7 @@ export class TrailAccumulationPass {
     renderer.clear(true, false, false);
     renderer.render(particleScene, camera);
 
-    // 2) Composite prev + curr into next buffer.
+    // 2) Composite prev + curr into next buffer (always linear).
     this._quad.material = this._matComposite;
     this._matComposite.uniforms.uPrev.value = this._rtA.texture;
     this._matComposite.uniforms.uCurr.value = this._rtCurr.texture;
@@ -215,16 +219,18 @@ export class TrailAccumulationPass {
     this._matComposite.uniforms.uTime.value = now;
     this._matComposite.uniforms.uIntensity.value = intensity01;
     this._matComposite.uniforms.uCurrGain.value = currGain;
-    this._matComposite.uniforms.uExposure.value = exposure;
 
     renderer.setRenderTarget(this._rtB);
     renderer.render(this._quadScene, this._quadCam);
 
-    // 3) Blit to screen (additive) so underlying void can crossfade out cleanly.
+    // 3) Blit to output.
     this._quad.material = this._matBlit;
     this._matBlit.uniforms.uTex.value = this._rtB.texture;
     this._matBlit.uniforms.uOpacity.value = presence01;
-    renderer.setRenderTarget(null);
+    // If outputTarget provided: output linear for PostFX pipeline (fx=1).
+    // Otherwise: apply tonemap+gamma for legacy screen output (fx=0).
+    this._matBlit.uniforms.uLinear.value = outputTarget ? 1.0 : 0.0;
+    renderer.setRenderTarget(outputTarget);
     renderer.render(this._quadScene, this._quadCam);
 
     // Swap buffers.

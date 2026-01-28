@@ -9,6 +9,10 @@ import { InputController } from './systems/InputController.js';
 import { CardLayer } from './ui/cards/CardLayer.js';
 import { EdgeUI } from './ui/edges/EdgeUI.js';
 import { openCheckout } from './ui/payments/lemon.js';
+// PostFX pipeline (Milestone 3)
+import { RenderTargets } from './render/RenderTargets.js';
+import { PostFXPipeline } from './render/PostFXPipeline.js';
+import { LinearCompositePass } from './render/passes/LinearCompositePass.js';
 
 async function fetchEntitlements() {
   // Only hit API when explicitly enabled (static dev server has no /api routes).
@@ -31,6 +35,11 @@ function getQuery() {
     tier: p.get('tier'),
     api: p.get('api') === '1',
     intensity: p.get('intensity'),
+    // PostFX pipeline controls (Milestone 0)
+    fx: p.get('fx') !== '0', // default enabled, fx=0 disables
+    exposure: parseFloat(p.get('exposure')) || 1.2,
+    bloom: parseFloat(p.get('bloom')) || 1.2,
+    threshold: parseFloat(p.get('threshold')) || 0.7,
   };
 }
 
@@ -68,6 +77,30 @@ async function boot() {
 
   const postVoidLayer = new PostVoidLayer();
   await postVoidLayer.init({ renderer: rendererRoot.renderer, viewport, quality });
+
+  // PostFX pipeline (fx=1 path)
+  let renderTargets = null;
+  let postfx = null;
+  let compositePass = null;
+  if (query.fx) {
+    renderTargets = new RenderTargets({
+      renderer: rendererRoot.renderer,
+      caps,
+      width: viewport.w,
+      height: viewport.h,
+    });
+    postfx = new PostFXPipeline({
+      renderer: rendererRoot.renderer,
+      width: viewport.w,
+      height: viewport.h,
+      config: {
+        exposure: query.exposure,
+        bloom: query.bloom,
+        threshold: query.threshold,
+      },
+    });
+    compositePass = new LinearCompositePass({ renderer: rendererRoot.renderer });
+  }
 
   const cards = new CardLayer();
   await cards.init({ viewport });
@@ -129,7 +162,10 @@ async function boot() {
     openCheckout(CHECKOUT_URLS[tier]);
   });
 
-  rendererRoot.setLayers([voidLayer, postVoidLayer]);
+  // Only use setLayers for legacy fx=0 path
+  if (!query.fx) {
+    rendererRoot.setLayers([voidLayer, postVoidLayer]);
+  }
 
   let lastT = performance.now();
   function tick(nowMs) {
@@ -166,28 +202,65 @@ async function boot() {
     postVoidLayer.setIntensity(intensity === 'intense' ? 1 : 0);
     postVoidLayer.tick({ dt, now: nowMs / 1000, quality, input, rects });
 
-    rendererRoot.render();
+    // Render
+    if (query.fx && renderTargets && postfx && compositePass) {
+      // fx=1: full render graph
+      const renderer = rendererRoot.renderer;
+      rendererRoot.beginFrame();
+
+      // 1) Void → rtVoid
+      voidLayer.render(renderer, { target: renderTargets.rtVoid });
+
+      // 2) Particles/trails → rtPost
+      // Ensure rtPost starts clean each frame (TrailAccumulationPass uses alpha in blit).
+      renderer.setRenderTarget(renderTargets.rtPost);
+      renderer.clear(true, false, false);
+      renderer.setRenderTarget(null);
+      postVoidLayer.renderParticles(renderer, { target: renderTargets.rtPost });
+
+      // 3) Composite void + post → rtComposite
+      compositePass.render({
+        voidTexture: renderTargets.rtVoid.texture,
+        postTexture: renderTargets.rtPost.texture,
+        mix: transition,
+        outputTarget: renderTargets.rtComposite,
+      });
+
+      // 4) PostFX (bloom + tonemap) → screen
+      postfx.setInput(renderTargets.rtComposite.texture);
+      postfx.render(dt);
+
+      // 5) Overlay (manifesto) — crisp, after postfx
+      renderer.setRenderTarget(null);
+      postVoidLayer.renderOverlay(renderer);
+    } else {
+      // fx=0: legacy path
+      rendererRoot.render();
+    }
 
     hud.setText(
-      `fps ${fps.toFixed(1)} | tier ${quality.tier} | particles ${quality.particleCount} | kf ${s.keyframe} | void ${s.voidProgress.toFixed(3)} | post ${s.postProgress.toFixed(3)}`,
+      `fps ${fps.toFixed(1)} | tier ${quality.tier} | particles ${quality.particleCount} | fx ${query.fx ? 1 : 0} | kf ${s.keyframe} | void ${s.voidProgress.toFixed(3)} | post ${s.postProgress.toFixed(3)}`,
     );
 
     requestAnimationFrame(tick);
   }
 
-    window.addEventListener(
-      'resize',
-      () => {
-        viewport.w = window.innerWidth;
-        viewport.h = window.innerHeight;
-        rendererRoot.resize(viewport.w, viewport.h);
-        voidLayer.resize({ viewport });
-        postVoidLayer.resize({ viewport });
-        input.resize({ viewport });
-        cards.resize({ viewport });
-      },
-      { passive: true },
-    );
+  window.addEventListener(
+    'resize',
+    () => {
+      viewport.w = window.innerWidth;
+      viewport.h = window.innerHeight;
+      rendererRoot.resize(viewport.w, viewport.h);
+      voidLayer.resize({ viewport });
+      postVoidLayer.resize({ viewport });
+      input.resize({ viewport });
+      cards.resize({ viewport });
+      // PostFX pipeline resize
+      renderTargets?.resize(viewport.w, viewport.h);
+      postfx?.resize(viewport.w, viewport.h);
+    },
+    { passive: true },
+  );
 
   requestAnimationFrame(tick);
 }

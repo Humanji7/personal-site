@@ -131,19 +131,22 @@ export class PostVoidLayer {
     this.manifesto.tick({ postProgress: this._postProgress, ramps: this._ramps, quality, now });
   }
 
-  render(renderer) {
-    if (!this.trails) {
-      renderer.render(this.particleScene, this.camera);
-      renderer.render(this.overlayScene, this.camera);
-      return;
-    }
+  // Render particles/trails into target (fx=1 path)
+  renderParticles(renderer, opts = {}) {
+    const { target = null } = opts;
 
     if (this._shouldResetTrails) {
-      this.trails.reset();
+      this.trails?.reset();
       this._shouldResetTrails = false;
     }
 
-    // Per-frame decay: calm mode clears faster; intense mode leaves longer traces.
+    if (!this.trails) {
+      if (target) renderer.setRenderTarget(target);
+      renderer.render(this.particleScene, this.camera);
+      if (target) renderer.setRenderTarget(null);
+      return;
+    }
+
     const baseDecay = this._intensity > 0.5 ? 0.962 : 0.925;
     const decay = Math.pow(baseDecay, Math.max(1, this._lastDt * 60));
     const currGain = this._intensity > 0.5 ? 0.8 : 0.7;
@@ -158,11 +161,20 @@ export class PostVoidLayer {
       intensity01: this._intensity,
       currGain,
       exposure,
+      outputTarget: target, // new: write to RT instead of screen
     });
+  }
 
-    // Render crisp overlay content (no accumulation).
+  // Render overlay (manifesto) — crisp, no bloom (fx=1 path)
+  renderOverlay(renderer) {
     renderer.clearDepth();
     renderer.render(this.overlayScene, this.camera);
+  }
+
+  // Legacy render for fx=0 compatibility
+  render(renderer) {
+    this.renderParticles(renderer);
+    this.renderOverlay(renderer);
   }
 
   destroy() {
