@@ -57,6 +57,11 @@ export class ParticleCompute {
     this.velVar.material.uniforms.uRects = {
       value: Array.from({ length: 16 }, () => new THREE.Vector4(0, 0, 0, 0)),
     };
+    // Pointer history for ribbon effect: vec4(x, y, age, speed) x 32
+    this.velVar.material.uniforms.uHistoryCount = { value: 0 };
+    this.velVar.material.uniforms.uHistory = {
+      value: Array.from({ length: 32 }, () => new THREE.Vector4(0, 0, 1e9, 0)),
+    };
 
     this.posVar.material.uniforms.uDt = { value: 0.016 };
     this.posVar.material.uniforms.uTime = { value: 0 };
@@ -65,7 +70,7 @@ export class ParticleCompute {
     if (err) throw new Error(err);
   }
 
-  tick({ dt, now, pointerStage, pointerVelStage, edges, waves, rects, intensity }) {
+  tick({ dt, now, pointerStage, pointerVelStage, edges, waves, rects, intensity, history }) {
     this.velVar.material.uniforms.uDt.value = dt;
     this.velVar.material.uniforms.uTime.value = now;
     this.velVar.material.uniforms.uPointer.value.copy(pointerStage);
@@ -93,6 +98,18 @@ export class ParticleCompute {
         continue;
       }
       this.velVar.material.uniforms.uRects.value[i].set(r.x0, r.y0, r.x1, r.y1);
+    }
+
+    // Pointer history for ribbon.
+    const hc = Math.min(32, history?.length ?? 0);
+    this.velVar.material.uniforms.uHistoryCount.value = hc;
+    for (let i = 0; i < 32; i++) {
+      const h = history?.[i];
+      if (!h) {
+        this.velVar.material.uniforms.uHistory.value[i].set(0, 0, 1e9, 0);
+        continue;
+      }
+      this.velVar.material.uniforms.uHistory.value[i].copy(h);
     }
 
     this.posVar.material.uniforms.uDt.value = dt;

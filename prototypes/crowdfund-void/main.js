@@ -192,7 +192,28 @@ async function boot() {
   }
 
   let lastT = performance.now();
+  let wasHidden = false;
+
+  // Handle tab visibility — reset timing on return to avoid particle jumps.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      wasHidden = true;
+    } else if (wasHidden) {
+      // Tab became visible again — reset timing.
+      lastT = performance.now();
+      wasHidden = false;
+    }
+  });
+
   function tick(nowMs) {
+    // Skip frame if just returned from hidden to let state stabilize.
+    if (wasHidden) {
+      lastT = nowMs;
+      wasHidden = false;
+      requestAnimationFrame(tick);
+      return;
+    }
+
     const dt = Math.min(0.033, (nowMs - lastT) / 1000);
     lastT = nowMs;
 

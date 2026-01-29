@@ -8,6 +8,8 @@ uniform int uWavesCount;
 uniform vec4 uWaves[8]; // (originX, originY, time, strength)
 uniform int uRectsCount;
 uniform vec4 uRects[16]; // (x0, y0, x1, y1) in stage/NDC space
+uniform int uHistoryCount;
+uniform vec4 uHistory[32]; // (x, y, age, speed) — pointer trail for ribbon effect
 
 float hash21(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -48,6 +50,14 @@ void main() {
   // Damping (calm mode damps more).
   vel *= mix(0.92, 0.985, uIntensity);
 
+  // Soft bounds: attract particles back if they drift too far from center.
+  // This prevents "lost" particles after tab was hidden.
+  float distFromCenter = length(pos.xy);
+  float boundaryStart = 0.85; // Start attracting at 85% of stage
+  float boundaryForce = smoothstep(boundaryStart, 1.2, distFromCenter);
+  vec2 pullBack = -normalize(pos.xy + 1e-6);
+  vel.xy += pullBack * boundaryForce * 0.5 * uDt;
+
   // Base flow: curl-noise rivers + global orbit.
   vec2 p = pos.xy;
   vec2 flow = curl(p * 1.35 + uTime * 0.12);
@@ -81,6 +91,63 @@ void main() {
   float dBehind = length(toBehind) + 1e-4;
   float follow = smoothstep(0.45, 0.0, dBehind) * smoothstep(0.2, 2.0, speed);
   vel.xy += normalize(toBehind) * follow * mix(0.25, 0.55, uIntensity) * uDt;
+
+  // === RIBBON PATH-FOLLOW ===
+  // Find closest point on pointer trail and flow along it.
+  if (uHistoryCount > 1) {
+    float minDist = 1e9;
+    vec2 closestPoint = uHistory[0].xy;
+    vec2 pathDir = vec2(1.0, 0.0);
+    float closestSpeed = 0.0;
+    float closestAge = 0.0;
+
+    for (int i = 0; i < 31; i++) {
+      if (i >= uHistoryCount - 1) break;
+
+      vec4 h0 = uHistory[i];
+      vec4 h1 = uHistory[i + 1];
+
+      // Skip stale segments (age > 0.8s).
+      if (h0.z > 0.8 || h1.z > 0.8) continue;
+
+      vec2 a = h0.xy;
+      vec2 b = h1.xy;
+      vec2 ab = b - a;
+      float abLen = length(ab) + 1e-6;
+
+      // Project particle onto line segment.
+      float t = clamp(dot(pos.xy - a, ab) / (abLen * abLen), 0.0, 1.0);
+      vec2 proj = a + ab * t;
+      float dist = length(pos.xy - proj);
+
+      if (dist < minDist) {
+        minDist = dist;
+        closestPoint = proj;
+        pathDir = normalize(ab + 1e-6);
+        closestSpeed = mix(h0.w, h1.w, t);
+        closestAge = mix(h0.z, h1.z, t);
+      }
+    }
+
+    // Attraction to ribbon path (stronger when close, fades with age).
+    float ribbonRadius = mix(0.15, 0.35, uIntensity);
+    float attract = smoothstep(ribbonRadius, 0.0, minDist);
+    float ageFade = smoothstep(0.6, 0.0, closestAge);
+    float ribbonStrength = attract * ageFade * mix(0.4, 1.2, uIntensity);
+
+    vec2 toPath = closestPoint - pos.xy;
+    vel.xy += normalize(toPath + 1e-6) * ribbonStrength * 0.5 * uDt;
+
+    // Tangential flow along path direction (creates ribbon/stream feel).
+    vec2 tangent = pathDir;
+    // Add slight swirl perpendicular to path.
+    vec2 swirlDir = vec2(-tangent.y, tangent.x);
+    float swirlPhase = sin(uTime * 3.0 + pos.x * 8.0 + pos.y * 6.0) * 0.3;
+
+    vec2 flowDir = tangent + swirlDir * swirlPhase;
+    float flowSpeed = closestSpeed * mix(0.3, 0.8, uIntensity);
+    vel.xy += normalize(flowDir + 1e-6) * ribbonStrength * flowSpeed * uDt;
+  }
 
   // Waves: ring impulse.
   for (int i = 0; i < 8; i++) {

@@ -171,7 +171,7 @@ export class ParticleSystem {
     if (typeof intensity === 'number') this.material.uniforms.uIntensity.value = intensity;
   }
 
-  tickCompute({ dt, now, pointerStage, pointerVelStage, edges, waves, rects, intensity }) {
+  tickCompute({ dt, now, pointerStage, pointerVelStage, edges, waves, rects, intensity, history }) {
     if (!this.material) return;
 
     // Always drive render uniforms for procedural mode as well.
@@ -192,7 +192,7 @@ export class ParticleSystem {
     }
 
     if (this.useGpgpu && this._compute) {
-      this._compute.tick({ dt, now, pointerStage, pointerVelStage, edges, waves, rects, intensity });
+      this._compute.tick({ dt, now, pointerStage, pointerVelStage, edges, waves, rects, intensity, history });
       if (!this.material.defines.USE_GPGPU) {
         this.material.defines.USE_GPGPU = 1;
         this.material.needsUpdate = true;

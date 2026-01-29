@@ -124,9 +124,13 @@ void main() {
   float tierAmt = uTier >= 0 ? mix(0.08, 0.28, uIntensity) : 0.0;
   vColor = mix(vColor, tierCol, tierAmt);
 
-  // Size: small to avoid fill-rate collapse.
-  float baseSize = mix(1.5, 4.0, 1.0 - pos.z) * mix(0.9, 1.35, uIntensity);
-  gl_PointSize = baseSize * min(2.0, uViewport.x / max(1.0, uViewport.y));
+  // Size: larger for visibility, depth-based variation.
+  float depthSize = mix(3.0, 8.0, 1.0 - pos.z); // front=8, back=3
+  float intensityMul = mix(0.85, 1.4, uIntensity);
+  float baseSize = depthSize * intensityMul;
+  // Scale by viewport aspect, clamped for ultra-wide.
+  float aspectScale = min(2.5, uViewport.x / max(1.0, uViewport.y));
+  gl_PointSize = baseSize * aspectScale;
 
   gl_Position = vec4(pos.xy, mix(0.2, 0.9, pos.z), 1.0);
   vAlpha = uOpacity;

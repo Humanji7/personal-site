@@ -5,8 +5,9 @@ function clamp01(x) {
 }
 
 export class InputController {
-  constructor({ maxWaves = 8 } = {}) {
+  constructor({ maxWaves = 8, historySize = 32 } = {}) {
     this.maxWaves = maxWaves;
+    this.historySize = historySize;
 
     this.pointerPx = new THREE.Vector2(0, 0);
     this.pointerStage = new THREE.Vector2(0, 0);
@@ -21,6 +22,12 @@ export class InputController {
     // Packed waves: vec4(originX, originY, time, strength)
     this.waves = Array.from({ length: maxWaves }, () => new THREE.Vector4(0, 0, -1e9, 0));
     this._waveCursor = 0;
+
+    // Pointer history for ribbon/path-follow effect.
+    // Each entry: vec4(x, y, age, speed) — age in seconds since sample.
+    this.pointerHistory = Array.from({ length: historySize }, () => new THREE.Vector4(0, 0, 1e9, 0));
+    this._historyInterval = 0.016; // ~60fps sampling
+    this._lastHistorySampleAt = -Infinity;
 
     this._viewport = { w: 1, h: 1 };
     this._onPointerMove = (e) => this._handlePointerMove(e);
@@ -38,6 +45,7 @@ export class InputController {
   tick({ nowMs }) {
     const dtMs = Math.max(1, nowMs - this._lastT);
     const dt = dtMs / 1000;
+    const nowSec = nowMs / 1000;
 
     this.pointerVelStage
       .copy(this.pointerStage)
@@ -50,12 +58,28 @@ export class InputController {
     this.isIdle = nowMs - this._lastMoveAt > 1200;
     if (this.isIdle) this.pointerVelStage.multiplyScalar(0.0);
 
-    // Emit waves based on current velocity (rate-limited).
+    // Update history ages.
+    for (let i = 0; i < this.historySize; i++) {
+      this.pointerHistory[i].z += dt;
+    }
+
+    // Sample new history point at interval.
     const speed = this.pointerVelStage.length();
+    if (nowSec - this._lastHistorySampleAt >= this._historyInterval && !this.isIdle) {
+      // Shift history (oldest drops off).
+      for (let i = this.historySize - 1; i > 0; i--) {
+        this.pointerHistory[i].copy(this.pointerHistory[i - 1]);
+      }
+      // Insert new sample at front: (x, y, age=0, speed).
+      this.pointerHistory[0].set(this.pointerStage.x, this.pointerStage.y, 0, speed);
+      this._lastHistorySampleAt = nowSec;
+    }
+
+    // Emit waves based on current velocity (rate-limited).
     const canEmit = !this.isIdle && speed > 0.6 && nowMs - this._lastWaveEmitAt > 90;
     if (canEmit) {
       const strength = clamp01(speed / 6);
-      this.emitWave({ now: nowMs / 1000, strength });
+      this.emitWave({ now: nowSec, strength });
       this._lastWaveEmitAt = nowMs;
     }
   }

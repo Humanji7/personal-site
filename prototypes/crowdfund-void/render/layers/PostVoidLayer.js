@@ -53,7 +53,7 @@ export class PostVoidLayer {
     this.overlayScene.add(this.manifesto.group);
 
     const tierScale =
-      quality.tier === 'ultra' ? 0.55 : quality.tier === 'high' ? 0.5 : quality.tier === 'mid' ? 0.42 : 0.35;
+      quality.tier === 'ultra' ? 1.0 : quality.tier === 'high' ? 0.75 : quality.tier === 'mid' ? 0.5 : 0.35;
     this.trails = new TrailAccumulationPass({
       renderer,
       viewport: this._viewport,
@@ -97,11 +97,11 @@ export class PostVoidLayer {
     if (this.trails) {
       const tierScale =
         quality.tier === 'ultra'
-          ? 0.55
+          ? 1.0
           : quality.tier === 'high'
-            ? 0.5
+            ? 0.75
             : quality.tier === 'mid'
-              ? 0.42
+              ? 0.5
               : 0.35;
       this.trails.setScale(tierScale);
     }
@@ -116,6 +116,7 @@ export class PostVoidLayer {
       waves: input.waves,
       rects,
       intensity: this._intensity,
+      history: input.pointerHistory,
     });
 
     // Render shader time (palette animation etc).
