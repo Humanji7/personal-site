@@ -84,9 +84,10 @@ docs/MEMORY_BANK/
 ## Gotchas
 
 - **Gamma:** только в финальном pass (`PostFXPipeline`). НЕ трогай gamma в `TrailAccumulationPass`
-- **Размер x3:** увеличение размера частиц в 3 раза ломает рендер — причина не исследована
+- **Размер частиц:** `baseSize > 30.0` ломает рендер (текущий max ~11). Увеличивай `depthSize` в `render.vert:128` инкрементально, тестируй после каждого шага
 - **void.js:** legacy файл, не используется
 - **uHistory:** максимум 32 точки, старые (age > 0.8s) игнорируются в ribbon
+- **Linear space:** все RT до PostFXPipeline работают в linear. Не добавляй pow(x, 2.2) в промежуточные шейдеры
 
 ---
 
@@ -96,10 +97,45 @@ docs/MEMORY_BANK/
 
 ---
 
+## Common Tasks (copy-paste)
+
+### Увеличить размер частиц
+```glsl
+// render.vert:128 — изменить depthSize
+float depthSize = mix(4.0, 10.0, 1.0 - pos.z); // было: 3.0, 8.0
+```
+
+### Добавить новую силу в velocity.frag
+```glsl
+// velocity.frag — после строки ~180 (перед финальным clamp)
+vec2 myForce = normalize(someDir) * strength * uIntensity;
+vel += myForce;
+```
+
+### Изменить цвет свечения
+```glsl
+// render.vert:108-115 — базовые цвета
+vec3 warmCore = vec3(1.0, 0.95, 0.8);  // центр
+vec3 coolEdge = vec3(0.7, 0.85, 1.0);  // край
+```
+
+### Отладка uniform
+```javascript
+// в консоли браузера
+window.VOID?.particles?.uniforms  // все uniforms
+window.VOID?.quality?.current     // текущий tier
+```
+
+---
+
 ## End-of-Session
 
 ```
-[ ] Обновить ACTIVE_CONTEXT.md (фокус, блокеры)
+[ ] Обновить ACTIVE_CONTEXT.md:
+    - Дата: YYYY-MM-DD
+    - Фокус: что делали
+    - Блокеры: что мешает
+    - Следующий шаг: конкретное действие
 [ ] Обновить PROGRESS.md (done/pending)
 [ ] ADR если архитектурное решение
 ```
